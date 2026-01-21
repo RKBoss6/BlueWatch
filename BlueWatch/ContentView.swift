@@ -42,14 +42,18 @@ struct ContentView: View {
     var body: some View {
         
         TabView{
-            Tab("Devices",systemImage:"applewatch.case.sizes"){
-                DevicesAvailableView()
-                
-            }
+            
             Tab("My Watch",systemImage:"watch.analog"){
                 WatchScreen()
                 
             }
+            /*
+            Tab("Apps",systemImage:"appclip"){
+                LockedWebView().edgesIgnoringSafeArea(.bottom)
+
+                
+            }
+             */
             Tab("Watch Settings",systemImage:"gearshape"){
                 WatchSettingsScreen()
             }
@@ -78,6 +82,7 @@ struct ContentView: View {
 
 struct DevicesAvailableView:View{
     @ObservedObject private var bluetoothViewModel=BluetoothViewModel()
+
     var body: some View{
         NavigationView{
             List(bluetoothViewModel.peripheralNames,id: \.self){ peripheral in
@@ -103,6 +108,10 @@ struct DevicesAvailableView:View{
         }
     }
 }
+
+
+
+
 #Preview {
     ContentView()
 }

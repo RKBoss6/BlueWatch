@@ -1,0 +1,95 @@
+{
+  "fill" : {
+    "automatic-gradient" : "display-p3:0.28392,0.57079,0.87677,1.00000"
+  },
+  "groups" : [
+    {
+      "blend-mode" : "screen",
+      "blur-material" : 0.38,
+      "hidden" : false,
+      "layers" : [
+        {
+          "blend-mode" : "soft-light",
+          "image-name" : "4740941.png",
+          "name" : "4740941",
+          "opacity" : 0.81,
+          "position" : {
+            "scale" : 0.78,
+            "translation-in-points" : [
+              225.20499999999993,
+              -289.24218749999994
+            ]
+          }
+        },
+        {
+          "blend-mode" : "soft-light",
+          "image-name" : "4740941.png",
+          "name" : "4740941",
+          "opacity" : 0.81,
+          "position" : {
+            "scale" : 0.87,
+            "translation-in-points" : [
+              -271.92218750000006,
+              245.953125
+            ]
+          }
+        }
+      ],
+      "opacity" : 1,
+      "position" : {
+        "scale" : 1,
+        "translation-in-points" : [
+          17,
+          0
+        ]
+      },
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 1
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    },
+    {
+      "blend-mode" : "soft-light",
+      "hidden" : false,
+      "layers" : [
+        {
+          "image-name" : "apple-watch-clipart-44.png",
+          "name" : "apple-watch-clipart-44",
+          "position" : {
+            "scale" : 0.54,
+            "translation-in-points" : [
+              9.550624999999854,
+              0
+            ]
+          }
+        }
+      ],
+      "opacity" : 1,
+      "position" : {
+        "scale" : 1,
+        "translation-in-points" : [
+          17,
+          0
+        ]
+      },
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "circles" : [
+      "watchOS"
+    ],
+    "squares" : "shared"
+  }
+}

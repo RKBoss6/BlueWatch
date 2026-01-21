@@ -404,29 +404,36 @@
 		3689015E2D7206AD00AD492A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = BlueWatchIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
+				CODE_SIGN_ENTITLEMENTS = BlueWatch/BlueWatch.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"BlueWatch/Preview Content\"";
-				DEVELOPMENT_TEAM = T7LWY3RUAV;
+				DEVELOPMENT_TEAM = 423YJ362Z5;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = BlueWatch/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "\"\"";
-				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "BlueWatch needs Bluetooth to connect to your watch";
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "BlueWatch needs bluetooth to connect to your Bangle.js";
 				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "BlueWatch needs Bluetooth to connect to your watch";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "App needs health access to write data";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "BlueWatch needs HealthKit updating access to push health data from your watch to the Health app.";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "BlueWatch needs location access to push location and weather data to your watch.";
+				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "App needs access to location to push location and weather to watch";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = RK.BlueWatch;
+				PRODUCT_BUNDLE_IDENTIFIER = com.RK.BlueWatch;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -437,29 +444,36 @@
 		3689015F2D7206AD00AD492A /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = BlueWatchIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
+				CODE_SIGN_ENTITLEMENTS = BlueWatch/BlueWatch.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"BlueWatch/Preview Content\"";
-				DEVELOPMENT_TEAM = T7LWY3RUAV;
+				DEVELOPMENT_TEAM = 423YJ362Z5;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = BlueWatch/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "\"\"";
-				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "BlueWatch needs Bluetooth to connect to your watch";
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "BlueWatch needs bluetooth to connect to your Bangle.js";
 				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "BlueWatch needs Bluetooth to connect to your watch";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "App needs health access to write data";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "BlueWatch needs HealthKit updating access to push health data from your watch to the Health app.";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "BlueWatch needs location access to push location and weather data to your watch.";
+				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "App needs access to location to push location and weather to watch";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = RK.BlueWatch;
+				PRODUCT_BUNDLE_IDENTIFIER = com.RK.BlueWatch;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
