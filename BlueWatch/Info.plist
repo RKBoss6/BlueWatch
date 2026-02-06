@@ -2,12 +2,19 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.rk.bluewatch.weatherRefresh</string>
+	</array>
 	<key>UIBackgroundModes</key>
 	<array>
+		<string></string>
 		<string>external-accessory</string>
 		<string>bluetooth-peripheral</string>
 		<string>bluetooth-central</string>
 		<string>audio</string>
+		<string>fetch</string>
+		<string>processing</string>
 	</array>
 </dict>
 </plist>

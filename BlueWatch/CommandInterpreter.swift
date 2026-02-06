@@ -1,5 +1,5 @@
 //
-//  CommandCases.swift
+//  CommandInterpreter.swift
 //  BlueWatch
 //
 //  Created by Kabir Onkar on 1/4/26.
@@ -8,10 +8,14 @@
 import Foundation
 import HealthKit
 class CommandInterpreter {
-    public static let shared=CommandInterpreter()
-    weak var ble:BLEManager?
-    private let healthStore = HKHealthStore()
-    private let findPhoneAlarm = FindPhoneAlarm()
+    // 1. Singleton is good, keep it.
+    public static let shared = CommandInterpreter();
+        
+        // 2. Weak reference to avoid memory leaks (Retain Cycle)
+        weak var ble: BLEManager?
+        
+    private let healthStore = HKHealthStore();
+    private let findPhoneAlarm = FindPhoneAlarm();
     // Request authorization to write heart rate and steps if needed
     
     public func handleCommand(command:String){
@@ -31,11 +35,15 @@ class CommandInterpreter {
     }
     
     func handleHealthData(_ data: [String: Any]) {
-
+            
             if let hr = data["hr"] as? Double {
                 let type = HKQuantityType.quantityType(forIdentifier: .heartRate)!
                 let quantity = HKQuantity(unit: HKUnit.count().unitDivided(by: .minute()), doubleValue: hr)
-                let sample = HKQuantitySample(type: type, quantity: quantity, start: Date().addingTimeInterval(-600), end: Date())
+                
+                let metadata: [String: Any] = [
+                    HKMetadataKeyHeartRateMotionContext: data["state"] as! String == "sedentary" ? HKHeartRateMotionContext.sedentary.rawValue:HKHeartRateMotionContext.notSet.rawValue
+                ]
+                let sample = HKQuantitySample(type: type, quantity: quantity, start: Date().addingTimeInterval(-600), end: Date(), metadata: metadata)
                 self.healthStore.save(sample) { success, error in
                     if !success {
                         print("Failed to save HR:", error ?? "")

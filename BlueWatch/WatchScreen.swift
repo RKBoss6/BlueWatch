@@ -40,7 +40,8 @@ import SwiftUI
 struct WatchScreen: View {
     
     private var CI = CommandInterpreter()
-    @StateObject private var ble = BLEManager.shared
+    @EnvironmentObject var bleManager: BLEManager
+
 
     var body: some View {
         VStack(spacing: 20) {
@@ -48,13 +49,13 @@ struct WatchScreen: View {
             Text("Bangle.js Companion")
                 .font(.title)
             
-            Text(ble.status)
-                .foregroundColor(ble.isConnected ? .green : .orange)
+            Text(bleManager.status)
+                .foregroundColor(bleManager.isConnected ? .green : .orange)
             
             Text("Last message:")
                 .font(.caption)
             
-            Text(ble.lastMessage)
+            Text(bleManager.lastMessage)
                 .padding()
                 .frame(maxWidth: .infinity)
                 .background(Color.gray.opacity(0.1))
@@ -62,30 +63,36 @@ struct WatchScreen: View {
             
             HStack {
                 Button("Connect") {
-                    ble.connect()
+                    bleManager.connect()
                 }
                 .buttonStyle(.borderedProminent)
-                
-                Button("Disconnect") {
-                    ble.disconnect()
-                }
                 .buttonStyle(.bordered)
             }
             
             Divider()
             
             Button("Buzz Watch") {
-                ble.send("Buzz")
+                bleManager.send("Buzz")
+            }
+            Button("Send Weather") {
+                Task {
+                    await WeatherManager.shared.updateWeatherAndSend()
+                }
             }
             
             Button("Find Watch") {
-                ble.send("Find Watch")
+                bleManager.send("Find Watch")
             }
             Button("Stop Finding Watch") {
-                ble.send("Stop Find Watch")
+                bleManager.send("Stop Find Watch")
             }
             
         }
         .padding()
     }
+}
+
+#Preview{
+    WatchScreen()
+        .environmentObject(BLEManager.shared)
 }

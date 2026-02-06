@@ -1,225 +1,285 @@
 import Foundation
 import CoreBluetooth
 import SwiftUI
+import BackgroundTasks
 
 class BLEManager: NSObject, ObservableObject {
     static let shared = BLEManager()
     
-    // MARK: - Published UI State
     @Published var status: String = "Idle"
     @Published var lastMessage: String = "—"
     @Published var isConnected: Bool = false
     
-    // MARK: - Bluetooth
     private var central: CBCentralManager!
     private var peripheral: CBPeripheral?
     private var incomingBuffer = ""
     private var writeCharacteristic: CBCharacteristic?
-    private var commandInterpreter=CommandInterpreter.shared
-    // Nordic UART UUIDs
+    private var reconnectTimer: Timer?
+    
+    var commandInterpreter = CommandInterpreter.shared
+
     private let serviceUUID = CBUUID(string: "6E400001-B5A3-F393-E0A9-E50E24DCCA9E")
     private let txUUID      = CBUUID(string: "6E400002-B5A3-F393-E0A9-E50E24DCCA9E")
     private let rxUUID      = CBUUID(string: "6E400003-B5A3-F393-E0A9-E50E24DCCA9E")
     
-    private override init() {
+    override init() {
         super.init()
-        commandInterpreter.ble=self
-        print("set")
-        // Enable state restoration with a unique identifier
         central = CBCentralManager(
             delegate: self,
             queue: nil,
             options: [
-                CBCentralManagerOptionRestoreIdentifierKey: "BlueWatchCentral"
+                CBCentralManagerOptionRestoreIdentifierKey: "BlueWatchRestorationID",
+                CBCentralManagerOptionShowPowerAlertKey: true
             ]
         )
-        
     }
-    
-    // MARK: - Public API
     
     func connect() {
-        guard central.state == .poweredOn else { return }
-        status = "Searching..."
-
-        // 1. Try saved identifier
-        if let id = loadSavedPeripheral(),
-           let p = central.retrievePeripherals(withIdentifiers: [id]).first {
-            status = "Found saved watch..."
-            connect(to: p)
+        guard central.state == .poweredOn else {
+            print("❌ Central not powered on: \(central.state.rawValue)")
             return
         }
 
-        // 2. Check if already connected to iOS (System-level)
+        // 1. Try to retrieve from system memory first
+        if let idString = UserDefaults.standard.string(forKey: "banglePeripheralID"),
+           let uuid = UUID(uuidString: idString) {
+            
+            let peripherals = central.retrievePeripherals(withIdentifiers: [uuid])
+            if let p = peripherals.first {
+                print("✅ Found saved peripheral: \(p.identifier)")
+                setupAndConnect(p)
+                return
+            } else {
+                print("⚠️ Saved peripheral not found, will scan")
+            }
+        }
+
+        // 2. Check if already connected peripherals exist
         let connected = central.retrieveConnectedPeripherals(withServices: [serviceUUID])
         if let p = connected.first {
-            status = "Re-linking connected watch..."
-            connect(to: p)
+            print("✅ Found already-connected peripheral")
+            setupAndConnect(p)
             return
         }
 
-        // 3. Otherwise, Scan
+        // 3. Fallback to scanning
+        print("🔍 Starting scan...")
         status = "Scanning..."
-        central.scanForPeripherals(withServices: [serviceUUID], options: nil)
+        central.scanForPeripherals(withServices: [serviceUUID], options: [
+            CBCentralManagerScanOptionAllowDuplicatesKey: false
+        ])
     }
-    
-    func disconnect() {
-        if let p = peripheral {
-            central.cancelPeripheralConnection(p)
-        }
+
+    private func setupAndConnect(_ peripheral: CBPeripheral) {
+        self.peripheral = peripheral
+        peripheral.delegate = self
+        
+        // Save the UUID
+        UserDefaults.standard.set(peripheral.identifier.uuidString, forKey: "banglePeripheralID")
+        
+        print("🔗 Connecting to: \(peripheral.identifier)")
+        status = "Connecting..."
+        
+        // Stop any existing scan
+        central.stopScan()
+        
+        // Connect with options for better background handling
+        central.connect(peripheral, options: [
+            CBConnectPeripheralOptionNotifyOnConnectionKey: true,
+            CBConnectPeripheralOptionNotifyOnDisconnectionKey: true,
+            CBConnectPeripheralOptionNotifyOnNotificationKey: true,
+            CBConnectPeripheralOptionStartDelayKey: 0
+        ])
     }
-    
+
     func send(_ text: String) {
-        guard let p = peripheral,
-              let c = writeCharacteristic,
-              isConnected else { return }
-        
+        guard let p = peripheral, let c = writeCharacteristic, isConnected else {
+            print("❌ Cannot send - not connected")
+            return
+        }
         let data = "require('BlueWatch').receive('\(text)')\n".data(using: .utf8)!
-        
         p.writeValue(data, for: c, type: .withResponse)
     }
     
-    // MARK: - Helpers
-    
-    private func connect(to peripheral: CBPeripheral) {
-        self.peripheral = peripheral
-        peripheral.delegate = self
-        central.connect(peripheral)
-    }
-    
-    private func savePeripheral(_ peripheral: CBPeripheral) {
-        UserDefaults.standard.set(
-            peripheral.identifier.uuidString,
-            forKey: "banglePeripheralID"
-        )
-    }
-    
-    private func loadSavedPeripheral() -> UUID? {
-        guard let s = UserDefaults.standard.string(forKey: "banglePeripheralID") else {
-            return nil
+    func sendJSON(_ jsonString: String) {
+        guard let p = peripheral, let c = writeCharacteristic, isConnected else {
+            print("❌ Cannot send JSON - not connected")
+            return
         }
-        return UUID(uuidString: s)
+        print("📤 Sending JSON: \(jsonString)")
+        // Don't wrap in quotes - pass the JSON object directly
+        let data = "require('BlueWatch').receive(\(jsonString))\n".data(using: .utf8)!
+        p.writeValue(data, for: c, type: .withResponse)
+    }
+    
+    private func scheduleReconnect() {
+        // Fallback timer for manual reconnection attempts (iOS will also do this automatically)
+        reconnectTimer?.invalidate()
+        reconnectTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: false) { [weak self] _ in
+            self?.connect()
+        }
     }
 }
 
-// MARK: - CBCentralManagerDelegate
 extension BLEManager: CBCentralManagerDelegate {
-    
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
-        if central.state == .poweredOn {
-            status = "Bluetooth ready"
- 
-            self.connect()
-        } else {
-            status = "Bluetooth unavailable"
+        print("📡 Central state: \(central.state.rawValue)")
+        
+        switch central.state {
+        case .poweredOn:
+            status = "Ready"
+            connect()
+        case .poweredOff:
+            status = "Bluetooth Off"
+            isConnected = false
+        case .resetting:
+            status = "Resetting..."
+        case .unauthorized:
+            status = "Bluetooth Unauthorized"
+        case .unsupported:
+            status = "Bluetooth Unsupported"
+        case .unknown:
+            status = "Bluetooth Unknown"
+        @unknown default:
+            status = "Bluetooth Unknown State"
         }
     }
-    
-    func centralManager(
-        _ central: CBCentralManager,
-        didDiscover peripheral: CBPeripheral,
-        advertisementData: [String : Any],
-        rssi RSSI: NSNumber
-    ) {
-        status = "Found \(peripheral.name ?? "device")"
-        central.stopScan()
-        connect(to: peripheral)
+
+    func centralManager(_ central: CBCentralManager, willRestoreState dict: [String : Any]) {
+        print("♻️ Will restore state")
+        
+        if let peripherals = dict[CBCentralManagerRestoredStatePeripheralsKey] as? [CBPeripheral],
+           let restored = peripherals.first {
+            print("✅ Restoring peripheral: \(restored.identifier)")
+            self.peripheral = restored
+            restored.delegate = self
+            status = "Restoring..."
+            
+            // If it's already connected, discover services
+            if restored.state == .connected {
+                print("Already connected during restore!")
+                isConnected = true
+                restored.discoverServices([serviceUUID])
+            }
+        }
+        
+        if let scanServices = dict[CBCentralManagerRestoredStateScanServicesKey] as? [CBUUID] {
+            print("Was scanning for: \(scanServices)")
+        }
     }
-    
+
+    func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber) {
+        print("🎯 Discovered: \(peripheral.identifier) RSSI: \(RSSI)")
+        setupAndConnect(peripheral)
+    }
+
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
+        print("✅ Connected!")
         status = "Connected"
         isConnected = true
-        savePeripheral(peripheral)
+        reconnectTimer?.invalidate()
         peripheral.discoverServices([serviceUUID])
-    }
-    
-    func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
-        status = "Disconnected"
-        isConnected = false
-        writeCharacteristic = nil
         
-        // Auto-reconnect
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            self.connect()
+        // Notify the watch
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            self.send("iPhone Connected")
         }
     }
-    
-    // ✅ State restoration
-    func centralManager(
-        _ central: CBCentralManager,
-        willRestoreState dict: [String : Any]
-    ) {
-        if let peripherals = dict[CBCentralManagerRestoredStatePeripheralsKey] as? [CBPeripheral],
-           let p = peripherals.first {
-            self.peripheral = p
-            p.delegate = self
-            central.connect(p)
-        }
+
+    func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
+        print("❌ Failed to connect: \(error?.localizedDescription ?? "unknown")")
+        status = "Connection Failed"
+        isConnected = false
+        scheduleReconnect()
+    }
+
+    func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
+        print("⚠️ Disconnected: \(error?.localizedDescription ?? "normal")")
+        isConnected = false
+        status = "Reconnecting..."
+        
+        // CRITICAL: Immediately re-queue - iOS will watch for this device
+        central.connect(peripheral, options: [
+            CBConnectPeripheralOptionNotifyOnConnectionKey: true,
+            CBConnectPeripheralOptionNotifyOnDisconnectionKey: true,
+            CBConnectPeripheralOptionNotifyOnNotificationKey: true
+        ])
+        
+        // Also schedule a manual reconnect attempt as backup
+        scheduleReconnect()
     }
 }
 
-// MARK: - CBPeripheralDelegate
 extension BLEManager: CBPeripheralDelegate {
-    
     func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
+        if let error = error {
+            print("❌ Service discovery error: \(error)")
+            return
+        }
+        
+        print("📋 Services discovered: \(peripheral.services?.count ?? 0)")
         peripheral.services?.forEach {
-            peripheral.discoverCharacteristics(nil, for: $0)
+            print("  - \($0.uuid)")
+            peripheral.discoverCharacteristics([txUUID, rxUUID], for: $0)
         }
     }
-    
-    func peripheral(
-        _ peripheral: CBPeripheral,
-        didDiscoverCharacteristicsFor service: CBService,
-        error: Error?
-    ) {
+
+    func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
+        if let error = error {
+            print("❌ Characteristic discovery error: \(error)")
+            return
+        }
+        
+        print("📋 Characteristics discovered: \(service.characteristics?.count ?? 0)")
         service.characteristics?.forEach { c in
+            print("  - \(c.uuid)")
             if c.uuid == txUUID {
                 writeCharacteristic = c
-                send("iPhone Connected")
-
+                print("✅ TX characteristic ready")
             }
             if c.uuid == rxUUID {
                 peripheral.setNotifyValue(true, for: c)
+                print("✅ RX notifications enabled")
             }
         }
     }
-    
-    func peripheral(
-        _ peripheral: CBPeripheral,
-        didUpdateValueFor characteristic: CBCharacteristic,
-        error: Error?
-    ) {
+
+    func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
         guard let data = characteristic.value,
               let text = String(data: data, encoding: .utf8) else { return }
 
         incomingBuffer += text
 
-        // Process lines
         while let range = incomingBuffer.range(of: "\n") {
             let line = incomingBuffer[..<range.lowerBound].trimmingCharacters(in: .whitespacesAndNewlines)
             incomingBuffer = String(incomingBuffer[range.upperBound...])
 
+            var bgTaskID: UIBackgroundTaskIdentifier = .invalid
+            bgTaskID = UIApplication.shared.beginBackgroundTask(withName: "ProcessBLECommand") {
+                UIApplication.shared.endBackgroundTask(bgTaskID)
+                bgTaskID = .invalid
+            }
+
             DispatchQueue.main.async {
-                self.lastMessage = line
+                 self.lastMessage = line
             }
 
-            // First, try JSON
-            if let data = line.data(using: .utf8) {
-                do {
-                    if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-                       let type = json["type"] as? String, type == "health" {
-                        commandInterpreter.handleHealthData(json)
-                        continue // Already handled, skip command checks
-                    }
-                } catch {
-                    // JSON failed to parse, fallback to command checks
-                }
+            if let data = line.data(using: .utf8),
+               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let type = json["type"] as? String, type == "health" {
+                commandInterpreter.handleHealthData(json)
+            } else {
+                commandInterpreter.handleCommand(command: line)
             }
-
-            // If not JSON or not a health packet, check commands
-            commandInterpreter.handleCommand(command: line)
+            
+            UIApplication.shared.endBackgroundTask(bgTaskID)
+            bgTaskID = .invalid
         }
-
+    }
+    
+    func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: Error?) {
+        if let error = error {
+            print("❌ Write error: \(error)")
+        }
     }
 }
-
