@@ -32,4 +32,5 @@ struct FeatureCard: View {
 
 #Preview {
     FeatureCard(icon:"gear",description:"Change settings anywhere")
+        
 }

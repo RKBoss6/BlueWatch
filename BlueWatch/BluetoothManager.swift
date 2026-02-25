@@ -100,7 +100,7 @@ class BLEManager: NSObject, ObservableObject {
         }
 
         // JSON gets the ß terminator so the watch knows the full message has arrived
-        let payload = text + "ß"
+        let payload = text + "|"
 
         // Escape backslashes and single quotes so the JS string is valid
         let escaped = payload
@@ -108,7 +108,7 @@ class BLEManager: NSObject, ObservableObject {
             .replacingOccurrences(of: "'", with: "\\'")
 
         // Chunk the payload — each chunk becomes its own complete JS call
-        let maxChunkChars = 140  // leaves room for the ~35-char JS wrapper
+        let maxChunkChars = 60  // leaves room for the ~35-char JS wrapper
         var chunks: [String] = []
         var index = escaped.startIndex
 
@@ -122,7 +122,8 @@ class BLEManager: NSObject, ObservableObject {
             guard i < chunks.count,
                   let data = chunks[i].data(using: .utf8) else { return }
             p.writeValue(data, for: c, type: .withResponse)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            print("Wrote: ",data)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
                 writeChunk(i + 1)
             }
         }

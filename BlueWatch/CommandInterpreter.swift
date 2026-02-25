@@ -63,10 +63,10 @@ class CommandInterpreter {
             if let steps = data["steps"] as? Double {
                 let type = HKQuantityType.quantityType(forIdentifier: .stepCount)!
                 let quantity = HKQuantity(unit: HKUnit.count(), doubleValue: steps)
-                let sample = HKQuantitySample(type: type, quantity: quantity, start: Date().addingTimeInterval(-600), end: Date())
+                let sample = HKCumulativeQuantitySample(type: type, quantity: quantity, start: Date().addingTimeInterval(-600), end: Date())
                 self.healthStore.save(sample) { success, error in
                     if !success {
-                        print("Failed to save steps:", error ?? "")
+                        print("Failed t o save steps:", error ?? "")
                     }else{
                         print("Sucessfully sent steps")
                     }

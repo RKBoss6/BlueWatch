@@ -16,9 +16,23 @@ struct WelcomeScreen: View {
             Text("Welcome to BlueWatch")
                 .font(.title)
                 .fontWeight(.bold)
-                .foregroundStyle(.white)
+                .padding()
+            
+             
             FeatureCard(icon: "gear", description: "Customize your watch settings.")
+                .padding(.leading,15)
+                .padding(.trailing,15)
             FeatureCard(icon: "bell.badge", description: "Get notifications, and push them to your watch")
+                .padding(.leading,15)
+                .padding(.trailing,15)
+            FeatureCard(icon: "cloud.sun", description: "Push weather, location and more")
+                .padding(.leading,15)
+                .padding(.trailing,15)
+            Button("Connect"){
+                
+            }
+            .buttonStyle(.borderedProminent)
+            .padding()
             
            
             

@@ -67,14 +67,14 @@ class WeatherManager: NSObject, ObservableObject, CLLocationManagerDelegate {
             
             let packet = WatchWeatherPacket(
                 id: "WeatherUpdate",
-                temp: Int(current.temperature.converted(to: .fahrenheit).value),
-                feels: Int(current.apparentTemperature.converted(to: .fahrenheit).value),
-                hi: Int(today.highTemperature.converted(to: .fahrenheit).value),
-                lo: Int(today.lowTemperature.converted(to: .fahrenheit).value),
+                temp: Int(current.temperature.converted(to: .kelvin).value),
+                feels: Int(current.apparentTemperature.converted(to: .kelvin).value),
+                hi: Int(today.highTemperature.converted(to: .kelvin).value),
+                lo: Int(today.lowTemperature.converted(to: .kelvin).value),
                 hum: Int(current.humidity * 100),
                 rain: Int(today.precipitationChance * 100),
                 uv: current.uvIndex.value,
-                wind: Int(current.wind.speed.converted(to: .milesPerHour).value),
+                wind: Int(current.wind.speed.converted(to: .kilometersPerHour).value),
                 code: iconCode,
                 txt: current.condition.description,
                 wdir: current.wind.compassDirection,
@@ -84,11 +84,9 @@ class WeatherManager: NSObject, ObservableObject, CLLocationManagerDelegate {
             let jsonData = try JSONEncoder().encode(packet)
             
             if let jsonString = String(data: jsonData, encoding: .utf8) {
-                pushNotification(title: "weather", subtitle: String(data: jsonData, encoding: .utf8)!, body: "", id: "BlueWatch")
                 print("Sending weather JSON (\(jsonString.count) bytes)")
                 print("JSON: \(jsonString)")
                 
-                // CRITICAL FIX: Use sendJSON instead of send to avoid wrapping in quotes
                 BLEManager.shared.send(jsonString)
             }
 
@@ -104,24 +102,7 @@ class WeatherManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         }
     }
     
-    // MARK: - CLLocationManagerDelegate
-     func pushNotification(title:String,subtitle:String,body:String,id:String){
-            let content = UNMutableNotificationContent()
-            content.title = title
-            content.body = subtitle
-            content.sound = UNNotificationSound.default
 
-            // Schedule for 5 seconds from now (example)
-            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 10, repeats: false)
-            let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
-
-            UNUserNotificationCenter.current().add(request) { error in
-                if let error = error {
-                    print("Error adding notification: \(error)")
-                }
-            }
-            print("pushed")
-        }
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
         locationContinuation?.resume(returning: location)
