@@ -1,7 +1,8 @@
 import Foundation
+import UIKit
 import WeatherKit
 import CoreLocation
-
+import UserNotifications
 class WeatherManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     static let shared = WeatherManager()
     private let locationManager = CLLocationManager()
@@ -9,7 +10,17 @@ class WeatherManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     private let geocoder = CLGeocoder()
     
     private var locationContinuation: CheckedContinuation<CLLocation, Error>?
-    
+    func requestNotifPermission(){
+        // Request authorization in AppDelegate
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+            if granted {
+                DispatchQueue.main.async {
+                    UIApplication.shared.registerForRemoteNotifications()
+                }
+            }
+        }
+
+    }
     override init() {
         super.init()
         locationManager.delegate = self
@@ -40,6 +51,7 @@ class WeatherManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         }
 
         do {
+            requestNotifPermission()
             let (current, daily) = try await service.weather(for: location, including: .current, .daily)
             
             // Reverse Geocode (Optional: Cache this)
@@ -70,12 +82,14 @@ class WeatherManager: NSObject, ObservableObject, CLLocationManagerDelegate {
             )
             
             let jsonData = try JSONEncoder().encode(packet)
+            
             if let jsonString = String(data: jsonData, encoding: .utf8) {
+                pushNotification(title: "weather", subtitle: String(data: jsonData, encoding: .utf8)!, body: "", id: "BlueWatch")
                 print("Sending weather JSON (\(jsonString.count) bytes)")
                 print("JSON: \(jsonString)")
                 
                 // CRITICAL FIX: Use sendJSON instead of send to avoid wrapping in quotes
-                BLEManager.shared.sendJSON(jsonString)
+                BLEManager.shared.send(jsonString)
             }
 
         } catch {
@@ -91,7 +105,23 @@ class WeatherManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     }
     
     // MARK: - CLLocationManagerDelegate
-    
+     func pushNotification(title:String,subtitle:String,body:String,id:String){
+            let content = UNMutableNotificationContent()
+            content.title = title
+            content.body = subtitle
+            content.sound = UNNotificationSound.default
+
+            // Schedule for 5 seconds from now (example)
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 10, repeats: false)
+            let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
+
+            UNUserNotificationCenter.current().add(request) { error in
+                if let error = error {
+                    print("Error adding notification: \(error)")
+                }
+            }
+            print("pushed")
+        }
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
         locationContinuation?.resume(returning: location)

@@ -92,24 +92,42 @@ class BLEManager: NSObject, ObservableObject {
         ])
     }
 
+    // Single unified send — handles both short commands and large JSON
     func send(_ text: String) {
         guard let p = peripheral, let c = writeCharacteristic, isConnected else {
             print("Cannot send - not connected")
             return
         }
-        let data = "require('BlueWatch').receive('\(text)')\n".data(using: .utf8)!
-        p.writeValue(data, for: c, type: .withResponse)
-    }
-    
-    func sendJSON(_ jsonString: String) {
-        guard let p = peripheral, let c = writeCharacteristic, isConnected else {
-            print("Cannot send JSON - not connected")
-            return
+
+        // JSON gets the ß terminator so the watch knows the full message has arrived
+        let payload = text + "ß"
+
+        // Escape backslashes and single quotes so the JS string is valid
+        let escaped = payload
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "'", with: "\\'")
+
+        // Chunk the payload — each chunk becomes its own complete JS call
+        let maxChunkChars = 140  // leaves room for the ~35-char JS wrapper
+        var chunks: [String] = []
+        var index = escaped.startIndex
+
+        while index < escaped.endIndex {
+            let end = escaped.index(index, offsetBy: maxChunkChars, limitedBy: escaped.endIndex) ?? escaped.endIndex
+            chunks.append("require('BlueWatch').receive('\(escaped[index..<end])')\n")
+            index = end
         }
-        print("Sending JSON: \(jsonString)")
-        // Don't wrap in quotes - pass the JSON object directly
-        let data = "require('BlueWatch').receive(\(jsonString))\n".data(using: .utf8)!
-        p.writeValue(data, for: c, type: .withResponse)
+
+        func writeChunk(_ i: Int) {
+            guard i < chunks.count,
+                  let data = chunks[i].data(using: .utf8) else { return }
+            p.writeValue(data, for: c, type: .withResponse)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                writeChunk(i + 1)
+            }
+        }
+
+        writeChunk(0)
     }
     
     private func scheduleReconnect() {
