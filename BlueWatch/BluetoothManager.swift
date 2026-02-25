@@ -36,7 +36,7 @@ class BLEManager: NSObject, ObservableObject {
     
     func connect() {
         guard central.state == .poweredOn else {
-            print("❌ Central not powered on: \(central.state.rawValue)")
+            print("Central not powered on: \(central.state.rawValue)")
             return
         }
 
@@ -46,24 +46,24 @@ class BLEManager: NSObject, ObservableObject {
             
             let peripherals = central.retrievePeripherals(withIdentifiers: [uuid])
             if let p = peripherals.first {
-                print("✅ Found saved peripheral: \(p.identifier)")
+                print("Found saved peripheral: \(p.identifier)")
                 setupAndConnect(p)
                 return
             } else {
-                print("⚠️ Saved peripheral not found, will scan")
+                print("Saved peripheral not found, will scan")
             }
         }
 
         // 2. Check if already connected peripherals exist
         let connected = central.retrieveConnectedPeripherals(withServices: [serviceUUID])
         if let p = connected.first {
-            print("✅ Found already-connected peripheral")
+            print("Found already-connected peripheral")
             setupAndConnect(p)
             return
         }
 
         // 3. Fallback to scanning
-        print("🔍 Starting scan...")
+        print("Starting scan...")
         status = "Scanning..."
         central.scanForPeripherals(withServices: [serviceUUID], options: [
             CBCentralManagerScanOptionAllowDuplicatesKey: false
@@ -77,7 +77,7 @@ class BLEManager: NSObject, ObservableObject {
         // Save the UUID
         UserDefaults.standard.set(peripheral.identifier.uuidString, forKey: "banglePeripheralID")
         
-        print("🔗 Connecting to: \(peripheral.identifier)")
+        print("Connecting to: \(peripheral.identifier)")
         status = "Connecting..."
         
         // Stop any existing scan
@@ -94,7 +94,7 @@ class BLEManager: NSObject, ObservableObject {
 
     func send(_ text: String) {
         guard let p = peripheral, let c = writeCharacteristic, isConnected else {
-            print("❌ Cannot send - not connected")
+            print("Cannot send - not connected")
             return
         }
         let data = "require('BlueWatch').receive('\(text)')\n".data(using: .utf8)!
@@ -103,10 +103,10 @@ class BLEManager: NSObject, ObservableObject {
     
     func sendJSON(_ jsonString: String) {
         guard let p = peripheral, let c = writeCharacteristic, isConnected else {
-            print("❌ Cannot send JSON - not connected")
+            print("Cannot send JSON - not connected")
             return
         }
-        print("📤 Sending JSON: \(jsonString)")
+        print("Sending JSON: \(jsonString)")
         // Don't wrap in quotes - pass the JSON object directly
         let data = "require('BlueWatch').receive(\(jsonString))\n".data(using: .utf8)!
         p.writeValue(data, for: c, type: .withResponse)
@@ -123,7 +123,7 @@ class BLEManager: NSObject, ObservableObject {
 
 extension BLEManager: CBCentralManagerDelegate {
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
-        print("📡 Central state: \(central.state.rawValue)")
+        print("Central state: \(central.state.rawValue)")
         
         switch central.state {
         case .poweredOn:
@@ -146,11 +146,11 @@ extension BLEManager: CBCentralManagerDelegate {
     }
 
     func centralManager(_ central: CBCentralManager, willRestoreState dict: [String : Any]) {
-        print("♻️ Will restore state")
+        print("Will restore state")
         
         if let peripherals = dict[CBCentralManagerRestoredStatePeripheralsKey] as? [CBPeripheral],
            let restored = peripherals.first {
-            print("✅ Restoring peripheral: \(restored.identifier)")
+            print("Restoring peripheral: \(restored.identifier)")
             self.peripheral = restored
             restored.delegate = self
             status = "Restoring..."
@@ -169,12 +169,12 @@ extension BLEManager: CBCentralManagerDelegate {
     }
 
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber) {
-        print("🎯 Discovered: \(peripheral.identifier) RSSI: \(RSSI)")
+        print("Discovered: \(peripheral.identifier) RSSI: \(RSSI)")
         setupAndConnect(peripheral)
     }
 
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
-        print("✅ Connected!")
+        print("Connected!")
         status = "Connected"
         isConnected = true
         reconnectTimer?.invalidate()
@@ -187,14 +187,14 @@ extension BLEManager: CBCentralManagerDelegate {
     }
 
     func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
-        print("❌ Failed to connect: \(error?.localizedDescription ?? "unknown")")
+        print("Failed to connect: \(error?.localizedDescription ?? "unknown")")
         status = "Connection Failed"
         isConnected = false
         scheduleReconnect()
     }
 
     func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
-        print("⚠️ Disconnected: \(error?.localizedDescription ?? "normal")")
+        print("Disconnected: \(error?.localizedDescription ?? "normal")")
         isConnected = false
         status = "Reconnecting..."
         
@@ -213,11 +213,11 @@ extension BLEManager: CBCentralManagerDelegate {
 extension BLEManager: CBPeripheralDelegate {
     func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
         if let error = error {
-            print("❌ Service discovery error: \(error)")
+            print("Service discovery error: \(error)")
             return
         }
         
-        print("📋 Services discovered: \(peripheral.services?.count ?? 0)")
+        print("Services discovered: \(peripheral.services?.count ?? 0)")
         peripheral.services?.forEach {
             print("  - \($0.uuid)")
             peripheral.discoverCharacteristics([txUUID, rxUUID], for: $0)
@@ -226,20 +226,20 @@ extension BLEManager: CBPeripheralDelegate {
 
     func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
         if let error = error {
-            print("❌ Characteristic discovery error: \(error)")
+            print("Characteristic discovery error: \(error)")
             return
         }
         
-        print("📋 Characteristics discovered: \(service.characteristics?.count ?? 0)")
+        print("Characteristics discovered: \(service.characteristics?.count ?? 0)")
         service.characteristics?.forEach { c in
             print("  - \(c.uuid)")
             if c.uuid == txUUID {
                 writeCharacteristic = c
-                print("✅ TX characteristic ready")
+                print("TX characteristic ready")
             }
             if c.uuid == rxUUID {
                 peripheral.setNotifyValue(true, for: c)
-                print("✅ RX notifications enabled")
+                print("RX notifications enabled")
             }
         }
     }
@@ -279,7 +279,7 @@ extension BLEManager: CBPeripheralDelegate {
     
     func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: Error?) {
         if let error = error {
-            print("❌ Write error: \(error)")
+            print("Write error: \(error)")
         }
     }
 }

@@ -39,10 +39,17 @@ class CommandInterpreter {
             if let hr = data["hr"] as? Double {
                 let type = HKQuantityType.quantityType(forIdentifier: .heartRate)!
                 let quantity = HKQuantity(unit: HKUnit.count().unitDivided(by: .minute()), doubleValue: hr)
-                
+                let motionContext: HKHeartRateMotionContext
+                if let state = data["state"] as? String, state == "sedentary" {
+                    motionContext = .sedentary
+                } else {
+                    motionContext = .notSet
+                }
+
                 let metadata: [String: Any] = [
-                    HKMetadataKeyHeartRateMotionContext: data["state"] as! String == "sedentary" ? HKHeartRateMotionContext.sedentary.rawValue:HKHeartRateMotionContext.notSet.rawValue
+                    HKMetadataKeyHeartRateMotionContext: motionContext.rawValue
                 ]
+    
                 let sample = HKQuantitySample(type: type, quantity: quantity, start: Date().addingTimeInterval(-600), end: Date(), metadata: metadata)
                 self.healthStore.save(sample) { success, error in
                     if !success {
@@ -68,7 +75,7 @@ class CommandInterpreter {
         
             if let temp = data["temp"] as? Double {
                 let type = HKQuantityType.quantityType(forIdentifier: .appleSleepingWristTemperature)!
-                let quantity = HKQuantity(unit: HKUnit.count(), doubleValue: temp)
+                let quantity = HKQuantity(unit: HKUnit.degreeFahrenheit(), doubleValue: temp)
                 let sample = HKQuantitySample(type: type, quantity: quantity, start: Date().addingTimeInterval(-600), end: Date())
                 self.healthStore.save(sample) { success, error in
                     if !success {
