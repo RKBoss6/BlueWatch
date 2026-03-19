@@ -47,13 +47,13 @@ struct ContentView: View {
                 WatchScreen()
                 
             }
-            /*
+            
             Tab("Apps",systemImage:"appclip"){
-                LockedWebView().edgesIgnoringSafeArea(.bottom)
+                WebView().edgesIgnoringSafeArea(.bottom)
 
                 
             }
-             */
+             
             Tab("Watch Settings",systemImage:"gearshape"){
                 WatchSettingsScreen()
             }
