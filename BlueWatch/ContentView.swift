@@ -40,43 +40,45 @@ struct ContentView: View {
     var bgColors:[Color]=[.BG_1,.BG_2]
     
     var body: some View {
-        
-        TabView{
-            
-            Tab("My Watch",systemImage:"watch.analog"){
-                WatchScreen()
+        NavigationStack{
+            TabView{
+                
+                Tab("My Watch",systemImage:"watch.analog"){
+                    WatchScreen()
+                    
+                }
+                
+                Tab("Apps",systemImage:"appclip"){
+                    WebView().edgesIgnoringSafeArea(.bottom)
+                    
+                    
+                }
+                
+                Tab("Watch Settings",systemImage:"gearshape"){
+                    WatchSettingsScreen()
+                }
+                .badge("1")
                 
             }
+            .edgesIgnoringSafeArea(.bottom)
             
-            Tab("Apps",systemImage:"appclip"){
-                WebView().edgesIgnoringSafeArea(.bottom)
-
+            .onAppear() {
+                let standardAppearance = UITabBarAppearance()
+                standardAppearance.shadowColor = UIColor(Color.blue)
                 
+                
+                
+                UITabBar.appearance().standardAppearance = standardAppearance
             }
-             
-            Tab("Watch Settings",systemImage:"gearshape"){
-                WatchSettingsScreen()
-            }
-            .badge("1")
             
         }
-        .edgesIgnoringSafeArea(.bottom)
-        
-        .onAppear() {
-            let standardAppearance = UITabBarAppearance()
-            standardAppearance.shadowColor = UIColor(Color.blue)
-            
-            
-            
-            UITabBar.appearance().standardAppearance = standardAppearance
-        }
-        
-        
         
         
     }
     
    
+    
+    
         
 }
 
@@ -114,5 +116,27 @@ struct DevicesAvailableView:View{
 
 #Preview {
     ContentView()
+        .environmentObject(BLEManager.shared)
 }
 
+
+struct AppBackgroundStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background( // give the List a background to show
+                LinearGradient(
+                    gradient: Gradient(colors: [Color.BG_1, Color.BG_2]),
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
+            )
+    }
+}
+
+extension View {
+    func appBackground() -> some View {
+        self.modifier(AppBackgroundStyle())
+    }
+}

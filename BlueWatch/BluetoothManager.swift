@@ -29,7 +29,12 @@ class BLEManager: NSObject, ObservableObject {
 
     // ── Web Bluetooth bridge ───────────────────────────────────────────────────
     weak var webView: WKWebView?
-    private(set) var webBluetoothActive = false
+
+    // The set of characteristic UUIDs the web page has called startNotifications
+    // on. Only route RX data to the web page for these. When this is empty,
+    // all incoming data goes to the native parser — even if wbCharacteristics
+    // is populated from a previous session.
+    private var activeWebNotifications: Set<String> = []
 
     private var wbServices:        [String: CBService]        = [:]
     private var wbCharacteristics: [String: CBCharacteristic] = [:]
@@ -41,10 +46,6 @@ class BLEManager: NSObject, ObservableObject {
     private var pendingNotify:    [String: Int] = [:]
 
     // ── Write queue (flow-controlled writeWithoutResponse) ─────────────────────
-    // BangleApps sends many rapid 20-byte writeWithoutResponse packets.
-    // CoreBluetooth silently drops packets when its TX buffer is full.
-    // We must check canSendWriteWithoutResponse and wait for
-    // peripheralIsReady(toSendWriteWithoutResponse:) before sending more.
     private struct WriteJob { let callId: Int; let data: Data; let char: CBCharacteristic }
     private var writeQueue: [WriteJob] = []
     private var writeBusy = false
@@ -92,9 +93,12 @@ class BLEManager: NSObject, ObservableObject {
     }
 
     // MARK: - Native send (BlueWatch protocol)
-
+    //
+    // No longer gated on webBluetoothActive. The app loader and native commands
+    // share the same TX characteristic — writes always go through.
+    // RX routing (below) determines where responses end up.
+    //
     func send(_ text: String) {
-        guard !webBluetoothActive else { return }
         guard let p = peripheral, let c = writeCharacteristic, isConnected else { return }
         let payload = (text + "|")
             .replacingOccurrences(of: "\\", with: "\\\\")
@@ -154,37 +158,40 @@ class BLEManager: NSObject, ObservableObject {
         }
     }
 
-    // MARK: requestDevice
-    //
-    // We do NOT send any REPL reset here.
-    //
-    // Previously we sent \x03\x03\x10 to try to reset the watch REPL, then
-    // waited for a ">" prompt. This was wrong for two reasons:
-    //
-    //   1. \x10 (Ctrl+P) enters pipe/quiet mode, which SUPPRESSES the ">"
-    //      prompt. So the wait always timed out.
-    //
-    //   2. During the 2s timeout all incoming RX data was dropped. The app
-    //      loader sends \x10 itself as part of its own handshake, and the
-    //      watch echoes it back. We were dropping that echo, so the app
-    //      loader never got confirmation and showed "is programmable set to off?"
-    //
-    // The app loader (uart.js) handles its own REPL initialisation. Our job
-    // is just to provide working write and notification channels, then get
-    // out of the way.
-    //
     private func wbRequestDevice(id: Int) {
-        webBluetoothActive = true
-        incomingBuffer = ""   // discard any stale native-protocol data
+        // Clear leftover Swift-side state from any previous web session.
+        activeWebNotifications = []
+        wbCharacteristics = [:]
+        wbServices = [:]
+        writeQueue = []
+        writeBusy = false
+        incomingBuffer = ""
 
+        // Clear leftover JS-side state: listeners, char proxies, notification
+        // buffers. Without this, the old addEventListener callbacks from the
+        // previous session remain in _charListeners and each new session adds
+        // another one on top — causing every notification to fire N times and
+        // doubling (or tripling) the data the app loader receives, corrupting JSON.
+        // We resolve requestDevice AFTER the reset executes so the JS state is
+        // clean before the page starts calling gattConnect etc.
         if let p = peripheral, isConnected, setupComplete {
-            print("[WB] requestDevice → \(p.name ?? "Bangle.js") (setup complete, handing over immediately)")
-            wbResolve(id: id, result: [
-                "deviceId": p.identifier.uuidString,
-                "name":     p.name ?? "Bangle.js"
-            ])
+            let deviceId = p.identifier.uuidString
+            let name     = p.name ?? "Bangle.js"
+            print("[WB] requestDevice → \(name)")
+            DispatchQueue.main.async {
+                self.webView?.evaluateJavaScript(
+                    "window.__bluetoothResetSession && window.__bluetoothResetSession()"
+                ) { _, _ in
+                    self.wbResolve(id: id, result: ["deviceId": deviceId, "name": name])
+                }
+            }
         } else {
             print("[WB] requestDevice parked — waiting for setup")
+            DispatchQueue.main.async {
+                self.webView?.evaluateJavaScript(
+                    "window.__bluetoothResetSession && window.__bluetoothResetSession()"
+                )
+            }
             pendingRequestDevice = id
             if !isConnected { connect() }
         }
@@ -198,15 +205,11 @@ class BLEManager: NSObject, ObservableObject {
         wbResolve(id: id, result: ["deviceId": deviceId])
     }
 
-    // gattDisconnect: we do NOT actually disconnect — BLEManager owns the
-    // connection. We just clear the web-active flag so the app loader can
-    // call requestDevice again for its second connection phase.
     private func wbGattDisconnect(id: Int) {
-        webBluetoothActive = false
-        // Clear wbCharacteristics so the next requestDevice starts fresh.
-        // The underlying CBCharacteristic objects remain valid on the peripheral.
-        wbCharacteristics = [:]
-        wbServices = [:]
+        // Stop routing RX to the web page. Do NOT clear wbCharacteristics here —
+        // the app loader immediately calls requestDevice again (phase 2), and
+        // wbRequestDevice will clear them at that point.
+        activeWebNotifications = []
         writeQueue = []
         writeBusy = false
         wbResolve(id: id, result: [:])
@@ -254,12 +257,17 @@ class BLEManager: NSObject, ObservableObject {
               let char   = wbCharacteristics[charId] else {
             return wbReject(id: id, error: "Characteristic not found")
         }
+        // Mark this char as actively delivering to the web page
+        activeWebNotifications.insert(charId)
         if char.isNotifying { return wbResolve(id: id, result: [:]) }
         pendingNotify[charId] = id
         char.service?.peripheral?.setNotifyValue(true, for: char)
     }
 
     private func wbStopNotifications(id: Int, args: [String: Any]) {
+        if let charId = args["charId"] as? String {
+            activeWebNotifications.remove(charId)
+        }
         wbResolve(id: id, result: [:])
     }
 
@@ -367,8 +375,10 @@ extension BLEManager: CBCentralManagerDelegate {
 
     func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
         print("[BLE] Disconnected: \(error?.localizedDescription ?? "normal")")
-        isConnected = false; setupComplete = false; webBluetoothActive = false
-        writeBusy = false; writeQueue = []; wbServices = [:]; wbCharacteristics = [:]
+        isConnected = false; setupComplete = false
+        activeWebNotifications = []
+        writeBusy = false; writeQueue = []
+        wbServices = [:]; wbCharacteristics = [:]
         status = "Reconnecting..."
         DispatchQueue.main.async {
             self.webView?.evaluateJavaScript(
@@ -440,9 +450,12 @@ extension BLEManager: CBPeripheralDelegate {
         let charId = characteristic.uuid.uuidString
         let bytes  = [UInt8](data)
 
-        // ── Route to Web Bluetooth page ──────────────────────────────────────
-        // Route if the page has registered this characteristic via getCharacteristic.
-        if wbCharacteristics[charId] != nil {
+        // Route to web page ONLY if the page called startNotifications on this char.
+        // This is the key distinction: wbCharacteristics may be populated (from
+        // getCharacteristic) but if startNotifications hasn't been called, data
+        // should still go to the native parser. This prevents native command
+        // responses from being routed to the web page after gattDisconnect.
+        if activeWebNotifications.contains(charId) {
             if let id = pendingReads.removeValue(forKey: charId) {
                 wbResolve(id: id, result: bytes)
             } else {
@@ -451,15 +464,15 @@ extension BLEManager: CBPeripheralDelegate {
             return
         }
 
-        // ── Fallback: webBluetoothActive but char not yet registered ─────────
-        // The page has requestDevice'd but hasn't called getCharacteristic yet.
-        // Forward RX data directly so the app loader's \x10 echo isn't dropped.
-        if webBluetoothActive {
-            wbFireNotification(charId: charId, bytes: bytes)
+        // Also route explicit readValue requests even without active notifications
+        if let id = pendingReads[charId], wbCharacteristics[charId] != nil {
+            pendingReads.removeValue(forKey: charId)
+            wbResolve(id: id, result: bytes)
             return
         }
 
-        // ── Native BlueWatch path ────────────────────────────────────────────
+        // Native BlueWatch path — always runs when web page isn't actively
+        // subscribed, including while the app loader is open but between sessions
         guard let text = String(data: data, encoding: .utf8) else { return }
         incomingBuffer += text
         while let range = incomingBuffer.range(of: "\n") {
@@ -496,7 +509,6 @@ extension BLEManager: CBPeripheralDelegate {
         }
     }
 
-    // CoreBluetooth TX buffer has space — resume write queue
     func peripheralIsReady(toSendWriteWithoutResponse peripheral: CBPeripheral) {
         writeBusy = false
         drainWriteQueue()

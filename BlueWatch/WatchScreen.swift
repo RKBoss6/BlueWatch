@@ -45,13 +45,22 @@ struct WatchScreen: View {
 
     var body: some View {
         VStack(spacing: 20) {
+            Image("BangleJS2")
+                .resizable()
+                .frame(width: 200,height: 200)
+                .padding(.top,50)
+            HStack{
+                Text("Bangle.js")
+                    .font(.title)
+                    .fontWeight(.bold)
+                    .frame(width:.infinity,alignment: .leading)
+                Spacer()
+                Image(systemName: "battery.75percent")
+                Text("69%")
+            }
+            .padding()
             
-            Text("Bangle.js Companion")
-                .font(.title)
-            
-            Text(bleManager.status)
-                .foregroundColor(bleManager.isConnected ? .green : .orange)
-            
+            /*
             Text("Last message:")
                 .font(.caption)
             
@@ -60,35 +69,67 @@ struct WatchScreen: View {
                 .frame(maxWidth: .infinity)
                 .background(Color.gray.opacity(0.1))
                 .cornerRadius(8)
-            
+            */
             HStack {
-                Button("Connect") {
-                    bleManager.connect()
+                Button(bleManager.isConnected ? "Paired" : "Connect") {
+                    if(bleManager.isConnected){
+                        //nothing
+                    }else{
+                        bleManager.connect()
+                    }
+                   
                 }
                 .buttonStyle(.borderedProminent)
                 .buttonStyle(.bordered)
+                Spacer()
+                Text(bleManager.status)
+                    .foregroundColor(bleManager.isConnected ? .green : .orange)
+                    
             }
-            
+            .padding(.leading)
+            .padding(.trailing)
             Divider()
-            
-            Button("Buzz Watch") {
-                bleManager.send("Buzz")
+            Spacer()
+            NavigationLink{
+                WebView()
+            }label:{
+                    Text("Go to apps")
+                        .frame(maxWidth: .infinity)
+                        .padding(10)
+                
             }
-            Button("Send Weather") {
-                Task {
-                    await WeatherManager.shared.updateWeatherAndSend()
+            .buttonStyle(.borderedProminent)
+            HStack{
+                Button{
+                    bleManager.send("Buzz")
+                }label:{
+                    Text("Buzz")
+                        .frame(maxWidth: .infinity)
+                        .padding(10)
                 }
+                .buttonStyle(.borderedProminent)
+                Button{
+                    Task {
+                        await WeatherManager.shared.updateWeatherAndSend()
+                    }
+                }label:{
+                    Text("Push Weather")
+                        .frame(maxWidth: .infinity)
+                        .padding(10)
+                    
+                }
+
+                .buttonStyle(.borderedProminent)
             }
             
-            Button("Find Watch") {
-                bleManager.send("Find Watch")
-            }
-            Button("Stop Finding Watch") {
-                bleManager.send("Stop Find Watch")
-            }
+            
+            
+            
+            Spacer()
             
         }
         .padding()
+        .appBackground()
     }
 }
 

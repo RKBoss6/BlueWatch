@@ -58,6 +58,7 @@ struct WatchSettingsScreen: View {
                 
             }
         }
+        .appBackground()
         
     }
 }

@@ -149,9 +149,14 @@ struct WebView: View {
     @ObservedObject private var ble = BLEManager.shared
 
     var body: some View {
-        ZStack(alignment: .topTrailing) {
+        
+        VStack() {
+            
             LockedWebView(url: lockedURL)
-     
+                .ignoresSafeArea()
+            
+            
+                
                 
             
         }

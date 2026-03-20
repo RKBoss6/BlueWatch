@@ -5,10 +5,7 @@
  *   window.__bluetoothCallback(id, errorOrNull, resultOrNull)
  *   window.__bluetoothNotify(charId, [byte,...])
  *   window.__bluetoothDisconnected()
- *
- * All back-references (char.service, service.device, gatt.device) are stored
- * as non-enumerable properties so JSON.stringify never traverses them and
- * cannot hit a cyclic-structure error.
+ *   window.__bluetoothResetSession()   ← called by Swift on each requestDevice
  */
 (function () {
   'use strict';
@@ -35,20 +32,21 @@
     else       p.resolve(result);
   };
 
-  // Helper: define a property that is readable but invisible to JSON.stringify
-  function hidden(obj, key, value) {
-    Object.defineProperty(obj, key, {
-      value:        value,
-      writable:     true,
-      enumerable:   false,   // ← JSON.stringify skips non-enumerable keys
-      configurable: true
-    });
-  }
-
-  // ── Notification dispatch ───────────────────────────────────────────────────
+  // ── Notification state — reset on each new session ─────────────────────────
   var _charListeners = {};  // charId → [fn, ...]
   var _charObjects   = {};  // charId → characteristic proxy
   var _charBuffer    = {};  // charId → [event, ...] buffered before addEventListener
+
+  // Called by Swift at the start of every requestDevice call.
+  // Clears ALL per-session state so stale listeners from the previous session
+  // don't accumulate — which would cause each notification to fire N times,
+  // doubling (or tripling) the data the app loader receives and corrupting JSON.
+  window.__bluetoothResetSession = function () {
+    console.log('[WB] session reset — clearing listeners, objects, buffers');
+    _charListeners = {};
+    _charObjects   = {};
+    _charBuffer    = {};
+  };
 
   window.__bluetoothNotify = function (charId, byteArray) {
     var buf  = new Uint8Array(byteArray).buffer;
@@ -57,21 +55,13 @@
     var char = _charObjects[charId];
     if (char) char.value = view;
 
-    // event.target must be the characteristic object so uart.js can do:
-    //   event.target.value          → DataView of the received bytes
-    //   event.target.service        → parent service
-    //   event.target.service.device → parent device
-    // These back-references are non-enumerable so JSON.stringify won't cycle.
     var target = char || (function () {
       var t = { value: view };
       hidden(t, 'service', { device: {} });
       return t;
     }());
 
-    var ev = {
-      type:    'characteristicvaluechanged',
-      bubbles: false
-    };
+    var ev = { type: 'characteristicvaluechanged', bubbles: false };
     hidden(ev, 'target',        target);
     hidden(ev, 'currentTarget', target);
 
@@ -95,6 +85,13 @@
     });
   };
 
+  // ── Non-enumerable helper (breaks JSON.stringify cycles) ───────────────────
+  function hidden(obj, key, value) {
+    Object.defineProperty(obj, key, {
+      value: value, writable: true, enumerable: false, configurable: true
+    });
+  }
+
   // ── Property decoder ────────────────────────────────────────────────────────
   function decodeProps(raw) {
     return {
@@ -117,11 +114,7 @@
       uuid:       uuid,
       value:      null,
       properties: decodeProps(propsRaw || 0)
-      // .service added below as non-enumerable
     };
-
-    // Non-enumerable back-reference: char.service → service → device
-    // JSON.stringify will never traverse this, breaking the cycle.
     hidden(char, 'service', serviceRef || null);
 
     char.addEventListener = function (type, fn) {
@@ -129,7 +122,6 @@
       if (!_charListeners[charId]) _charListeners[charId] = [];
       _charListeners[charId].push(fn);
 
-      // Flush buffered notifications; update their target to this char first
       var buffered = _charBuffer[charId];
       if (buffered && buffered.length > 0) {
         var toFlush = buffered.splice(0);
@@ -150,13 +142,11 @@
       _charListeners[charId] = _charListeners[charId].filter(function (f) { return f !== fn; });
     };
 
-    char.startNotifications = function () {
-      return _call('startNotifications', { charId: charId });
-    };
-
-    char.stopNotifications = function () {
-      return _call('stopNotifications', { charId: charId });
-    };
+    char.startNotifications        = function () { return _call('startNotifications',  { charId: charId }); };
+    char.stopNotifications         = function () { return _call('stopNotifications',   { charId: charId }); };
+    char.writeValue                = function (b) { return _call('writeValue', { charId: charId, value: Array.from(new Uint8Array(b)) }); };
+    char.writeValueWithResponse    = function (b) { return char.writeValue(b); };
+    char.writeValueWithoutResponse = function (b) { return char.writeValue(b); };
 
     char.readValue = function () {
       return _call('readValue', { charId: charId }).then(function (arr) {
@@ -166,43 +156,27 @@
       });
     };
 
-    char.writeValue = function (buffer) {
-      var arr = Array.from(new Uint8Array(buffer));
-      return _call('writeValue', { charId: charId, value: arr });
-    };
-
-    char.writeValueWithResponse    = function (b) { return char.writeValue(b); };
-    char.writeValueWithoutResponse = function (b) { return char.writeValue(b); };
-
     _charObjects[charId] = char;
     return char;
   }
 
   function makeService(serviceId, uuid, deviceRef) {
     var service = { uuid: uuid };
-
-    // Non-enumerable back-reference: service.device → device
     hidden(service, 'device', deviceRef);
 
     service.getCharacteristic = function (charUUID) {
       var full = resolveUUID(charUUID);
       return _call('getCharacteristic', { serviceId: serviceId, charUUID: full })
-        .then(function (r) {
-          return makeCharacteristic(r.charId, full, r.props, service);
-        });
+        .then(function (r) { return makeCharacteristic(r.charId, full, r.props, service); });
     };
-
     service.getCharacteristics = function (charUUID) {
       return service.getCharacteristic(charUUID).then(function (c) { return [c]; });
     };
-
     return service;
   }
 
   function makeGATTServer(deviceId, deviceRef) {
     var server = { connected: false };
-
-    // Non-enumerable back-reference: server.device → device
     hidden(server, 'device', deviceRef);
 
     server.connect = function () {
@@ -210,29 +184,23 @@
         server.connected = true; return server;
       });
     };
-
     server.disconnect = function () {
       server.connected = false;
       return _call('gattDisconnect', { deviceId: deviceId });
     };
-
     server.getPrimaryService = function (serviceUUID) {
       var full = resolveUUID(serviceUUID);
       return _call('getPrimaryService', { deviceId: deviceId, serviceUUID: full })
         .then(function (r) { return makeService(r.serviceId, full, deviceRef); });
     };
-
     server.getPrimaryServices = function (serviceUUID) {
       return server.getPrimaryService(serviceUUID).then(function (s) { return [s]; });
     };
-
     return server;
   }
 
   function makeDevice(deviceId, name) {
     var device = { id: deviceId, name: name };
-
-    // gatt.device → device is the main cycle. Non-enumerable breaks it.
     var gatt = makeGATTServer(deviceId, device);
     hidden(device, 'gatt', gatt);
 
@@ -240,12 +208,10 @@
       if (!_deviceListeners[deviceId]) _deviceListeners[deviceId] = [];
       _deviceListeners[deviceId].push(fn);
     };
-
     device.removeEventListener = function (type, fn) {
       if (!_deviceListeners[deviceId]) return;
       _deviceListeners[deviceId] = _deviceListeners[deviceId].filter(function (f) { return f !== fn; });
     };
-
     return device;
   }
 
