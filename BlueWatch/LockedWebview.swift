@@ -6,7 +6,8 @@ import WebKit
 struct LockedWebView: UIViewRepresentable {
 
     let url: URL
-
+    
+    
     func makeCoordinator() -> Coordinator { Coordinator() }
 
     class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
@@ -20,7 +21,7 @@ struct LockedWebView: UIViewRepresentable {
                       let method = body["method"] as? String,
                       let args   = body["args"]   as? [String: Any]
                 else { return }
-                BLEManager.shared.handleWebBluetoothMessage(id: id, method: method, args: args)
+                BLEManager.instance.handleWebBluetoothMessage(id: id, method: method, args: args)
                 return
             }
 
@@ -133,7 +134,7 @@ struct LockedWebView: UIViewRepresentable {
         webView.scrollView.alwaysBounceHorizontal = false
         webView.scrollView.isDirectionalLockEnabled = true
 
-        BLEManager.shared.webView = webView
+        BLEManager.instance.webView = webView
         webView.load(URLRequest(url: url))
         return webView
     }
@@ -145,21 +146,25 @@ struct LockedWebView: UIViewRepresentable {
 
 struct WebView: View {
 
-    private let lockedURL = URL(string: "https://banglejs.com/apps/")!
-    @ObservedObject private var ble = BLEManager.shared
-
+    private let lockedURL = URL(string: "https://"+LocalStorage.getString(forKey: "webURL"))
+                            ?? URL(string: "https://banglejs.com/apps")!
+    @ObservedObject private var ble = BLEManager.instance
+    @ObservedObject private var vm = ViewModel.instance
     var body: some View {
         
         VStack() {
             
             LockedWebView(url: lockedURL)
                 .ignoresSafeArea()
+                .padding(.bottom,70)
+                
             
             
                 
                 
             
         }
+        
         .statusBarHidden(true)
         .persistentSystemOverlays(.hidden)
     }

@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct FeatureCard: View {
+    @Environment(\.colorScheme) var colorScheme
     let icon:String
     let description:String
     var body: some View {
@@ -25,8 +26,8 @@ struct FeatureCard: View {
         }
         
         .padding()
-        .foregroundStyle(.white)
-        .background(.tint,in: RoundedRectangle(cornerRadius: 12))
+        .foregroundStyle(colorScheme == .dark ? .white : .black)
+        .background(RoundedRectangle(cornerRadius: 20).fill(Color("SecondaryColor")))
     }
 }
 

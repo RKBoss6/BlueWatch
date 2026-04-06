@@ -14,10 +14,10 @@
           "name" : "4740941",
           "opacity" : 0.81,
           "position" : {
-            "scale" : 0.78,
+            "scale" : 0.87,
             "translation-in-points" : [
-              225.20499999999993,
-              -289.24218749999994
+              -545.734375,
+              0
             ]
           }
         },
@@ -29,8 +29,8 @@
           "position" : {
             "scale" : 0.87,
             "translation-in-points" : [
-              -271.92218750000006,
-              245.953125
+              509.48468750000006,
+              -1.1368683772161603e-13
             ]
           }
         }
@@ -53,22 +53,75 @@
       }
     },
     {
-      "blend-mode" : "soft-light",
+      "blend-mode-specializations" : [
+        {
+          "value" : "soft-light"
+        },
+        {
+          "appearance" : "dark",
+          "value" : "lighten"
+        },
+        {
+          "appearance" : "tinted",
+          "value" : "lighten"
+        }
+      ],
+      "blur-material" : null,
       "hidden" : false,
       "layers" : [
         {
-          "image-name" : "apple-watch-clipart-44.png",
-          "name" : "apple-watch-clipart-44",
+          "blend-mode-specializations" : [
+            {
+              "appearance" : "dark",
+              "value" : "normal"
+            }
+          ],
+          "fill-specializations" : [
+            {
+              "value" : {
+                "solid" : "display-p3:0.00000,0.00000,0.00000,1.00000"
+              }
+            },
+            {
+              "appearance" : "dark",
+              "value" : {
+                "solid" : "display-p3:0.00080,0.60685,0.96738,1.00000"
+              }
+            },
+            {
+              "appearance" : "tinted",
+              "value" : {
+                "solid" : "display-p3:0.47850,0.47850,0.47850,1.00000"
+              }
+            }
+          ],
+          "glass" : true,
+          "image-name" : "Untitled design (4).png",
+          "name" : "Untitled design (4)",
+          "opacity-specializations" : [
+            {
+              "appearance" : "dark",
+              "value" : 1
+            }
+          ],
           "position" : {
-            "scale" : 0.54,
+            "scale" : 1.68,
             "translation-in-points" : [
-              9.550624999999854,
-              0
+              -13.071249999999964,
+              -1.1368683772161603e-13
             ]
           }
         }
       ],
-      "opacity" : 1,
+      "opacity-specializations" : [
+        {
+          "value" : 1
+        },
+        {
+          "appearance" : "dark",
+          "value" : 1
+        }
+      ],
       "position" : {
         "scale" : 1,
         "translation-in-points" : [
@@ -78,7 +131,7 @@
       },
       "shadow" : {
         "kind" : "neutral",
-        "opacity" : 0
+        "opacity" : 0.41
       },
       "translucency" : {
         "enabled" : true,

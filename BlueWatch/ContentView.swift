@@ -116,7 +116,7 @@ struct DevicesAvailableView:View{
 
 #Preview {
     ContentView()
-        .environmentObject(BLEManager.shared)
+        .environmentObject(BLEManager.instance)
 }
 
 

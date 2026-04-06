@@ -7,7 +7,7 @@ import WebKit
 import BackgroundTasks
 
 class BLEManager: NSObject, ObservableObject {
-    static let shared = BLEManager()
+    static let instance = BLEManager()
 
     @Published var status: String = "Idle"
     @Published var lastMessage: String = "—"
@@ -98,6 +98,7 @@ class BLEManager: NSObject, ObservableObject {
     // share the same TX characteristic — writes always go through.
     // RX routing (below) determines where responses end up.
     //
+
     func send(_ text: String) {
         guard let p = peripheral, let c = writeCharacteristic, isConnected else { return }
         let payload = (text + "|")
@@ -379,6 +380,7 @@ extension BLEManager: CBCentralManagerDelegate {
         activeWebNotifications = []
         writeBusy = false; writeQueue = []
         wbServices = [:]; wbCharacteristics = [:]
+        LocalData.shared.battery="--"
         status = "Reconnecting..."
         DispatchQueue.main.async {
             self.webView?.evaluateJavaScript(
@@ -484,9 +486,8 @@ extension BLEManager: CBPeripheralDelegate {
             }
             DispatchQueue.main.async { self.lastMessage = line }
             if let d = line.data(using: .utf8),
-               let j = try? JSONSerialization.jsonObject(with: d) as? [String: Any],
-               (j["type"] as? String) == "health" {
-                commandInterpreter.handleHealthData(j)
+               let j = try? JSONSerialization.jsonObject(with: d) as? [String: Any] {
+                commandInterpreter.handleJSON(j)
             } else {
                 commandInterpreter.handleCommand(command: line)
             }

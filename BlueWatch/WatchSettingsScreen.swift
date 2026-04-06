@@ -13,8 +13,9 @@ enum sendFrequency: Int, CaseIterable, Identifiable {
     var id: Self { self }
 }
 struct WatchSettingsScreen: View {
-    @State var autoConnect:Bool=true
-    @State var sendInfo:Bool=true
+    @State var autoConnect:Bool=LocalStorage.getBool(forKey: "autoConnect")
+    @State var sendInfo:Bool=LocalStorage.getBool(forKey: "sendInfo")
+    @State var webURL:String=LocalStorage.getString(forKey: "webURL")
     var body: some View {
         VStack {
             HStack {
@@ -26,6 +27,19 @@ struct WatchSettingsScreen: View {
                
             }.padding()
             Form{
+                Section("Web View"){
+                    HStack {
+                        Text("Web URL:")
+                        TextField("placeholder.com", text: $webURL)
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.never)
+                            .onSubmit {
+                                LocalStorage.set(webURL, forKey: "webURL")
+                                
+                            }
+                    }
+                    
+                }
                 Section("Bluetooth"){
                     Toggle(isOn:$autoConnect ) {
                         Text("Automatically Connect")
@@ -34,7 +48,7 @@ struct WatchSettingsScreen: View {
                         Text("Notify when battery is low")
                     }
                 }
-                Section("Send and Recive"){
+                Section("Send and Recieve"){
                     Toggle(isOn:$sendInfo ) {
                         Text("Push weather updates")
                         

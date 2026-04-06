@@ -6,8 +6,8 @@
         "components" : {
           "alpha" : "1.000",
           "blue" : "1.000",
-          "green" : "0.609",
-          "red" : "0.445"
+          "green" : "0.832",
+          "red" : "0.724"
         }
       },
       "idiom" : "universal"
@@ -24,8 +24,8 @@
         "components" : {
           "alpha" : "1.000",
           "blue" : "0.763",
-          "green" : "0.461",
-          "red" : "0.333"
+          "green" : "0.587",
+          "red" : "0.517"
         }
       },
       "idiom" : "universal"

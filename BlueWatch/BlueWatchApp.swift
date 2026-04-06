@@ -5,7 +5,7 @@ import BackgroundTasks
 @main
 struct BlueWatchApp: App {
     // Use the singleton we defined
-    @StateObject private var bleManager = BLEManager.shared
+    @StateObject private var bleManager = BLEManager.instance
     
     // ID must match Info.plist "Permitted background task scheduler identifiers"
     static let weatherTaskID = "com.rk.bluewatch.weatherRefresh"
@@ -14,12 +14,12 @@ struct BlueWatchApp: App {
     
     init() {
         // Initialize BLE as early as possible for state restoration
-        _ = BLEManager.shared
+        _ = BLEManager.instance
         
         // Register the background task immediately on launch
-        BGTaskScheduler.shared.register(forTaskWithIdentifier: BlueWatchApp.weatherTaskID, using: nil) { task in
-            BlueWatchApp.handleWeatherTask(task: task as! BGAppRefreshTask)
-        }
+       // BGTaskScheduler.shared.register(forTaskWithIdentifier: BlueWatchApp.weatherTaskID, using: nil) { task in
+       //     BlueWatchApp.handleWeatherTask(task: task as! BGAppRefreshTask)
+       // }
     }
     
     var body: some Scene {
@@ -29,7 +29,6 @@ struct BlueWatchApp: App {
                 .onAppear {
                     // Ask for Health/Location permissions when UI appears
                     requestHealthAuthorization()
-                    WeatherManager.shared.requestPermissions()
                     
                     // Ensure BLE is connected
                     if !bleManager.isConnected {
@@ -41,7 +40,7 @@ struct BlueWatchApp: App {
             switch newPhase {
             case .background:
                 print("📱 App entering background")
-                BlueWatchApp.scheduleAppRefresh()
+                //BlueWatchApp.scheduleAppRefresh()
                 
             case .active:
                 print("📱 App became active")
@@ -79,7 +78,8 @@ struct BlueWatchApp: App {
     static func scheduleAppRefresh() {
         let request = BGAppRefreshTaskRequest(identifier: BlueWatchApp.weatherTaskID)
         // Run every 15 minutes (iOS will batch this intelligently)
-        request.earliestBeginDate = Date(timeIntervalSinceNow: 15 * 60)
+        request.earliestBeginDate = Date(timeIntervalSinceNow: 7 * 60)
+        
         
         do {
             try BGTaskScheduler.shared.submit(request)

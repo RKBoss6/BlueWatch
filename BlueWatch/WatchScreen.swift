@@ -7,44 +7,16 @@
 
 import SwiftUI
 
-struct WatchfScreen: View {
-    
-    var body: some View {
-        VStack {
-            
-            Image("BangleJS2")
-                .resizable()
-                .frame(width: 250,height: 270)
-           
-            Text("Watch not connected")
-                .font(.title2)
-                .fontWeight(.bold)
-                .padding()
-            Button("Connect now"){
-                DevicesAvailableView()
-            }
-            .buttonStyle(.borderedProminent)
-            .padding()
-        }
-        
-    }
-}
-
-#Preview {
-    WatchScreen()
-}
-
-
-import SwiftUI
 
 struct WatchScreen: View {
     
     private var CI = CommandInterpreter()
     @EnvironmentObject var bleManager: BLEManager
-
+    @State private var batt:String=LocalData.shared.battery;
 
     var body: some View {
         VStack(spacing: 20) {
+            
             Image("BangleJS2")
                 .resizable()
                 .frame(width: 200,height: 200)
@@ -53,10 +25,11 @@ struct WatchScreen: View {
                 Text("Bangle.js")
                     .font(.title)
                     .fontWeight(.bold)
-                    .frame(width:.infinity,alignment: .leading)
                 Spacer()
-                Image(systemName: "battery.75percent")
-                Text("69%")
+                let img="battery.75percent"
+                
+                Image(systemName:img )
+                Text(LocalData.shared.battery)
             }
             .padding()
             
@@ -90,30 +63,34 @@ struct WatchScreen: View {
             .padding(.trailing)
             Divider()
             Spacer()
-            NavigationLink{
-                WebView()
+            Button{
+                bleManager.send("Buzz")
             }label:{
-                    Text("Go to apps")
-                        .frame(maxWidth: .infinity)
-                        .padding(10)
-                
+                Text("Buzz")
+                    .frame(maxWidth: .infinity)
+                    .padding(10)
             }
             .buttonStyle(.borderedProminent)
             HStack{
-                Button{
-                    bleManager.send("Buzz")
-                }label:{
-                    Text("Buzz")
-                        .frame(maxWidth: .infinity)
-                        .padding(10)
-                }
-                .buttonStyle(.borderedProminent)
+                
                 Button{
                     Task {
                         await WeatherManager.shared.updateWeatherAndSend()
                     }
                 }label:{
                     Text("Push Weather")
+                        .frame(maxWidth: .infinity)
+                        .padding(10)
+                    
+                }
+
+                .buttonStyle(.borderedProminent)
+                Button{
+                    Task {
+                        await LocationManager.shared.sendLocation()
+                    }
+                }label:{
+                    Text("Push Location")
                         .frame(maxWidth: .infinity)
                         .padding(10)
                     
@@ -135,5 +112,5 @@ struct WatchScreen: View {
 
 #Preview{
     WatchScreen()
-        .environmentObject(BLEManager.shared)
+        .environmentObject(BLEManager.instance)
 }
