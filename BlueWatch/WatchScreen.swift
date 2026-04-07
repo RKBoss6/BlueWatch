@@ -13,6 +13,7 @@ struct WatchScreen: View {
     private var CI = CommandInterpreter()
     @EnvironmentObject var bleManager: BLEManager
     @ObservedObject private var ld:LocalData=LocalData.shared;
+    @State private var findingWatch=false;
     func getBattImg(battStr:String) -> String{
         var img:String="battery.0percent"
         if let batt = Double(battStr){
@@ -81,14 +82,40 @@ struct WatchScreen: View {
             .padding(.trailing)
             Divider()
             Spacer()
-            Button{
-                bleManager.send("Buzz")
-            }label:{
-                Text("Buzz")
-                    .frame(maxWidth: .infinity)
-                    .padding(10)
+            HStack{
+                
+                Button{
+                    bleManager.send("Buzz")
+                    
+                }label:{
+                    Text("Buzz")
+                        .frame(maxWidth: .infinity)
+                        .padding(10)
+                    
+                }
+                .disabled(!bleManager.isConnected)
+
+                .buttonStyle(.borderedProminent)
+                Button{
+                    if(findingWatch){
+                        bleManager.send("Stop Find Watch")
+                        findingWatch=false
+                    }else{
+                        bleManager.send("Find Watch")
+                        findingWatch=true
+                    }
+                    
+                }label:{
+                    Text(findingWatch ? "Stop Finding" : "Find Watch")
+                        .frame(maxWidth: .infinity)
+                        .padding(10)
+                    
+                }
+                .disabled(!bleManager.isConnected)
+
+                .buttonStyle(.borderedProminent)
+                .tint(findingWatch ? .orange : .accent)
             }
-            .buttonStyle(.borderedProminent)
             HStack{
                 
                 Button{
@@ -101,7 +128,7 @@ struct WatchScreen: View {
                         .padding(10)
                     
                 }
-
+                .disabled(!bleManager.isConnected)
                 .buttonStyle(.borderedProminent)
                 Button{
                     Task {
@@ -113,7 +140,7 @@ struct WatchScreen: View {
                         .padding(10)
                     
                 }
-
+                .disabled(!bleManager.isConnected)
                 .buttonStyle(.borderedProminent)
             }
             

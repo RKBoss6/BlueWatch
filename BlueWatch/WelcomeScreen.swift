@@ -37,7 +37,7 @@ struct WelcomeScreen: View {
                     .padding(.trailing,15)
                 Spacer()
                 NavigationLink("Get started"){
-                    WatchScreen()
+                    ChooseDeviceScreen()
                 }
                 
                 .buttonStyle(.borderedProminent)
@@ -95,4 +95,5 @@ struct DeviceCard: View {
 
 #Preview {
     WelcomeScreen()
+        .environmentObject(BLEManager.instance)
 }

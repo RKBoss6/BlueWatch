@@ -31,9 +31,6 @@ struct WatchSettingsScreen: View {
                     Toggle(isOn:$settings.autoConnect) {
                         Text("Automatically Connect")
                     }
-                    Toggle(isOn:$temp ) {
-                        Text("Notify when battery is low")
-                    }
                 }
                 Section(
                     header: Text("Push Data"),
@@ -48,6 +45,7 @@ struct WatchSettingsScreen: View {
                     }
                     
                 }
+                
                 Section("Web View"){
                     HStack {
                         Text("Web URL:")
@@ -60,6 +58,11 @@ struct WatchSettingsScreen: View {
                     }
                     Toggle(isOn:$settings.enableVScroll) {
                         Text("Enable Vertical Scrolling")
+                    }
+                }
+                Section("Other"){
+                    Toggle(isOn:$settings.lowBattNotify) {
+                        Text("Notify when watch battery low")
                     }
                 }
                 
