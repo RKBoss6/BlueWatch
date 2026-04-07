@@ -296,7 +296,7 @@ class BLEManager: NSObject, ObservableObject {
         }
     }
 
-    // MARK: - JS helpers
+    // MARK: JS helpers
 
     func wbResolve(id: Int, result: Any) {
         guard let json = try? JSONSerialization.data(withJSONObject: result),
@@ -380,7 +380,9 @@ extension BLEManager: CBCentralManagerDelegate {
         activeWebNotifications = []
         writeBusy = false; writeQueue = []
         wbServices = [:]; wbCharacteristics = [:]
-        LocalData.shared.battery="--"
+        DispatchQueue.main.async {
+            LocalData.shared.battery = "--"
+        }
         status = "Reconnecting..."
         DispatchQueue.main.async {
             self.webView?.evaluateJavaScript(

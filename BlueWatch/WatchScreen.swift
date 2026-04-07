@@ -12,8 +12,28 @@ struct WatchScreen: View {
     
     private var CI = CommandInterpreter()
     @EnvironmentObject var bleManager: BLEManager
-    @State private var batt:String=LocalData.shared.battery;
-
+    @ObservedObject private var ld:LocalData=LocalData.shared;
+    func getBattImg(battStr:String) -> String{
+        var img:String="battery.0percent"
+        if let batt = Double(battStr){
+            // has a percentage
+            if(batt>5){
+                img="battery.25percent"
+            }
+            if(batt>40){
+                img="battery.50percent"
+            }
+            if(batt>70){
+                img="battery.75percent"
+            }
+            if(batt>90){
+                img="battery.100percent"
+            }
+            
+        }
+        return img;
+    }
+    
     var body: some View {
         VStack(spacing: 20) {
             
@@ -25,11 +45,9 @@ struct WatchScreen: View {
                 Text("Bangle.js")
                     .font(.title)
                     .fontWeight(.bold)
-                Spacer()
-                let img="battery.75percent"
-                
-                Image(systemName:img )
-                Text(LocalData.shared.battery)
+                Spacer()            
+                Image(systemName:getBattImg(battStr: ld.battery))
+                Text(ld.battery+"%")
             }
             .padding()
             

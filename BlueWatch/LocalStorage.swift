@@ -11,13 +11,13 @@ class LocalStorage {
     static func set(_ value: Any, forKey key: String) {
         UserDefaults.standard.set(value, forKey: key)
     }
-    static func getBool(forKey key: String) -> Bool {
+    static func getBool(forKey key: String) -> Bool? {
         return UserDefaults.standard.bool(forKey: key)
     }
-    static func getNumber(forKey key: String) -> Double {
+    static func getNumber(forKey key: String) -> Double? {
         return UserDefaults.standard.double(forKey: key)
     }
-    static func getString(forKey key: String) -> String {
+    static func getString(forKey key: String) -> String? {
         return UserDefaults.standard.string(forKey: key) ?? ""
     }
 }

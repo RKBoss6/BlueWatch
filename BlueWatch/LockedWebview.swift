@@ -146,7 +146,7 @@ struct LockedWebView: UIViewRepresentable {
 
 struct WebView: View {
 
-    private let lockedURL = URL(string: "https://"+LocalStorage.getString(forKey: "webURL"))
+    private let lockedURL = URL(string: "https://"+Settings.instance.webURL)
                             ?? URL(string: "https://banglejs.com/apps")!
     @ObservedObject private var ble = BLEManager.instance
     @ObservedObject private var vm = ViewModel.instance

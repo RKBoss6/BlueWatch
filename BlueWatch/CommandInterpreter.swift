@@ -30,11 +30,12 @@ class CommandInterpreter {
         }
     }
     func handleJSON(_ j: [String: Any]){
-        
+        print("Got json")
         switch (j["type"] as? String){
         case "health":
             handleHealthData(j)
         case "systemInfo":
+            print("Got system json")
             handleSystemInfo(j)
         default:
             break
@@ -44,7 +45,11 @@ class CommandInterpreter {
     }
     func handleSystemInfo(_ data: [String: Any]){
         if let batt = data["batt"] as? Double{
-            LocalData.shared.battery=String(batt)+"%"
+            print("Got battery " + String(batt))
+            DispatchQueue.main.async {
+                LocalData.shared.battery = String(Int(batt))
+                print("batt updated")
+            }
         }
     }
     func handleHealthData(_ data: [String: Any]) {
