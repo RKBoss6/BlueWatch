@@ -33,14 +33,14 @@
 		3676F0A52F8FE40B002C112D /* Exceptions for "BlueWatch" folder in "BlueWatchTests" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				src/Swift/SettingsClass.swift,
+				Source/Swift/SettingsClass.swift,
 			);
 			target = 368901482D7206AD00AD492A /* BlueWatchTests */;
 		};
 		3676F0A62F8FE40B002C112D /* Exceptions for "BlueWatch" folder in "BlueWatchUITests" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				src/Swift/SettingsClass.swift,
+				Source/Swift/SettingsClass.swift,
 			);
 			target = 368901522D7206AD00AD492A /* BlueWatchUITests */;
 		};
