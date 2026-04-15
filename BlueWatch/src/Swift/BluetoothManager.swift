@@ -452,6 +452,13 @@ extension BLEManager: CBPeripheralDelegate {
     func onConnectionFinished(){
         status = "Connected";
         send("BlueWatch Connected")
+        send("Request System Info")
+        
+        Task{
+            await LocationManager.shared.sendLocation()
+            await WeatherManager.shared.updateWeatherAndSend()
+        }
+        
     }
     func peripheral(_ peripheral: CBPeripheral,
                     didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {

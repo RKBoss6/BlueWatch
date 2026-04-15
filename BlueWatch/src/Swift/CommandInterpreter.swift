@@ -50,6 +50,9 @@ class CommandInterpreter {
                 LocalData.shared.battery = String(Int(batt))
                 print("batt updated")
             }
+            if(batt<80 && Settings.instance.lowBattNotify){
+                Utils.pushNotification(title: "Bangle.js", subtitle: "Battery below 15%. Charge soon!", body: "", id: "LowBatt")
+            }
         }
     }
     func handleHealthData(_ data: [String: Any]) {

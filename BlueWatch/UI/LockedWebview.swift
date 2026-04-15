@@ -153,10 +153,13 @@ struct WebView: View {
     var body: some View {
         
         VStack() {
-            
+//            Button{
+//                
+//            }label:{
+//                Image(systemName: "arrow.clockwise")
+//            }
             LockedWebView(url: lockedURL)
-                .ignoresSafeArea()
-                .padding(.bottom,70)
+                .padding(.bottom,90)
                 
             
             
@@ -168,4 +171,8 @@ struct WebView: View {
         .statusBarHidden(true)
         .persistentSystemOverlays(.hidden)
     }
+}
+
+#Preview {
+    WebView()
 }

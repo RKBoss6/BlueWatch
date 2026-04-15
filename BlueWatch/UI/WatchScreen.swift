@@ -9,7 +9,7 @@ import SwiftUI
 
 
 struct WatchScreen: View {
-    
+    @Environment(\.scenePhase) var scenePhase
     private var CI = CommandInterpreter()
     @EnvironmentObject var bleManager: BLEManager
     @ObservedObject private var ld:LocalData=LocalData.shared;
@@ -151,6 +151,14 @@ struct WatchScreen: View {
             
         }
         .padding()
+        .onChange(of: scenePhase) { newPhase in
+            if newPhase == .active {
+                print("Active")
+                bleManager.send("Request System Info")
+                // Do something here
+            
+            }
+        }
         .appBackground()
     }
 }
