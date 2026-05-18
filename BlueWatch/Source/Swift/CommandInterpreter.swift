@@ -2,6 +2,7 @@ import Foundation
 import HealthKit
 
 class CommandInterpreter {
+    
     public static let shared = CommandInterpreter()
 
     weak var ble: BLEManager?
@@ -46,9 +47,11 @@ class CommandInterpreter {
     func handleSystemInfo(_ data: [String: Any]){
         if let batt = data["batt"] as? Double{
             print("Got battery " + String(batt))
+            DataService.addDataPointInBackground(timestamp: Date(), value: batt, type: .battery)
             DispatchQueue.main.async {
                 LocalData.shared.battery = String(Int(batt))
                 print("batt updated")
+                
             }
             if(batt<80 && Settings.instance.lowBattNotify){
                 Utils.pushNotification(title: "Bangle.js", subtitle: "Battery below 15%. Charge soon!", body: "", id: "LowBatt")
@@ -57,6 +60,7 @@ class CommandInterpreter {
     }
     func handleHealthData(_ data: [String: Any]) {
         if let hr = data["hr"] as? Double {
+            DataService.addDataPointInBackground(timestamp: Date(), value: hr, type: DataType.heartRate)
             let type = HKQuantityType.quantityType(forIdentifier: .heartRate)!
             var time: Date
             if let t = data["time"] as? Double {
@@ -80,51 +84,57 @@ class CommandInterpreter {
         }
 
         if let total = data["steps"] as? Double {
+            DataService.addDataPointInBackground(timestamp: Date(), value: total, type: DataType.steps)
             syncSteps(watchTotal: total)
         }
 
     }
 
     private func syncSteps(watchTotal: Double) {
-        let type       = HKQuantityType.quantityType(forIdentifier: .stepCount)!
+        let type = HKQuantityType.quantityType(forIdentifier: .stepCount)!
         let startOfDay = Calendar.current.startOfDay(for: Date())
 
+        // FIX 1: Use HKSource.default() to only count steps THIS APP saved.
+        // This stops the iPhone pocket steps from interfering with your watch steps.
         let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
             HKQuery.predicateForSamples(withStart: startOfDay, end: Date(), options: .strictStartDate),
-            HKQuery.predicateForObjects(from: .default())
+            HKQuery.predicateForObjects(from: HKSource.default())
         ])
 
         let query = HKStatisticsQuery(
-            quantityType:            type,
+            quantityType: type,
             quantitySamplePredicate: predicate,
-            options:                 .cumulativeSum
+            options: .cumulativeSum
         ) { [weak self] _, result, error in
             guard let self else { return }
 
-            if let error {
-                print("Step query failed: \(error)")
-                return
-            }
-
             let alreadySaved = result?.sumQuantity()?.doubleValue(for: .count()) ?? 0
-            let delta        = watchTotal - alreadySaved
-
+            
+            // FIX 2: Handle midnight reset. If watch says 100 but Health says 12000,
+            // it's a new day; the delta should just be the 100.
+            var delta = watchTotal - alreadySaved
+            if watchTotal < alreadySaved {
+                delta = watchTotal
+            }
+            
             guard delta > 0 else {
                 print("Steps: no delta (watch=\(Int(watchTotal)) saved=\(Int(alreadySaved)))")
                 return
             }
-
+            
             let sample = HKCumulativeQuantitySample(
-                type:     type,
+                type: type,
                 quantity: HKQuantity(unit: .count(), doubleValue: delta),
-                start:    Date().addingTimeInterval(-60),
-                end:      Date()
+                start: Date().addingTimeInterval(-60),
+                end: Date()
             )
+            
             self.healthStore.save(sample) { ok, err in
-                print(ok ? "Saved \(Int(delta)) steps" : "Step save failed: \(err!)")
+                if ok { print("Saved \(Int(delta)) steps to HealthKit") }
             }
         }
 
         healthStore.execute(query)
     }
+
 }

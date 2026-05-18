@@ -1,6 +1,7 @@
 import SwiftUI
 import HealthKit
 import BackgroundTasks
+import SwiftData
 
 @main
 struct BlueWatchApp: App {
@@ -36,6 +37,7 @@ struct BlueWatchApp: App {
                     }
                 }
         }
+        .modelContainer(for: DataPoint.self)
         .onChange(of: scenePhase) { oldPhase, newPhase in
             switch newPhase {
             case .background:

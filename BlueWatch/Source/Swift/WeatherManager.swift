@@ -34,8 +34,8 @@ class WeatherManager: ObservableObject {
         // Retrieve the last update date from UserDefaults safely
         let lastDate = UserDefaults.standard.object(forKey: "lastWeatherUpdate") as? Date
 
-        // If we have a last date and fewer than 10 minutes have passed, bail out
-        if let last = lastDate, let diff = minutesBetweenDates(last, toDate: Date()), diff < 10 {
+        // If we have a last date and fewer than 8 minutes have passed, bail out
+        if let last = lastDate, let diff = minutesBetweenDates(last, toDate: Date()), diff < 8 {
             print("Skipping weather update; only \(diff) minutes since last update.")
             return;
         }
@@ -70,7 +70,7 @@ class WeatherManager: ObservableObject {
                 wind:  Int(current.wind.speed.converted(to: .kilometersPerHour).value),
                 code:  getIconCode(condition: current.condition),
                 txt:   current.condition.description,
-                wdir:  current.wind.compassDirection,
+                wdir:  Int(current.wind.direction.value),
                 loc:   cityName
             )
 
@@ -117,11 +117,10 @@ class WeatherManager: ObservableObject {
 // MARK: - Wind compass
 extension Wind {
     var compassDirection: String {
-        let degrees    = self.direction.converted(to: .degrees).value
-        let directions = ["N","NNE","NE","ENE","E","ESE","SE","SSE",
-                          "S","SSW","SW","WSW","W","WNW","NW","NNW"]
-        let index = Int((degrees + 11.25) / 22.5)
-        return directions[index % 16]
+        let degrees = self.direction.converted(to: .degrees).value
+        let directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+        let index = Int((degrees + 22.5) / 45.0)
+        return directions[index % 8]
     }
 }
 
@@ -138,6 +137,6 @@ struct WatchWeatherPacket: Encodable {
     let wind: Int
     let code: Int
     let txt: String
-    let wdir: String
+    let wdir: Int
     let loc: String
 }
