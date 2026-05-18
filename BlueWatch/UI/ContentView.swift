@@ -57,7 +57,7 @@ struct ContentView: View {
                 Tab("Watch Settings",systemImage:"gearshape"){
                     WatchSettingsScreen()
                 }
-                .badge("1")
+                //.badge("1")
                 
             }
             .edgesIgnoringSafeArea(.bottom)

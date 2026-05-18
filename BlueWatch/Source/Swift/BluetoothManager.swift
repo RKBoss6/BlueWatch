@@ -296,7 +296,7 @@ class BLEManager: NSObject, ObservableObject {
         }
     }
 
-    // MARK: - JS helpers
+    // MARK: JS helpers
 
     func wbResolve(id: Int, result: Any) {
         guard let json = try? JSONSerialization.data(withJSONObject: result),
@@ -380,7 +380,9 @@ extension BLEManager: CBCentralManagerDelegate {
         activeWebNotifications = []
         writeBusy = false; writeQueue = []
         wbServices = [:]; wbCharacteristics = [:]
-        LocalData.shared.battery="--"
+        DispatchQueue.main.async {
+            LocalData.shared.battery = "--"
+        }
         status = "Reconnecting..."
         DispatchQueue.main.async {
             self.webView?.evaluateJavaScript(
@@ -434,7 +436,8 @@ extension BLEManager: CBPeripheralDelegate {
             if c.uuid == rxUUID { peripheral.setNotifyValue(true, for: c); foundRX = true; print("[BLE] RX ready") }
         }
         if foundTX && foundRX {
-            setupComplete = true; status = "Connected"; print("[BLE] Setup complete")
+            setupComplete = true;
+            print("[BLE] Setup complete")
             if let id = pendingRequestDevice {
                 pendingRequestDevice = nil
                 print("[WB] requestDevice → \(peripheral.name ?? "Bangle.js") (post-setup)")
@@ -443,9 +446,20 @@ extension BLEManager: CBPeripheralDelegate {
                     "name":     peripheral.name ?? "Bangle.js"
                 ])
             }
+            onConnectionFinished()
         }
     }
-
+    func onConnectionFinished(){
+        status = "Connected";
+        send("BlueWatch Connected")
+        send("Request System Info")
+        
+        Task{
+            await LocationManager.shared.sendLocation()
+            await WeatherManager.shared.updateWeatherAndSend()
+        }
+        
+    }
     func peripheral(_ peripheral: CBPeripheral,
                     didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
         guard let data = characteristic.value else { return }

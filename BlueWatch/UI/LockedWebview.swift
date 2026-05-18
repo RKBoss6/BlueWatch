@@ -146,17 +146,20 @@ struct LockedWebView: UIViewRepresentable {
 
 struct WebView: View {
 
-    private let lockedURL = URL(string: "https://"+LocalStorage.getString(forKey: "webURL"))
+    private let lockedURL = URL(string: "https://"+Settings.instance.webURL)
                             ?? URL(string: "https://banglejs.com/apps")!
     @ObservedObject private var ble = BLEManager.instance
     @ObservedObject private var vm = ViewModel.instance
     var body: some View {
         
         VStack() {
-            
+//            Button{
+//                
+//            }label:{
+//                Image(systemName: "arrow.clockwise")
+//            }
             LockedWebView(url: lockedURL)
-                .ignoresSafeArea()
-                .padding(.bottom,70)
+                .padding(.bottom,90)
                 
             
             
@@ -168,4 +171,8 @@ struct WebView: View {
         .statusBarHidden(true)
         .persistentSystemOverlays(.hidden)
     }
+}
+
+#Preview {
+    WebView()
 }
