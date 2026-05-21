@@ -1,4 +1,4 @@
-// BLEManager.swift
+// BluetoothManager.swift
 
 import Foundation
 import CoreBluetooth
@@ -13,11 +13,21 @@ class BLEManager: NSObject, ObservableObject {
     @Published var lastMessage: String = "—"
     @Published var isConnected: Bool = false
 
+    // Dedicated serial queue instead of nil (main thread).
+    // BLE callbacks on a dedicated queue survive background better and
+    // won't be blocked by UI work on the main thread.
+    private let bleQueue = DispatchQueue(label: "com.rk.bluewatch", qos: .userInitiated)
+
     private var central: CBCentralManager!
     private var peripheral: CBPeripheral?
     private var incomingBuffer = ""
     private var writeCharacteristic: CBCharacteristic?
-    private var reconnectTimer: Timer?
+
+    // reconnectTimer REMOVED entirely.
+    // central.connect(_:options:) in didDisconnectPeripheral is already a
+    // persistent reconnect request that survives suspension — a Timer
+    // doesn't fire when the app is suspended, so it was redundant and
+    // could race with the persistent connect attempt.
 
     var commandInterpreter = CommandInterpreter.shared
 
@@ -30,10 +40,6 @@ class BLEManager: NSObject, ObservableObject {
     // ── Web Bluetooth bridge ───────────────────────────────────────────────────
     weak var webView: WKWebView?
 
-    // The set of characteristic UUIDs the web page has called startNotifications
-    // on. Only route RX data to the web page for these. When this is empty,
-    // all incoming data goes to the native parser — even if wbCharacteristics
-    // is populated from a previous session.
     private var activeWebNotifications: Set<String> = []
 
     private var wbServices:        [String: CBService]        = [:]
@@ -50,16 +56,45 @@ class BLEManager: NSObject, ObservableObject {
     private var writeQueue: [WriteJob] = []
     private var writeBusy = false
 
+    // Short-lived background task covering the connect→setup window only.
+    // Opened in didConnect, closed at the end of onConnectionFinished().
+    // The bluetooth-central background mode (Info.plist) keeps the app alive
+    // for actual BLE events — this task just protects the few seconds of
+    // service/characteristic discovery so we don't get suspended before
+    // "BlueWatch Connected" can be sent. iOS hard-limits background tasks to
+    // ~30 seconds, so this must NOT be held for the whole connection.
+    private var setupBackgroundTask: UIBackgroundTaskIdentifier = .invalid
+
     override init() {
         super.init()
+        // Pass bleQueue instead of nil so BLE callbacks don't run on main.
         central = CBCentralManager(
             delegate: self,
-            queue: nil,
+            queue: bleQueue,
             options: [
                 CBCentralManagerOptionRestoreIdentifierKey: "BlueWatchRestorationID",
                 CBCentralManagerOptionShowPowerAlertKey: true
             ]
         )
+    }
+
+    // MARK: - Background task management
+
+    private func beginSetupBackgroundTask() {
+        guard setupBackgroundTask == .invalid else { return }
+        setupBackgroundTask = UIApplication.shared.beginBackgroundTask(
+            withName: "BLESetup"
+        ) { [weak self] in
+            self?.endSetupBackgroundTask()
+        }
+        print("[BLE] Setup background task started: \(setupBackgroundTask.rawValue)")
+    }
+
+    private func endSetupBackgroundTask() {
+        guard setupBackgroundTask != .invalid else { return }
+        UIApplication.shared.endBackgroundTask(setupBackgroundTask)
+        print("[BLE] Setup background task ended: \(setupBackgroundTask.rawValue)")
+        setupBackgroundTask = .invalid
     }
 
     // MARK: - Connect
@@ -74,7 +109,7 @@ class BLEManager: NSObject, ObservableObject {
         if let p = central.retrieveConnectedPeripherals(withServices: [serviceUUID]).first {
             setupAndConnect(p); return
         }
-        status = "Scanning..."
+        DispatchQueue.main.async { self.status = "Scanning..." }
         central.scanForPeripherals(withServices: [serviceUUID], options: [
             CBCentralManagerScanOptionAllowDuplicatesKey: false
         ])
@@ -83,7 +118,8 @@ class BLEManager: NSObject, ObservableObject {
     private func setupAndConnect(_ p: CBPeripheral) {
         peripheral = p; p.delegate = self
         UserDefaults.standard.set(p.identifier.uuidString, forKey: "banglePeripheralID")
-        status = "Connecting..."; central.stopScan()
+        DispatchQueue.main.async { self.status = "Connecting..." }
+        central.stopScan()
         central.connect(p, options: [
             CBConnectPeripheralOptionNotifyOnConnectionKey:    true,
             CBConnectPeripheralOptionNotifyOnDisconnectionKey: true,
@@ -93,11 +129,6 @@ class BLEManager: NSObject, ObservableObject {
     }
 
     // MARK: - Native send (BlueWatch protocol)
-    //
-    // No longer gated on webBluetoothActive. The app loader and native commands
-    // share the same TX characteristic — writes always go through.
-    // RX routing (below) determines where responses end up.
-    //
 
     func send(_ text: String) {
         guard let p = peripheral, let c = writeCharacteristic, isConnected else { return }
@@ -111,13 +142,6 @@ class BLEManager: NSObject, ObservableObject {
                 p.writeValue(data, for: c, type: .withResponse)
             }
             idx = end
-        }
-    }
-
-    private func scheduleReconnect() {
-        reconnectTimer?.invalidate()
-        reconnectTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: false) { [weak self] _ in
-            self?.connect()
         }
     }
 
@@ -160,7 +184,6 @@ class BLEManager: NSObject, ObservableObject {
     }
 
     private func wbRequestDevice(id: Int) {
-        // Clear leftover Swift-side state from any previous web session.
         activeWebNotifications = []
         wbCharacteristics = [:]
         wbServices = [:]
@@ -168,13 +191,6 @@ class BLEManager: NSObject, ObservableObject {
         writeBusy = false
         incomingBuffer = ""
 
-        // Clear leftover JS-side state: listeners, char proxies, notification
-        // buffers. Without this, the old addEventListener callbacks from the
-        // previous session remain in _charListeners and each new session adds
-        // another one on top — causing every notification to fire N times and
-        // doubling (or tripling) the data the app loader receives, corrupting JSON.
-        // We resolve requestDevice AFTER the reset executes so the JS state is
-        // clean before the page starts calling gattConnect etc.
         if let p = peripheral, isConnected, setupComplete {
             let deviceId = p.identifier.uuidString
             let name     = p.name ?? "Bangle.js"
@@ -207,9 +223,6 @@ class BLEManager: NSObject, ObservableObject {
     }
 
     private func wbGattDisconnect(id: Int) {
-        // Stop routing RX to the web page. Do NOT clear wbCharacteristics here —
-        // the app loader immediately calls requestDevice again (phase 2), and
-        // wbRequestDevice will clear them at that point.
         activeWebNotifications = []
         writeQueue = []
         writeBusy = false
@@ -258,7 +271,6 @@ class BLEManager: NSObject, ObservableObject {
               let char   = wbCharacteristics[charId] else {
             return wbReject(id: id, error: "Characteristic not found")
         }
-        // Mark this char as actively delivering to the web page
         activeWebNotifications.insert(charId)
         if char.isNotifying { return wbResolve(id: id, result: [:]) }
         pendingNotify[charId] = id
@@ -333,22 +345,52 @@ extension BLEManager: CBCentralManagerDelegate {
 
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
         switch central.state {
-        case .poweredOn:    status = "Ready"; connect()
-        case .poweredOff:   status = "Bluetooth Off"; isConnected = false
-        case .resetting:    status = "Resetting..."
-        case .unauthorized: status = "Bluetooth Unauthorized"
-        case .unsupported:  status = "Bluetooth Unsupported"
-        case .unknown:      status = "Bluetooth Unknown"
-        @unknown default:   status = "Bluetooth Unknown"
+        case .poweredOn:
+            DispatchQueue.main.async { self.status = "Ready" }
+            connect()
+        case .poweredOff:
+            DispatchQueue.main.async {
+                self.status = "Bluetooth Off"
+                self.isConnected = false
+            }
+            endSetupBackgroundTask()
+        case .resetting:
+            DispatchQueue.main.async { self.status = "Resetting..." }
+        case .unauthorized:
+            DispatchQueue.main.async { self.status = "Bluetooth Unauthorized" }
+        case .unsupported:
+            DispatchQueue.main.async { self.status = "Bluetooth Unsupported" }
+        case .unknown:
+            DispatchQueue.main.async { self.status = "Bluetooth Unknown" }
+        @unknown default:
+            DispatchQueue.main.async { self.status = "Bluetooth Unknown" }
         }
     }
 
     func centralManager(_ central: CBCentralManager, willRestoreState dict: [String: Any]) {
         if let peripherals = dict[CBCentralManagerRestoredStatePeripheralsKey] as? [CBPeripheral],
            let restored    = peripherals.first {
-            peripheral = restored; restored.delegate = self; status = "Restoring..."
+            peripheral = restored
+            restored.delegate = self
+            DispatchQueue.main.async { self.status = "Restoring..." }
+
             if restored.state == .connected {
-                isConnected = true; restored.discoverServices([serviceUUID])
+                // Already connected — discover services to finish setup.
+                DispatchQueue.main.async { self.isConnected = true }
+                beginSetupBackgroundTask()
+                restored.discoverServices([serviceUUID])
+            } else {
+                // App was terminated while disconnected. The old persistent
+                // connect() request died with the process, so re-issue it now.
+                // centralManagerDidUpdateState(.poweredOn) → connect() also runs,
+                // but having it here too means we cover the race where poweredOn
+                // fires before willRestoreState completes.
+                central.connect(restored, options: [
+                    CBConnectPeripheralOptionNotifyOnConnectionKey:    true,
+                    CBConnectPeripheralOptionNotifyOnDisconnectionKey: true,
+                    CBConnectPeripheralOptionNotifyOnNotificationKey:  true,
+                    CBConnectPeripheralOptionStartDelayKey:            0
+                ])
             }
         }
     }
@@ -360,41 +402,65 @@ extension BLEManager: CBCentralManagerDelegate {
 
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
         print("[BLE] Connected — discovering services...")
-        status = "Setting up..."; isConnected = true; setupComplete = false
-        writeBusy = false; writeQueue = []; reconnectTimer?.invalidate()
+        // Open a short background task covering service/characteristic discovery.
+        // This protects the few seconds between didConnect and onConnectionFinished()
+        // so iOS can't suspend us before "BlueWatch Connected" is sent.
+        // It is ended inside onConnectionFinished() once the sends are queued.
+        // Do NOT hold this open for the whole connection — bluetooth-central handles that.
+        beginSetupBackgroundTask()
+        writeBusy = false; writeQueue = []
+        DispatchQueue.main.async {
+            self.status = "Setting up..."
+            self.isConnected = true
+        }
+        setupComplete = false
         peripheral.discoverServices([serviceUUID])
     }
 
     func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
-        isConnected = false; setupComplete = false; status = "Connection Failed"
+        DispatchQueue.main.async {
+            self.isConnected = false
+            self.status = "Connection Failed"
+        }
+        setupComplete = false
+        endSetupBackgroundTask()
         if let id = pendingRequestDevice {
             pendingRequestDevice = nil
             wbReject(id: id, error: error?.localizedDescription ?? "Failed to connect")
         }
-        scheduleReconnect()
+        // No Timer — use a plain asyncAfter on a background queue so it fires
+        // even if the main queue is busy, and doesn't need a run loop like Timer does.
+        DispatchQueue.global().asyncAfter(deadline: .now() + 5) { [weak self] in
+            self?.connect()
+        }
     }
 
     func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
         print("[BLE] Disconnected: \(error?.localizedDescription ?? "normal")")
-        isConnected = false; setupComplete = false
+        DispatchQueue.main.async {
+            self.isConnected = false
+            self.status = "Reconnecting..."
+            LocalData.shared.battery = "--"
+        }
+        setupComplete = false
         activeWebNotifications = []
         writeBusy = false; writeQueue = []
         wbServices = [:]; wbCharacteristics = [:]
-        DispatchQueue.main.async {
-            LocalData.shared.battery = "--"
-        }
-        status = "Reconnecting..."
+
         DispatchQueue.main.async {
             self.webView?.evaluateJavaScript(
                 "window.__bluetoothDisconnected && window.__bluetoothDisconnected()"
             )
         }
+
+        // This single persistent connect call is enough.
+        // iOS keeps this request alive even when the app is suspended and
+        // will reconnect as soon as the peripheral is in range.
         central.connect(peripheral, options: [
             CBConnectPeripheralOptionNotifyOnConnectionKey:    true,
             CBConnectPeripheralOptionNotifyOnDisconnectionKey: true,
             CBConnectPeripheralOptionNotifyOnNotificationKey:  true
         ])
-        scheduleReconnect()
     }
 }
 
@@ -432,11 +498,17 @@ extension BLEManager: CBPeripheralDelegate {
         }
         var foundTX = false, foundRX = false
         service.characteristics?.forEach { c in
-            if c.uuid == txUUID { writeCharacteristic = c; foundTX = true; print("[BLE] TX ready props=\(c.properties.rawValue)") }
-            if c.uuid == rxUUID { peripheral.setNotifyValue(true, for: c); foundRX = true; print("[BLE] RX ready") }
+            if c.uuid == txUUID {
+                writeCharacteristic = c; foundTX = true
+                print("[BLE] TX ready props=\(c.properties.rawValue)")
+            }
+            if c.uuid == rxUUID {
+                peripheral.setNotifyValue(true, for: c); foundRX = true
+                print("[BLE] RX ready")
+            }
         }
         if foundTX && foundRX {
-            setupComplete = true;
+            setupComplete = true
             print("[BLE] Setup complete")
             if let id = pendingRequestDevice {
                 pendingRequestDevice = nil
@@ -446,31 +518,36 @@ extension BLEManager: CBPeripheralDelegate {
                     "name":     peripheral.name ?? "Bangle.js"
                 ])
             }
-            onConnectionFinished()
+            // Must dispatch to main: isConnected was set via DispatchQueue.main.async
+            // in didConnect. Calling onConnectionFinished() directly here (on bleQueue)
+            // races with that async — isConnected may still be false, causing send() to
+            // silently bail. On main, isConnected is guaranteed true before this runs.
+            DispatchQueue.main.async {
+                self.onConnectionFinished()
+            }
         }
     }
-    func onConnectionFinished(){
-        status = "Connected";
+
+    func onConnectionFinished() {
+        // Already on main thread (dispatched from didDiscoverCharacteristicsFor).
+        // isConnected is true here, so send() will pass its guard.
+        status = "Connected"
         send("BlueWatch Connected")
         send("Request System Info")
-        
-        Task{
+        // Setup is done — end the short background task now.
+        endSetupBackgroundTask()
+        Task {
             await LocationManager.shared.sendLocation()
             await WeatherManager.shared.updateWeatherAndSend()
         }
-        
     }
+
     func peripheral(_ peripheral: CBPeripheral,
                     didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
         guard let data = characteristic.value else { return }
         let charId = characteristic.uuid.uuidString
         let bytes  = [UInt8](data)
 
-        // Route to web page ONLY if the page called startNotifications on this char.
-        // This is the key distinction: wbCharacteristics may be populated (from
-        // getCharacteristic) but if startNotifications hasn't been called, data
-        // should still go to the native parser. This prevents native command
-        // responses from being routed to the web page after gattDisconnect.
         if activeWebNotifications.contains(charId) {
             if let id = pendingReads.removeValue(forKey: charId) {
                 wbResolve(id: id, result: bytes)
@@ -480,32 +557,41 @@ extension BLEManager: CBPeripheralDelegate {
             return
         }
 
-        // Also route explicit readValue requests even without active notifications
         if let id = pendingReads[charId], wbCharacteristics[charId] != nil {
             pendingReads.removeValue(forKey: charId)
             wbResolve(id: id, result: bytes)
             return
         }
 
-        // Native BlueWatch path — always runs when web page isn't actively
-        // subscribed, including while the app loader is open but between sessions
         guard let text = String(data: data, encoding: .utf8) else { return }
         incomingBuffer += text
+
+        // The background task wraps only the async processing work and
+        // is ended INSIDE the async block — not immediately after it.
+        // Ending it outside gave it zero effective lifetime, which let iOS
+        // suspend the app before the command was actually processed.
         while let range = incomingBuffer.range(of: "\n") {
             let line = incomingBuffer[..<range.lowerBound].trimmingCharacters(in: .whitespacesAndNewlines)
             incomingBuffer = String(incomingBuffer[range.upperBound...])
+
             var bgId: UIBackgroundTaskIdentifier = .invalid
-            bgId = UIApplication.shared.beginBackgroundTask(withName: "BLE") {
+            bgId = UIApplication.shared.beginBackgroundTask(withName: "BLELine") {
                 UIApplication.shared.endBackgroundTask(bgId); bgId = .invalid
             }
-            DispatchQueue.main.async { self.lastMessage = line }
-            if let d = line.data(using: .utf8),
-               let j = try? JSONSerialization.jsonObject(with: d) as? [String: Any] {
-                commandInterpreter.handleJSON(j)
-            } else {
-                commandInterpreter.handleCommand(command: line)
+
+            DispatchQueue.main.async {
+                self.lastMessage = line
+
+                if let d = line.data(using: .utf8),
+                   let j = try? JSONSerialization.jsonObject(with: d) as? [String: Any] {
+                    self.commandInterpreter.handleJSON(j)
+                } else {
+                    self.commandInterpreter.handleCommand(command: line)
+                }
+
+                // End the task here, AFTER the async work has actually run.
+                UIApplication.shared.endBackgroundTask(bgId); bgId = .invalid
             }
-            UIApplication.shared.endBackgroundTask(bgId); bgId = .invalid
         }
     }
 
