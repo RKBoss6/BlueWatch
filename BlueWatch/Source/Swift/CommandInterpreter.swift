@@ -5,7 +5,7 @@ class CommandInterpreter {
     
     public static let shared = CommandInterpreter()
 
-    weak var ble: BLEManager?
+    var ble: BLEManager?
 
     private let healthStore    = HKHealthStore()
     private let findPhoneAlarm = FindPhoneAlarm()

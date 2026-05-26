@@ -45,6 +45,7 @@ struct ContentView: View {
                 
                 Tab("My Watch",systemImage:"watch.analog"){
                     WatchScreen()
+                        .edgesIgnoringSafeArea(.bottom)
                     
                 }
                 

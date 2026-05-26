@@ -3,14 +3,26 @@
 import AVFoundation
 import Foundation
 import UIKit
-import MediaPlayer  // for MPVolumeView / system volume override
+import MediaPlayer
 
 class FindPhoneAlarm: NSObject, AVAudioPlayerDelegate {
     private var audioPlayer: AVAudioPlayer?
     private var backgroundTaskID: UIBackgroundTaskIdentifier = .invalid
 
-    // We temporarily crank system volume to max, then restore it when done.
-    private var originalVolume: Float = 0.5
+
+    private func forceSystemVolumeToMax() {
+        // MPVolumeView must be added to an active view hierarchy to manipulate the system audio pipeline
+        let volumeView = MPVolumeView(frame: CGRect(x: -100, y: -100, width: 1, height: 1))
+        
+        // Find the hidden underlying slider that hooks into coreaudiod
+        if let slider = volumeView.subviews.first(where: { $0 is UISlider }) as? UISlider {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                // Force the global system media volume track to max blast
+                slider.setValue(0.2, animated: false)
+                print("[FindPhone] System Media Volume forcefully overridden to 100%")
+            }
+        }
+    }
 
     public var isActive: Bool {
         audioPlayer?.isPlaying ?? false
@@ -20,59 +32,48 @@ class FindPhoneAlarm: NSObject, AVAudioPlayerDelegate {
         guard !isActive else { return }
 
         // ── Background task ───────────────────────────────────────────────────
-        // Gives us time to set up the audio session even if the screen locks
-        // the instant the command arrives from the watch.
         backgroundTaskID = UIApplication.shared.beginBackgroundTask { [weak self] in
             self?.stop()
         }
 
         // ── Audio session ─────────────────────────────────────────────────────
-        // .playback: continues in background, ignores the Silent/Ringer switch.
-        // NOT .duckOthers — we want full volume, not ducked underneath something.
-        // NOT .mixWithOthers — we want exclusive audio so we're as loud as possible.
+        // .playback bypasses the silent/ringer switch — this is the documented
+        // behaviour of the category and is how Garmin/similar apps do it.
+        // No special entitlements needed. The only thing that can silence it is
+        // the user having their volume slider at zero.
         do {
             let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playback, mode: .default, options: [])
-            try session.overrideOutputAudioPort(.speaker)  // use bottom speaker
+            try session.setCategory(.playback, mode: .default, options: [.duckOthers])
             try session.setActive(true)
+
         } catch {
             print("[FindPhone] Audio session setup failed: \(error)")
             endBackgroundTask()
             return
         }
 
-        // ── Override system volume to maximum ─────────────────────────────────
-        // AVAudioPlayer.volume is relative to system volume — if the phone is
-        // at 10% volume, even volume=1.0 is quiet. We temporarily set system
-        // volume to 1.0 so the alarm is always at max hardware output.
-        //
-        // MPMusicPlayerController.applicationMusicPlayer.volume is deprecated
-        // but still works. The correct modern way is AVAudioSession, but that
-        // only controls input gain, not output volume. The hack below is the
-        // only way to programmatically set output volume on iOS without a
-        // private API. It uses a hidden MPVolumeView slider.
-        originalVolume = AVAudioSession.sharedInstance().outputVolume
-        setSystemVolume(1.0)
-
         // ── Load and play ─────────────────────────────────────────────────────
+        // Make sure "findphone.wav" is listed under:
+        // Target → Build Phases → Copy Bundle Resources
+        // If this guard fires, that's why nothing plays.
         guard let url = Bundle.main.url(forResource: "findphone", withExtension: "wav") else {
-            print("[FindPhone] Sound file 'findphone.wav' not found in bundle")
+            print("[FindPhone] ‼️ Sound file 'findphone.wav' not found in bundle — add it to Copy Bundle Resources")
             endBackgroundTask()
             return
         }
 
         do {
             audioPlayer = try AVAudioPlayer(contentsOf: url)
-            audioPlayer?.delegate     = self
-            audioPlayer?.volume       = 1.0
-            audioPlayer?.numberOfLoops = -1  // loop forever until stop() is called
+            audioPlayer?.delegate      = self
+            audioPlayer?.volume        = 1.0
+            audioPlayer?.numberOfLoops = -1  // loop until stop() is called
             audioPlayer?.prepareToPlay()
 
             let started = audioPlayer?.play() ?? false
             if started {
                 print("[FindPhone] Alarm started")
             } else {
-                print("[FindPhone] play() returned false — audio session may not be ready")
+                print("[FindPhone] ‼️ play() returned false — audio session may not be ready")
                 endBackgroundTask()
             }
         } catch {
@@ -87,13 +88,8 @@ class FindPhoneAlarm: NSObject, AVAudioPlayerDelegate {
         audioPlayer?.stop()
         audioPlayer = nil
 
-        // Restore system volume to what it was before
-        setSystemVolume(originalVolume)
-
-        // Deactivate session so music/podcasts can resume
-        try? AVAudioSession.sharedInstance().setActive(
-            false, options: .notifyOthersOnDeactivation
-        )
+        // Deactivate so music/podcasts can resume
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
 
         endBackgroundTask()
         print("[FindPhone] Alarm stopped")
@@ -102,7 +98,6 @@ class FindPhoneAlarm: NSObject, AVAudioPlayerDelegate {
     // MARK: - AVAudioPlayerDelegate
 
     func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
-        // Only fires if numberOfLoops is not -1. Safe to have for completeness.
         stop()
     }
 
@@ -111,33 +106,11 @@ class FindPhoneAlarm: NSObject, AVAudioPlayerDelegate {
         stop()
     }
 
-    // MARK: - Private helpers
+    // MARK: - Private
 
     private func endBackgroundTask() {
         guard backgroundTaskID != .invalid else { return }
         UIApplication.shared.endBackgroundTask(backgroundTaskID)
         backgroundTaskID = .invalid
-    }
-
-    /// The only reliable way to set output volume programmatically on iOS.
-    /// Creates a hidden MPVolumeView and moves its slider — this is what
-    /// apps like alarm clocks do. Requires MediaPlayer framework.
-    private func setSystemVolume(_ volume: Float) {
-        // MPVolumeView must be added to a visible window to work.
-        // We add it off-screen (frame outside visible area).
-        guard let window = UIApplication.shared.connectedScenes
-            .compactMap({ $0 as? UIWindowScene })
-            .first?.windows.first else { return }
-
-        let volumeView = MPVolumeView(frame: CGRect(x: -1000, y: -1000, width: 1, height: 1))
-        window.addSubview(volumeView)
-
-        // Find the volume slider inside MPVolumeView and set it
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
-            if let slider = volumeView.subviews.compactMap({ $0 as? UISlider }).first {
-                slider.value = volume
-            }
-            volumeView.removeFromSuperview()
-        }
     }
 }

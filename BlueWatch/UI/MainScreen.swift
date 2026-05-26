@@ -13,9 +13,11 @@ struct WatchScreen: View {
     
     @Environment(\.scenePhase) var scenePhase
     private var CI = CommandInterpreter()
+    @State private var findingPhone=false;
     @EnvironmentObject var bleManager: BLEManager
     @ObservedObject private var ld:LocalData=LocalData.shared;
     @State private var findingWatch=false;
+    private var findPhoneAlarm=FindPhoneAlarm()
     func getBattImg(battStr:String) -> String{
         var img:String="battery.0percent"
         if let batt = Double(battStr){
@@ -88,15 +90,24 @@ struct WatchScreen: View {
                 HStack{
                     
                     Button{
-                        bleManager.send("Buzz")
+                        if(findingPhone){
+                            findPhoneAlarm.stop()
+                            
+                        }else{
+                            findPhoneAlarm.start()
+                        }
+                        findingPhone = !findingPhone
+
                         
                     }label:{
-                        Text("Buzz")
+                        Text(findingPhone ? "Stop" : "Find Phone")
                             .frame(maxWidth: .infinity)
                             .padding(10)
                         
+                        
                     }
                     .disabled(!bleManager.isConnected)
+                    .tint(findingPhone ? .orange : .accent)
                     
                     .buttonStyle(.borderedProminent)
                     Button{
