@@ -10,7 +10,7 @@ import SwiftUI
 
 struct WatchScreen: View {
     @Environment(\.modelContext) private var modelContext
-    
+    var vm:ViewModel=ViewModel.instance
     @Environment(\.scenePhase) var scenePhase
     private var CI = CommandInterpreter()
     @State private var findingPhone=false;
@@ -43,12 +43,12 @@ struct WatchScreen: View {
         ScrollView{
             VStack(spacing: 20) {
                 
-                Image("BangleJS2")
+                Image(vm.savedDevice=="Bangle.js 2" ? "BangleJS2" : "BangleJS1" )
                     .resizable()
                     .frame(width: 200,height: 200)
                     .padding(.top,50)
                 HStack{
-                    Text("Bangle.js")
+                    Text(vm.savedDevice)
                         .font(.title)
                         .fontWeight(.bold)
                     Spacer()
@@ -70,7 +70,6 @@ struct WatchScreen: View {
                 HStack {
                     Button(bleManager.isConnected ? "Paired" : "Connect") {
                         if(bleManager.isConnected){
-                            //nothing
                         }else{
                             bleManager.connect()
                         }

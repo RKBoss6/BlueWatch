@@ -532,8 +532,10 @@ extension BLEManager: CBPeripheralDelegate {
         // Already on main thread (dispatched from didDiscoverCharacteristicsFor).
         // isConnected is true here, so send() will pass its guard.
         status = "Connected"
+        
         send("BlueWatch Connected")
         send("Request System Info")
+        
         // Setup is done — end the short background task now.
         endSetupBackgroundTask()
         Task {

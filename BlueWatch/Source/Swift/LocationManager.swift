@@ -154,13 +154,17 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         switch manager.authorizationStatus {
         case .notDetermined:
-            manager.requestAlwaysAuthorization()
+            // Only request once, don't loop
+            break
         case .denied, .restricted:
-            print("[GPS] Location access denied")
-        default:
+            print("[GPS] Location access denied by user")
+        case .authorizedAlways, .authorizedWhenInUse:
+            print("[GPS] Location access granted")
+        @unknown default:
             break
         }
     }
+
 }
 
 // MARK: - Packet type

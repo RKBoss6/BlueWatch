@@ -26,8 +26,8 @@ struct FeatureCard: View {
         }
         
         .padding()
-        .foregroundStyle(colorScheme == .dark ? .white : .black)
-        .background(RoundedRectangle(cornerRadius: 20).fill(Color("SecondaryColor")))
+        .foregroundStyle(.white )
+        .background(RoundedRectangle(cornerRadius: 20).fill(.accent))
     }
 }
 

@@ -15,11 +15,12 @@ enum sendFrequency: Int, CaseIterable, Identifiable {
 struct WatchSettingsScreen: View {
     @State var settings:Settings=Settings.instance
     @State var temp:Bool=false
+    var vm:ViewModel=ViewModel.instance
     var body: some View {
         VStack {
             HStack {
 
-                Text("Bangle.js 2")
+                Text(vm.savedDevice)
                     .font(.title)
                     .fontWeight(.bold)
                 

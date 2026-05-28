@@ -9,8 +9,17 @@ import Foundation
 
 public class ViewModel: ObservableObject {
     @Published var webReloadTrigger = UUID()
-    static var instance:ViewModel = ViewModel()
+    public static var instance:ViewModel = ViewModel()
+    var savedDevice:String{
+        set{
+            LocalStorage.set(newValue, forKey: "savedDevice")
+        }
+        get{
+            LocalStorage.getString(forKey: "savedDevice") ?? ""
+        }
+    }
     func requestWebReload() {
         webReloadTrigger = UUID() // Change value to trigger update
     }
+    
 }

@@ -38,41 +38,49 @@ extension BluetoothViewModel: CBCentralManagerDelegate{
 
 struct ContentView: View {
     var bgColors:[Color]=[.BG_1,.BG_2]
-    
+    var vm:ViewModel = ViewModel.instance
     var body: some View {
-        NavigationStack{
-            TabView{
-                
-                Tab("My Watch",systemImage:"watch.analog"){
-                    WatchScreen()
-                        .edgesIgnoringSafeArea(.bottom)
+        NavigationView {
+            if vm.savedDevice == "" {
+                WelcomeScreen()
+            } else {
+                NavigationStack{
+                    TabView{
+                        
+                        Tab("My Watch",systemImage:"watch.analog"){
+                            WatchScreen()
+                                .edgesIgnoringSafeArea(.bottom)
+                            
+                        }
+                        
+                        Tab("Apps",systemImage:"appclip"){
+                            WebView().edgesIgnoringSafeArea(.bottom)
+                            
+                            
+                        }
+                        
+                        Tab("Watch Settings",systemImage:"gearshape"){
+                            WatchSettingsScreen()
+                        }
+                        //.badge("1")
+                        
+                    }
+                    .edgesIgnoringSafeArea(.bottom)
+                    
+                    .onAppear() {
+                        let standardAppearance = UITabBarAppearance()
+                        standardAppearance.shadowColor = UIColor(Color.blue)
+                        
+                        
+                        
+                        UITabBar.appearance().standardAppearance = standardAppearance
+                    }
                     
                 }
-                
-                Tab("Apps",systemImage:"appclip"){
-                    WebView().edgesIgnoringSafeArea(.bottom)
-                    
-                    
-                }
-                
-                Tab("Watch Settings",systemImage:"gearshape"){
-                    WatchSettingsScreen()
-                }
-                //.badge("1")
-                
             }
-            .edgesIgnoringSafeArea(.bottom)
-            
-            .onAppear() {
-                let standardAppearance = UITabBarAppearance()
-                standardAppearance.shadowColor = UIColor(Color.blue)
-                
-                
-                
-                UITabBar.appearance().standardAppearance = standardAppearance
-            }
-            
         }
+        .navigationBarBackButtonHidden(true)
+        
         
         
     }
