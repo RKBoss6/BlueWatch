@@ -550,30 +550,25 @@ extension BLEManager: CBPeripheralDelegate {
         let charId = characteristic.uuid.uuidString
         let bytes  = [UInt8](data)
 
+        // Web Bluetooth path
         if activeWebNotifications.contains(charId) {
             if let id = pendingReads.removeValue(forKey: charId) {
                 wbResolve(id: id, result: bytes)
             } else {
                 wbFireNotification(charId: charId, bytes: bytes)
             }
-            return
+            // ← removed the return, fall through to native handling below
         }
 
-        if let id = pendingReads[charId], wbCharacteristics[charId] != nil {
-            pendingReads.removeValue(forKey: charId)
-            wbResolve(id: id, result: bytes)
-            return
-        }
+        // Skip native handling for non-RX characteristics
+        guard charId.caseInsensitiveCompare(rxUUID.uuidString) == .orderedSame else { return }
 
         guard let text = String(data: data, encoding: .utf8) else { return }
         incomingBuffer += text
 
-        // The background task wraps only the async processing work and
-        // is ended INSIDE the async block — not immediately after it.
-        // Ending it outside gave it zero effective lifetime, which let iOS
-        // suspend the app before the command was actually processed.
         while let range = incomingBuffer.range(of: "\n") {
-            let line = incomingBuffer[..<range.lowerBound].trimmingCharacters(in: .whitespacesAndNewlines)
+            let line = incomingBuffer[..<range.lowerBound]
+                .trimmingCharacters(in: .whitespacesAndNewlines)
             incomingBuffer = String(incomingBuffer[range.upperBound...])
 
             var bgId: UIBackgroundTaskIdentifier = .invalid
@@ -583,15 +578,12 @@ extension BLEManager: CBPeripheralDelegate {
 
             DispatchQueue.main.async {
                 self.lastMessage = line
-
                 if let d = line.data(using: .utf8),
                    let j = try? JSONSerialization.jsonObject(with: d) as? [String: Any] {
                     self.commandInterpreter.handleJSON(j)
                 } else {
                     self.commandInterpreter.handleCommand(command: line)
                 }
-
-                // End the task here, AFTER the async work has actually run.
                 UIApplication.shared.endBackgroundTask(bgId); bgId = .invalid
             }
         }
