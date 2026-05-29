@@ -9,7 +9,7 @@ class CommandInterpreter {
 
     private let healthStore    = HKHealthStore()
     private let findPhoneAlarm = FindPhoneAlarm()
-
+    @MainActor
     public func handleCommand(command: String) {
         switch command {
         case "FindPhone":
@@ -23,7 +23,7 @@ class CommandInterpreter {
                 await WeatherManager.shared.updateWeatherAndSend()
             }
         case "Request Location":
-            Task{
+            Task {
                 await LocationManager.shared.sendLocation()
             }
         default:

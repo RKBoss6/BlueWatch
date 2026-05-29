@@ -130,9 +130,9 @@ class BLEManager: NSObject, ObservableObject {
 
     // MARK: - Native send (BlueWatch protocol)
 
-    func send(_ text: String) {
+    func send(_ text: String, sendRaw:Bool = false) {
         guard let p = peripheral, let c = writeCharacteristic, isConnected else { return }
-        let payload = (text + "|")
+        let payload = ((sendRaw ? "RAW: " : "")+text + "|")
             .replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "'",  with: "\\'")
         var idx = payload.startIndex

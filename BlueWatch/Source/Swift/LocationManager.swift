@@ -85,30 +85,32 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     func sendLocation() async {
         print("Doing Location Collection from Function")
         guard let location = await getLocation(useCache: false) else { print("Not there");return }
-        do {
-            print("Got location")
-            let placemarks = try? await geocoder.reverseGeocodeLocation(location)
-            let cityName   = placemarks?.first?.locality ?? "Unknown"
+    
+        print("Got location")
+        let placemarks = try? await geocoder.reverseGeocodeLocation(location)
+        let cityName  = placemarks?.first?.locality ?? "undefined"
+        let hasFix   = location.horizontalAccuracy > 0 && location.horizontalAccuracy < 100
+        let fix      = hasFix ? 1 : 0
+        let course   = location.course  >= 0 ? location.course  : 0
+        let speedKmh = location.speed   >= 0 ? location.speed * 3.6 : 0
+        let hdop     = max(0.5, min(99.9, location.horizontalAccuracy / 5.0))
+        let js = """
+        Bangle.emit('GPS',{\
+        lat:\(location.coordinate.latitude),\
+        lon:\(location.coordinate.longitude),\
+        alt:\(String(format:"%.1f", location.altitude)),\
+        speed:\(String(format:"%.1f", speedKmh)),\
+        course:\(String(format:"%.1f", course)),\
+        fix:\(fix),\
+        satellites:8,\
+        hdop:\(String(format:"%.1f", hdop))\
+        })
+        """
 
-            let packet = WatchLocationPacket(
-                id:     "LocationUpdate",
-                lat:    location.coordinate.latitude,
-                lon:    location.coordinate.longitude,
-                alt:    location.altitude,
-                speed:  location.speed,
-                course: location.course,
-                city:   cityName
-            )
-
-            let jsonData   = try JSONEncoder().encode(packet)
-            if let jsonString = String(data: jsonData, encoding: .utf8) {
-                print("Sending location JSON (\(jsonString.count) bytes)")
-                print("JSON: \(jsonString)")
-                BLEManager.instance.send(jsonString)
-            }
-        } catch {
-            print("Location Error: \(error)")
-        }
+      
+        BLEManager.instance.send(js, sendRaw: true)
+        
+        
     }
 
     // MARK: - Location retrieval (used by WeatherManager too)
