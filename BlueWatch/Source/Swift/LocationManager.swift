@@ -2,7 +2,7 @@
 
 import Foundation
 import CoreLocation
-
+@MainActor
 class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     static let shared = LocationManager()
 
@@ -83,8 +83,10 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     // MARK: - Location packet (your existing LocationUpdate)
 
     func sendLocation() async {
-        guard let location = await getLocation(useCache: false) else { return }
+        print("Doing Location Collection from Function")
+        guard let location = await getLocation(useCache: false) else { print("Not there");return }
         do {
+            print("Got location")
             let placemarks = try? await geocoder.reverseGeocodeLocation(location)
             let cityName   = placemarks?.first?.locality ?? "Unknown"
 
@@ -127,31 +129,32 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         }
     }
 
+    private var locationContinuations: [CheckedContinuation<CLLocation, Error>] = []
+
     private func requestCurrentLocation() async throws -> CLLocation {
         return try await withCheckedThrowingContinuation { continuation in
-            self.locationContinuation = continuation
+            locationContinuations.append(continuation)
             clManager.requestLocation()
         }
     }
 
-    // MARK: - CLLocationManagerDelegate
-
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        guard let location = locations.last else { return }
-        if let continuation = locationContinuation {
-            locationContinuation = nil
-            continuation.resume(returning: location)
+    nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        Task { @MainActor in
+            let pending = locationContinuations
+            locationContinuations.removeAll()
+            for c in pending { c.resume(returning: locations.last!) }
         }
-        // Continuous GPS forwarding reads clManager.location directly via timer
     }
 
-    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        print("Location failed: \(error)")
-        locationContinuation?.resume(throwing: error)
-        locationContinuation = nil
+    nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        Task { @MainActor in
+            let pending = locationContinuations
+            locationContinuations.removeAll()
+            for c in pending { c.resume(throwing: error) }
+        }
     }
 
-    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+    nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         switch manager.authorizationStatus {
         case .notDetermined:
             // Only request once, don't loop
@@ -165,6 +168,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         }
     }
 
+   
 }
 
 // MARK: - Packet type
