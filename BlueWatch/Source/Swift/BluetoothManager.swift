@@ -441,6 +441,7 @@ extension BLEManager: CBCentralManagerDelegate {
             self.isConnected = false
             self.status = "Reconnecting..."
             LocalData.shared.battery = "--"
+            LocationManager.shared.stopGPSForwarding()
         }
         setupComplete = false
         activeWebNotifications = []

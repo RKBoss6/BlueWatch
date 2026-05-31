@@ -12,6 +12,11 @@ class CommandInterpreter {
     @MainActor
     public func handleCommand(command: String) {
         switch command {
+        case "Start Polling GPS":
+            LocationManager.shared.startGPSForwarding()
+            
+        case "Stop Polling GPS":
+            LocationManager.shared.stopGPSForwarding()
         case "FindPhone":
             findPhoneAlarm.start()
         case "StopFindPhone":

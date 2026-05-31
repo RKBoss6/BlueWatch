@@ -9,11 +9,10 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     private let clManager  = CLLocationManager()
     private let geocoder   = CLGeocoder()
 
-    private var locationContinuation: CheckedContinuation<CLLocation, Error>?
 
     // ── GPS forwarding to Bangle.js ────────────────────────────────────────────
     private var gpsTimer: Timer?
-    private let gpsInterval: TimeInterval = 12   // seconds between Bangle.GPS events
+    private let gpsInterval: TimeInterval = 6   // seconds between Bangle.GPS events
     private var isForwardingGPS = false
 
     override init() {
@@ -32,7 +31,9 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         clManager.startUpdatingLocation()
 
         gpsTimer = Timer.scheduledTimer(withTimeInterval: gpsInterval, repeats: true) { [weak self] _ in
-            self?.sendGPSToBangle()
+            Task{
+               await self?.sendLocation()
+            }
         }
         print("[GPS] Started forwarding phone GPS to Bangle.js every \(Int(gpsInterval))s")
     }
@@ -42,49 +43,32 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         isForwardingGPS = false
         gpsTimer?.invalidate()
         gpsTimer = nil
+        // Cancel any pending continuations so requestCurrentLocation doesn't restart things
+        let pending = locationContinuations
+        locationContinuations.removeAll()
+        for c in pending { c.resume(throwing: CancellationError()) }
+        clManager.stopUpdatingLocation()
         clManager.desiredAccuracy = kCLLocationAccuracyHundredMeters
-        clManager.distanceFilter  = kCLDistanceFilterNone
         print("[GPS] Stopped GPS forwarding")
     }
 
-    private func sendGPSToBangle() {
-        guard let loc = clManager.location else {
-            print("[GPS] No location available yet"); return
-        }
-
-        let hasFix   = loc.horizontalAccuracy > 0 && loc.horizontalAccuracy < 100
-        let fix      = hasFix ? 1 : 0
-        let course   = loc.course  >= 0 ? loc.course  : 0
-        let speedKmh = loc.speed   >= 0 ? loc.speed * 3.6 : 0
-        let hdop     = max(0.5, min(99.9, loc.horizontalAccuracy / 5.0))
-
-        // Bangle.emit('GPS', {...}) — standard Bangle.js GPS event shape.
-        // Any watch app using Bangle.getGPS() or Bangle.on('GPS', cb) receives
-        // this as if it came from the watch's own GPS chip.
-        let js = """
-        Bangle.emit('GPS',{\
-        lat:\(loc.coordinate.latitude),\
-        lon:\(loc.coordinate.longitude),\
-        alt:\(String(format:"%.1f", loc.altitude)),\
-        speed:\(String(format:"%.1f", speedKmh)),\
-        course:\(String(format:"%.1f", course)),\
-        fix:\(fix),\
-        satellites:8,\
-        hdop:\(String(format:"%.1f", hdop))\
-        })
-        """
-
-        BLEManager.instance.send(js)
-        print("[GPS] Sent fix lat=\(String(format:"%.5f", loc.coordinate.latitude)) " +
-              "lon=\(String(format:"%.5f", loc.coordinate.longitude)) " +
-              "acc=\(Int(loc.horizontalAccuracy))m")
-    }
+  
 
     // MARK: - Location packet (your existing LocationUpdate)
 
     func sendLocation() async {
         print("Doing Location Collection from Function")
-        guard let location = await getLocation(useCache: false) else { print("Not there");return }
+        
+        let location: CLLocation?
+        if isForwardingGPS {
+            // Already have continuous updates running, just read the latest
+            location = clManager.location
+        } else {
+            location = await getLocation(useCache: false)
+        }
+        
+        guard let location else { print("Not there"); return }
+       
     
         print("Got location")
         let placemarks = try? await geocoder.reverseGeocodeLocation(location)
