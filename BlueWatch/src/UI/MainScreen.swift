@@ -11,6 +11,7 @@ import SwiftUI
 struct WatchScreen: View {
     @Environment(\.modelContext) private var modelContext
     var vm:ViewModel=ViewModel.instance
+    @ObservedObject var settings = Settings.instance
     @Environment(\.scenePhase) var scenePhase
     private var CI = CommandInterpreter()
     @State private var findingPhone=false;
@@ -48,7 +49,7 @@ struct WatchScreen: View {
                     .frame(width: 200,height: 200)
                     .padding(.top,50)
                 HStack{
-                    Text(vm.savedDevice)
+                    Text(settings.deviceName.isEmpty==false ? settings.deviceName : vm.savedDevice)
                         .font(.title)
                         .fontWeight(.bold)
                     Spacer()

@@ -37,7 +37,6 @@ extension BluetoothViewModel: CBCentralManagerDelegate{
 }
 
 struct ContentView: View {
-    var bgColors:[Color]=[.BG_1,.BG_2]
     var vm:ViewModel = ViewModel.instance
     var body: some View {
         NavigationView {

@@ -2,10 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>NSLocationAlwaysUsageDescription</key>
-	<string>BlueWatch needs location perodically in the background to update your device&apos;s location</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>BlueWatch needs location to get local weather</string>
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
 		<string>com.rk.bluewatch.weatherRefresh</string>

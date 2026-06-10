@@ -13,14 +13,14 @@ enum sendFrequency: Int, CaseIterable, Identifiable {
     var id: Self { self }
 }
 struct WatchSettingsScreen: View {
-    @State var settings:Settings=Settings.instance
+    @ObservedObject var settings:Settings=Settings.instance
     @State var temp:Bool=false
     var vm:ViewModel=ViewModel.instance
     var body: some View {
         VStack {
             HStack {
 
-                Text(vm.savedDevice)
+                Text(settings.deviceName.isEmpty==false ? settings.deviceName : vm.savedDevice)
                     .font(.title)
                     .fontWeight(.bold)
                 
@@ -41,18 +41,37 @@ struct WatchSettingsScreen: View {
                     .listRowInsets(EdgeInsets())
                 }
                 .listRowBackground(Color.clear)
+                Section("Device"){
+                    VStack(spacing: 16) {
+                        HStack {
+                            Text("Device name:")
+                            TextField(ViewModel().savedDevice, text: $settings.deviceName)
+                                .autocorrectionDisabled()
+                                .textInputAutocapitalization(.never)
+                        }
+                    }
+                    .padding()
+                    .liquidGlass(cornerRadius: 24)
+                    .frame(width:.infinity,height: .infinity)
+                    .ignoresSafeArea(.all)
+                    .listRowInsets(EdgeInsets())
+                }
+                .listRowBackground(Color.clear)
                 Section(
                     header: Text("Data"),
                     footer: Text("Periodically pushes location data for 'MyLocation.json'")){
-                        VStack(spacing: 32) {
+                        VStack(spacing: 16) {
+                            
                             Toggle(isOn:$settings.sendToHealthKit ) {
                                 Text("Push health data to Apple Health")
                                 
                             }
+                            Divider()
                             Toggle(isOn:$settings.pushWeather ) {
                                 Text("Push weather updates")
                                 
                             }
+                            Divider()
                             Toggle(isOn:$settings.pushLocation ) {
                                 Text("Push location updates")
                                 

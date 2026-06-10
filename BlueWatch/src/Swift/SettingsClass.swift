@@ -7,13 +7,20 @@
 
 import Foundation
 
-public class Settings{
+public class Settings:ObservableObject{
     public static var instance:Settings = Settings()
     
     private var webURLKey:String="webURL"
-    public var webURL:String{
+    @Published public var webURL:String{
         didSet{
             LocalStorage.set(webURL, forKey: webURLKey)
+        }
+    }
+    
+    private var deviceNameKey:String="deviceName"
+    @Published public var deviceName:String{
+        didSet{
+            LocalStorage.set(deviceName, forKey: deviceNameKey)
         }
     }
     
@@ -78,5 +85,6 @@ public class Settings{
         pushLocation=LocalStorage.getBool(forKey: pushLocationKey) ?? true
         lowBattNotify=LocalStorage.getBool(forKey: lowBattNotifyKey) ?? false
         sendToHealthKit=LocalStorage.getBool(forKey: sendToHealthKitKey) ?? true
+        deviceName=LocalStorage.getString(forKey: deviceNameKey) ?? ViewModel.instance.savedDevice
     }
 }
