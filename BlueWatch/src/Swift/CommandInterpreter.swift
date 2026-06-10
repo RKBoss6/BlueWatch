@@ -24,12 +24,16 @@ class CommandInterpreter {
         case "Pinging Connection...":
             ble?.send("iPhone Connected")
         case "Request Weather":
-            Task{
-                await WeatherManager.shared.updateWeatherAndSend()
+            if(Settings.instance.pushWeather){
+                Task{
+                    await WeatherManager.shared.updateWeatherAndSend()
+                }
             }
         case "Request Location":
-            Task {
-                await LocationManager.shared.sendLocation()
+            if(Settings.instance.pushLocation){
+                Task {
+                    await LocationManager.shared.sendLocation()
+                }
             }
         default:
             break
@@ -66,31 +70,35 @@ class CommandInterpreter {
     func handleHealthData(_ data: [String: Any]) {
         if let hr = data["hr"] as? Double {
             DataService.addDataPointInBackground(timestamp: Date(), value: hr, type: DataType.heartRate)
-            let type = HKQuantityType.quantityType(forIdentifier: .heartRate)!
-            var time: Date
-            if let t = data["time"] as? Double {
-                time=Date(timeIntervalSince1970: t / 1000)
-            }else{
-                time=Date()
-            }
-            let quantity = HKQuantity(unit: .count().unitDivided(by: .minute()), doubleValue: hr)
-            let context: HKHeartRateMotionContext = (data["state"] as? String) == "sedentary"
+            if(Settings.instance.sendToHealthKit==true){
+                let type = HKQuantityType.quantityType(forIdentifier: .heartRate)!
+                var time: Date
+                if let t = data["time"] as? Double {
+                    time=Date(timeIntervalSince1970: t / 1000)
+                }else{
+                    time=Date()
+                }
+                let quantity = HKQuantity(unit: .count().unitDivided(by: .minute()), doubleValue: hr)
+                let context: HKHeartRateMotionContext = (data["state"] as? String) == "sedentary"
                 ? .sedentary : .notSet
-            let sample = HKQuantitySample(
-                type:     type,
-                quantity: quantity,
-                start:    time.addingTimeInterval(-600),
-                end:      time,
-                metadata: [HKMetadataKeyHeartRateMotionContext: context.rawValue]
-            )
-            healthStore.save(sample) { ok, err in
-                print(ok ? "Saved HR" : " HR: \(err!)")
+                let sample = HKQuantitySample(
+                    type:     type,
+                    quantity: quantity,
+                    start:    time.addingTimeInterval(-600),
+                    end:      time,
+                    metadata: [HKMetadataKeyHeartRateMotionContext: context.rawValue]
+                )
+                healthStore.save(sample) { ok, err in
+                    print(ok ? "Saved HR" : " HR: \(err!)")
+                }
             }
         }
 
         if let total = data["steps"] as? Double {
             DataService.addDataPointInBackground(timestamp: Date(), value: total, type: DataType.steps)
-            syncSteps(watchTotal: total)
+            if(Settings.instance.sendToHealthKit==true){
+                syncSteps(watchTotal: total)
+            }
         }
 
     }
@@ -115,8 +123,7 @@ class CommandInterpreter {
 
             let alreadySaved = result?.sumQuantity()?.doubleValue(for: .count()) ?? 0
             
-            // FIX 2: Handle midnight reset. If watch says 100 but Health says 12000,
-            // it's a new day; the delta should just be the 100.
+           
             var delta = watchTotal - alreadySaved
             if watchTotal < alreadySaved {
                 delta = watchTotal

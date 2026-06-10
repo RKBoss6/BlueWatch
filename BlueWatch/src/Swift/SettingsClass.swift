@@ -52,6 +52,13 @@ public class Settings{
         }
     }
     
+    private var sendToHealthKitKey:String="sendToHealthKit"
+    public var sendToHealthKit:Bool{
+        didSet{
+            LocalStorage.set(sendToHealthKit, forKey: sendToHealthKitKey)
+        }
+    }
+    
     private var lowBattNotifyKey:String="lowBattNotify"
     public var lowBattNotify:Bool{
         didSet{
@@ -70,5 +77,6 @@ public class Settings{
         pushWeather=LocalStorage.getBool(forKey: pushWeatherKey) ?? true
         pushLocation=LocalStorage.getBool(forKey: pushLocationKey) ?? true
         lowBattNotify=LocalStorage.getBool(forKey: lowBattNotifyKey) ?? false
+        sendToHealthKit=LocalStorage.getBool(forKey: sendToHealthKitKey) ?? true
     }
 }
