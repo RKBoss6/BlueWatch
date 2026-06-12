@@ -146,8 +146,14 @@ struct LockedWebView: UIViewRepresentable {
 
 struct WebView: View {
 
-    private let lockedURL = URL(string: "https://"+Settings.instance.webURL)
-                            ?? URL(string: "https://banglejs.com/apps")!
+    private var lockedURL: URL = {
+        let base = Settings.instance.webURL.isEmpty == false ? Settings.instance.webURL : "banglejs.com/apps"
+        let candidate = URL(string: "https://" + base)
+        if let url = candidate { return url }
+        // If URL construction fails, assert in debug but still return a safe default in release
+        assertionFailure("Invalid URL constructed from settings: \(base)")
+        return URL(string: "https://banglejs.com/apps")!
+    }()
     @ObservedObject private var ble = BLEManager.instance
     @ObservedObject private var vm = ViewModel.instance
     var body: some View {
@@ -176,3 +182,4 @@ struct WebView: View {
 #Preview {
     WebView()
 }
+

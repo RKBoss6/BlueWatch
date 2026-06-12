@@ -138,7 +138,7 @@ class BLEManager: NSObject, ObservableObject {
         var idx = payload.startIndex
         while idx < payload.endIndex {
             let end = payload.index(idx, offsetBy: 60, limitedBy: payload.endIndex) ?? payload.endIndex
-            if let data = "require('BlueWatch').receive('\(payload[idx..<end])')\n".data(using: .utf8) {
+            if let data = "require('bluewatch').receive('\(payload[idx..<end])')\n".data(using: .utf8) {
                 p.writeValue(data, for: c, type: .withResponse)
             }
             idx = end

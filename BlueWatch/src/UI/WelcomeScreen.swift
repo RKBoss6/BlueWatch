@@ -82,7 +82,7 @@ struct ChooseDeviceScreen: View {
                 .padding()
             Spacer()
             let sampleDevices = [
-                DeviceData(img: "BangleJS1", name: "Bangle.js 1"),
+               // DeviceData(img: "BangleJS1", name: "Bangle.js 1"),
                 DeviceData(img: "BangleJS2", name: "Bangle.js 2")
             ]
             DeviceCarouselView(devices: sampleDevices)

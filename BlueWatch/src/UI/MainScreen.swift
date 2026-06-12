@@ -178,6 +178,7 @@ struct WatchScreen: View {
                     .frame(maxWidth: .infinity,alignment: .leading)
                     .padding(.leading,10)
                 DynamicDataChart(dataType: .battery, color: .green, suffix: "%")
+                    .padding(.bottom,70)
                 
                 
                 
