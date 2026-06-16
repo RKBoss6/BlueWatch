@@ -176,6 +176,7 @@ struct WebView: View {
         
         .statusBarHidden(true)
         .persistentSystemOverlays(.hidden)
+        .appBackground()
     }
 }
 

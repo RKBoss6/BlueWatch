@@ -36,6 +36,8 @@ class BLEManager: NSObject, ObservableObject {
     private let rxUUID      = CBUUID(string: "6E400003-B5A3-F393-E0A9-E50E24DCCA9E")
 
     private var setupComplete = false
+    private var started = false
+    private var shouldAttemptConnect = false
 
     // ── Web Bluetooth bridge ───────────────────────────────────────────────────
     weak var webView: WKWebView?
@@ -77,6 +79,63 @@ class BLEManager: NSObject, ObservableObject {
             ]
         )
     }
+    
+    // MARK: - Lifecycle control
+    func start() {
+        guard !started else { return }
+        started = true
+        shouldAttemptConnect = true
+        // If Bluetooth is already powered on, allow connection flow to begin
+        if central.state == .poweredOn {
+            connect()
+        } else {
+            // change display
+            switch central.state {
+            case .poweredOff:
+                DispatchQueue.main.async { self.status = "Bluetooth Off" }
+            case .resetting:
+                DispatchQueue.main.async { self.status = "Resetting..." }
+            case .unauthorized:
+                DispatchQueue.main.async { self.status = "Bluetooth Unauthorized" }
+            case .unsupported:
+                DispatchQueue.main.async { self.status = "Bluetooth Unsupported" }
+            case .unknown:
+                DispatchQueue.main.async { self.status = "Bluetooth Unknown" }
+            case .poweredOn:
+                DispatchQueue.main.async { self.status = "Waiting to connect" }
+            @unknown default:
+                DispatchQueue.main.async { self.status = "Bluetooth Unknown" }
+            }
+            // When Bluetooth powers on, centralManagerDidUpdateState will call connect()
+        }
+    }
+
+    func stop() {
+        // Stop all BLE activity and prevent future actions until start() is called again
+        started = false
+        shouldAttemptConnect = false
+        central.stopScan()
+        if let p = peripheral {
+            central.cancelPeripheralConnection(p)
+        }
+        activeWebNotifications = []
+        wbServices = [:]
+        wbCharacteristics = [:]
+        writeQueue = []
+        writeBusy = false
+        setupComplete = false
+        pendingRequestDevice = nil
+        pendingServices.removeAll()
+        pendingChars.removeAll()
+        pendingReads.removeAll()
+        pendingNotify.removeAll()
+        incomingBuffer = ""
+        DispatchQueue.main.async {
+            self.isConnected = false
+            self.status = "Idle"
+        }
+        endSetupBackgroundTask()
+    }
 
     // MARK: - Background task management
 
@@ -100,7 +159,7 @@ class BLEManager: NSObject, ObservableObject {
     // MARK: - Connect
 
     func connect() {
-        guard central.state == .poweredOn else { return }
+        guard started, shouldAttemptConnect, central.state == .poweredOn else { return }
         if let idStr = UserDefaults.standard.string(forKey: "banglePeripheralID"),
            let uuid  = UUID(uuidString: idStr),
            let p     = central.retrievePeripherals(withIdentifiers: [uuid]).first {
@@ -131,7 +190,7 @@ class BLEManager: NSObject, ObservableObject {
     // MARK: - Native send (BlueWatch protocol)
 
     func send(_ text: String, sendRaw:Bool = false) {
-        guard let p = peripheral, let c = writeCharacteristic, isConnected else { return }
+        guard started, let p = peripheral, let c = writeCharacteristic, isConnected else { return }
         let payload = ((sendRaw ? "RAW: " : "")+text + "|")
             .replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "'",  with: "\\'")
@@ -153,7 +212,7 @@ class BLEManager: NSObject, ObservableObject {
     }
 
     private func drainWriteQueue() {
-        guard !writeBusy, let p = peripheral, isConnected else { return }
+        guard started, !writeBusy, let p = peripheral, isConnected else { return }
         while !writeQueue.isEmpty {
             guard p.canSendWriteWithoutResponse else {
                 writeBusy = true; return
@@ -168,6 +227,14 @@ class BLEManager: NSObject, ObservableObject {
     // MARK: - Web Bluetooth bridge
 
     func handleWebBluetoothMessage(id: Int, method: String, args: [String: Any]) {
+        if !started {
+            if method == "requestDevice" {
+                // Behave as if no device is available until start() is called
+                return wbReject(id: id, error: "Bluetooth is not started")
+            } else {
+                return wbReject(id: id, error: "Bluetooth is not started")
+            }
+        }
         print("[WB] → \(method) id=\(id)")
         switch method {
         case "requestDevice":      wbRequestDevice(id: id)
@@ -184,6 +251,7 @@ class BLEManager: NSObject, ObservableObject {
     }
 
     private func wbRequestDevice(id: Int) {
+        guard started else { wbReject(id: id, error: "Bluetooth is not started"); return }
         activeWebNotifications = []
         wbCharacteristics = [:]
         wbServices = [:]
@@ -347,7 +415,7 @@ extension BLEManager: CBCentralManagerDelegate {
         switch central.state {
         case .poweredOn:
             DispatchQueue.main.async { self.status = "Ready" }
-            connect()
+            if self.started && self.shouldAttemptConnect { self.connect() }
         case .poweredOff:
             DispatchQueue.main.async {
                 self.status = "Bluetooth Off"
@@ -368,6 +436,7 @@ extension BLEManager: CBCentralManagerDelegate {
     }
 
     func centralManager(_ central: CBCentralManager, willRestoreState dict: [String: Any]) {
+        guard started else { return }
         if let peripherals = dict[CBCentralManagerRestoredStatePeripheralsKey] as? [CBPeripheral],
            let restored    = peripherals.first {
             peripheral = restored
@@ -397,10 +466,15 @@ extension BLEManager: CBCentralManagerDelegate {
 
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral,
                         advertisementData: [String: Any], rssi RSSI: NSNumber) {
+        guard started else { return }
         setupAndConnect(peripheral)
     }
 
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
+        guard started else {
+            central.cancelPeripheralConnection(peripheral)
+            return
+        }
         print("[BLE] Connected — discovering services...")
         // Open a short background task covering service/characteristic discovery.
         // This protects the few seconds between didConnect and onConnectionFinished()
@@ -431,7 +505,8 @@ extension BLEManager: CBCentralManagerDelegate {
         // No Timer — use a plain asyncAfter on a background queue so it fires
         // even if the main queue is busy, and doesn't need a run loop like Timer does.
         DispatchQueue.global().asyncAfter(deadline: .now() + 5) { [weak self] in
-            self?.connect()
+            guard let self = self, self.started, self.shouldAttemptConnect else { return }
+            self.connect()
         }
     }
 
@@ -454,14 +529,16 @@ extension BLEManager: CBCentralManagerDelegate {
             )
         }
 
-        // This single persistent connect call is enough.
-        // iOS keeps this request alive even when the app is suspended and
-        // will reconnect as soon as the peripheral is in range.
-        central.connect(peripheral, options: [
-            CBConnectPeripheralOptionNotifyOnConnectionKey:    true,
-            CBConnectPeripheralOptionNotifyOnDisconnectionKey: true,
-            CBConnectPeripheralOptionNotifyOnNotificationKey:  true
-        ])
+        if started && shouldAttemptConnect {
+            // This single persistent connect call is enough.
+            // iOS keeps this request alive even when the app is suspended and
+            // will reconnect as soon as the peripheral is in range.
+            central.connect(peripheral, options: [
+                CBConnectPeripheralOptionNotifyOnConnectionKey:    true,
+                CBConnectPeripheralOptionNotifyOnDisconnectionKey: true,
+                CBConnectPeripheralOptionNotifyOnNotificationKey:  true
+            ])
+        }
     }
 }
 
@@ -470,6 +547,7 @@ extension BLEManager: CBCentralManagerDelegate {
 extension BLEManager: CBPeripheralDelegate {
 
     func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
+        guard started else { return }
         if let e = error { print("[BLE] Service error: \(e)"); return }
         let deviceId = peripheral.identifier.uuidString
         if let entry = pendingServices.removeValue(forKey: deviceId) {
@@ -486,6 +564,7 @@ extension BLEManager: CBPeripheralDelegate {
 
     func peripheral(_ peripheral: CBPeripheral,
                     didDiscoverCharacteristicsFor service: CBService, error: Error?) {
+        guard started else { return }
         if let e = error { print("[BLE] Char error: \(e)"); return }
         let serviceId = service.uuid.uuidString
         if let entry = pendingChars.removeValue(forKey: serviceId) {
@@ -530,6 +609,7 @@ extension BLEManager: CBPeripheralDelegate {
     }
 
     func onConnectionFinished() {
+        guard started else { return }
         // Already on main thread (dispatched from didDiscoverCharacteristicsFor).
         // isConnected is true here, so send() will pass its guard.
         status = "Connected"
@@ -547,6 +627,7 @@ extension BLEManager: CBPeripheralDelegate {
 
     func peripheral(_ peripheral: CBPeripheral,
                     didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
+        guard started else { return }
         guard let data = characteristic.value else { return }
         let charId = characteristic.uuid.uuidString
         let bytes  = [UInt8](data)
@@ -597,6 +678,7 @@ extension BLEManager: CBPeripheralDelegate {
 
     func peripheral(_ peripheral: CBPeripheral,
                     didUpdateNotificationStateFor characteristic: CBCharacteristic, error: Error?) {
+        guard started else { return }
         let charId = characteristic.uuid.uuidString
         print("[BLE] notification state: \(charId.prefix(8)) isNotifying=\(characteristic.isNotifying)")
         if let id = pendingNotify.removeValue(forKey: charId) {
@@ -606,6 +688,7 @@ extension BLEManager: CBPeripheralDelegate {
     }
 
     func peripheralIsReady(toSendWriteWithoutResponse peripheral: CBPeripheral) {
+        guard started else { return }
         writeBusy = false
         drainWriteQueue()
     }

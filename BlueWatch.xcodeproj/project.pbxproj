@@ -436,10 +436,10 @@
 				INFOPLIST_FILE = BlueWatch/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = BlueWatch;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
-				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "App needs access to Bluetooth to reconnect to watch on disconnect";
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "BlueWatch needs Bluetooth to connect, send, and receive data from your watch.";
 				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "BlueWatch needs Bluetooth to connect to your watch";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "BlueWatch reads health data to ensure up-to-date Apple health syncing from your watch.";
-				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "BlueWatch can send health data from your watch to the Health app if this is enabled";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "BlueWatch needs access to update Apple Health so it can push health data from your watch to Health.";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "BlueWatch needs location to get local weather and GPS for your watch.";
 				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "BlueWatch needs location perodically in the background to update your device's location";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "BlueWatch needs location to get local weather";
@@ -484,10 +484,10 @@
 				INFOPLIST_FILE = BlueWatch/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = BlueWatch;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
-				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "App needs access to Bluetooth to reconnect to watch on disconnect";
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "BlueWatch needs Bluetooth to connect, send, and receive data from your watch.";
 				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "BlueWatch needs Bluetooth to connect to your watch";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "BlueWatch reads health data to ensure up-to-date Apple health syncing from your watch.";
-				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "BlueWatch can send health data from your watch to the Health app if this is enabled";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "BlueWatch needs access to update Apple Health so it can push health data from your watch to Health.";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "BlueWatch needs location to get local weather and GPS for your watch.";
 				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "BlueWatch needs location perodically in the background to update your device's location";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "BlueWatch needs location to get local weather";

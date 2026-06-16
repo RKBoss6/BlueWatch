@@ -111,7 +111,6 @@ struct DeviceCard: View {
           
             isPresented = true
         }) {
-            // Your exact visual card design
             VStack {
                 Image(img)
                     .resizable()

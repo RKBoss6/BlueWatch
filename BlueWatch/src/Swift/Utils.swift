@@ -72,6 +72,25 @@ class DataManager {
     var mainContext: ModelContext {
         Self.sharedContainer.mainContext
     }
+    /// Wipes all DataPoint data from the database safely on a background thread
+    static func clearAllData() {
+        let container = DataManager.sharedContainer
+        
+        Task.detached(priority: .userInitiated) {
+            let context = ModelContext(container)
+            
+            do {
+                // Batch deletes all instances of DataPoint matching the schema
+                try context.delete(model: DataPoint.self)
+                
+                // Persist the changes instantly
+                try context.save()
+                print("Successfully deleted all DataPoint data.")
+            } catch {
+                print("Failed to delete SwiftData records: \(error.localizedDescription)")
+            }
+        }
+    }
 }
 
 enum DataService {

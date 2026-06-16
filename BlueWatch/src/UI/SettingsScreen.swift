@@ -8,14 +8,14 @@
 import SwiftUI
 
 
-enum sendFrequency: Int, CaseIterable, Identifiable {
-    case nuts, cookies, blueberries
-    var id: Self { self }
-}
+
 struct WatchSettingsScreen: View {
+    @Environment(\.colorScheme) var colorScheme
     @ObservedObject var settings:Settings=Settings.instance
     @State var temp:Bool=false
     var vm:ViewModel=ViewModel.instance
+    @State private var showDeletePrompt = false
+
     var body: some View {
         VStack {
             HStack {
@@ -27,7 +27,7 @@ struct WatchSettingsScreen: View {
                
             }.padding()
             Form{
-                
+                /*
                 Section("Bluetooth"){
                     VStack(spacing: 16) {
                         Toggle(isOn:$settings.autoConnect) {
@@ -40,7 +40,9 @@ struct WatchSettingsScreen: View {
                     .ignoresSafeArea(.all)
                     .listRowInsets(EdgeInsets())
                 }
-                .listRowBackground(Color.clear)
+                 .listRowBackground(Color.clear)
+                 */
+                
                 Section("Device"){
                     VStack(spacing: 16) {
                         HStack {
@@ -57,39 +59,70 @@ struct WatchSettingsScreen: View {
                     .listRowInsets(EdgeInsets())
                 }
                 .listRowBackground(Color.clear)
-                Section(
-                    header: Text("Data"),
-                    footer: Text("Periodically pushes location data for 'MyLocation.json'")){
-                        VStack(spacing: 16) {
+                Section{
+                    VStack(spacing: 16) {
+                        
+                        Toggle(isOn:$settings.sendToHealthKit ) {
+                            Text("Push health data to Apple Health")
                             
-                            Toggle(isOn:$settings.sendToHealthKit ) {
-                                Text("Push health data to Apple Health")
-                                
-                            }
-                            Divider()
-                            Toggle(isOn:$settings.pushWeather ) {
-                                Text("Push weather updates")
-                                
-                            }
-                            Divider()
-                            Toggle(isOn:$settings.pushLocation ) {
-                                Text("Push location updates")
-                                
-                            }
                         }
-                        .padding()
-                        .liquidGlass(cornerRadius: 24)
-                        .ignoresSafeArea(.all)
-                        .listRowInsets(EdgeInsets())
+                        Divider()
+                        Toggle(isOn:$settings.pushWeather ) {
+                            Text("Push weather updates")
+                            
+                        }
+                        Divider()
+                        Toggle(isOn:$settings.pushLocation ) {
+                            Text("Push location updates")
+                            
+                        }
+                        
+                        
+                        
+                    }
+                    .padding()
+                    .liquidGlass(cornerRadius: 24)
+                    .ignoresSafeArea(.all)
+                    .listRowInsets(EdgeInsets())
                     
+                } header:{
+                    Text("Data")
                 }
-                    .listRowBackground(Color.clear)
+                footer:{
+                    Text("Periodically pushes location data to 'MyLocation.json'\nWeather data from [Weather](https://developer.apple.com/weatherkit/data-source-attribution/)")
+                }
                 
-                Section("Web View"){
+                    .listRowBackground(Color.clear)
+                Section {
+                    VStack(spacing: 16) {
+                        Button(role:.destructive) {
+                            showDeletePrompt=true
+                        } label: {
+                            Text("Delete saved data")
+                        }
+                        .alert("Are you sure?", isPresented: $showDeletePrompt) {
+                                    Button("Delete", role: .destructive) {
+                                        DataManager.clearAllData()
+                                    }
+                                    Button("Cancel", role: .cancel) { }
+                                } message: {
+                                    Text("This action removes all your watch's saved health and battery data from all time on your device. This action cannot be undone.")
+                                }
+                        .tint(.red)
+                    }
+                    .frame(maxWidth: .infinity) // Expands horizontally to screen edges
+                    .padding(.vertical)
+                    .listRowInsets(EdgeInsets())// Adds elegant padding inside the glass bubble
+                    .liquidGlass()
+                }
+                .listRowBackground(Color.clear)
+                Section(header: Text("Web View"),
+                        footer: Text("Requires an app restart to display new URL in web view")
+                        ){
                     VStack(spacing: 16) {
                         HStack {
                                 Text("Web URL:")
-                                TextField("placeholder.com", text: $settings.webURL)
+                                TextField("banglejs.com/apps", text: $settings.webURL)
                                     .autocorrectionDisabled()
                                     .textInputAutocapitalization(.never)
                             }
@@ -105,12 +138,14 @@ struct WatchSettingsScreen: View {
                         Toggle(isOn:$settings.enableVScroll) {
                             Text("Enable Vertical Scrolling")v
                         }
-                         */
+                         
                         Divider()
+                        
                         Button("Clear Cache") {
                             
                         }
                         .tint(.red)
+                         */
                         }
                         .padding()
                         .liquidGlass(cornerRadius: 24)
@@ -137,6 +172,8 @@ struct WatchSettingsScreen: View {
                     
                 }
                 .listRowBackground(Color.clear)
+                
+                
             }
         }
         .scrollContentBackground(.hidden)

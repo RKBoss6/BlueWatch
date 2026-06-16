@@ -69,8 +69,8 @@ struct ContentView: View {
                     .onAppear() {
                         let standardAppearance = UITabBarAppearance()
                         standardAppearance.shadowColor = UIColor(Color.blue)
-                        
-                        
+                        // start connection
+                        BLEManager.instance.start()
                         
                         UITabBar.appearance().standardAppearance = standardAppearance
                     }
