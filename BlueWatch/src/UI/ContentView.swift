@@ -67,11 +67,12 @@ struct ContentView: View {
                     .edgesIgnoringSafeArea(.bottom)
                     
                     .onAppear() {
+                        
                         let standardAppearance = UITabBarAppearance()
                         standardAppearance.shadowColor = UIColor(Color.blue)
                         // start connection
                         BLEManager.instance.start()
-                        
+                        BlueWatchApp.requestHealthAuthorization()
                         UITabBar.appearance().standardAppearance = standardAppearance
                     }
                     

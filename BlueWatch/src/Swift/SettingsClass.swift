@@ -76,7 +76,19 @@ public class Settings:ObservableObject{
     
     
     init(){
-        // load, or use defaults
+        //register defaults
+        UserDefaults.standard.register(defaults: [
+            webURLKey: "banglejs.com/apps",
+            enableHScrollKey: false,
+            enableVScrollKey: true,
+            autoConnectKey: true,
+            pushWeatherKey: true,
+            pushLocationKey: true,
+            lowBattNotifyKey: false,
+            sendToHealthKitKey: true,
+            deviceNameKey: ViewModel.instance.savedDevice
+        ])
+        // load
         webURL=LocalStorage.getString(forKey: webURLKey) ?? "banglejs.com/apps"
         enableHScroll=LocalStorage.getBool(forKey: enableHScrollKey) ?? false
         enableVScroll=LocalStorage.getBool(forKey: enableVScrollKey) ?? true

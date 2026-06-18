@@ -22,7 +22,7 @@ struct WatchScreen: View {
     func getBattImg(battStr:String) -> String{
         var img:String="battery.0percent"
         if let batt = Double(battStr){
-            // has a percentage
+            // has a percentageb
             if(batt>5){
                 img="battery.25percent"
             }

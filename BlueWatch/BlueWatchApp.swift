@@ -27,15 +27,6 @@ struct BlueWatchApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(bleManager)
-                .onAppear {
-                    // Ask for Health/Location permissions when UI appears
-                    requestHealthAuthorization()
-                    
-                    // Ensure BLE is connected
-                    if !bleManager.isConnected {
-                        bleManager.connect()
-                    }
-                }
         }
         .modelContainer(for: DataPoint.self)
         .onChange(of: scenePhase) { oldPhase, newPhase in
@@ -91,7 +82,7 @@ struct BlueWatchApp: App {
         }
     }
     
-    func requestHealthAuthorization() {
+    static func requestHealthAuthorization() {
         let healthStore = HKHealthStore()
         guard HKHealthStore.isHealthDataAvailable() else { return }
         
