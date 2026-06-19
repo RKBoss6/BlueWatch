@@ -70,20 +70,22 @@ struct ContentView: View {
                         
                         let standardAppearance = UITabBarAppearance()
                         standardAppearance.shadowColor = UIColor(Color.blue)
+                        UITabBar.appearance().standardAppearance = standardAppearance
                         // start connection
                         BLEManager.instance.start()
                         BlueWatchApp.requestHealthAuthorization()
-                        UITabBar.appearance().standardAppearance = standardAppearance
+                        
                     }
                     
                 }
             }
         }
         .navigationBarBackButtonHidden(true)
-        
+        .foregroundStyle(Color(.text))
         
         
     }
+    
     
    
     

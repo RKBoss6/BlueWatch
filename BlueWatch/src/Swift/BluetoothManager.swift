@@ -8,6 +8,7 @@ import BackgroundTasks
 
 class BLEManager: NSObject, ObservableObject {
     static let instance = BLEManager()
+    private let autoStartKey = "BLEManagerAutoStart"
 
     @Published var status: String = "Idle"
     @Published var lastMessage: String = "—"
@@ -70,6 +71,7 @@ class BLEManager: NSObject, ObservableObject {
     override init() {
         super.init()
         // Pass bleQueue instead of nil so BLE callbacks don't run on main.
+        
         central = CBCentralManager(
             delegate: self,
             queue: bleQueue,
@@ -78,6 +80,14 @@ class BLEManager: NSObject, ObservableObject {
                 CBCentralManagerOptionShowPowerAlertKey: true
             ]
         )
+        
+        // If the user has previously started BLE, auto-start on subsequent app launches/restores
+        if UserDefaults.standard.bool(forKey: autoStartKey) {
+            // Defer start a little to allow central to finish initialization
+            bleQueue.async { [weak self] in
+                self?.start()
+            }
+        }
     }
     
     // MARK: - Lifecycle control
@@ -85,6 +95,7 @@ class BLEManager: NSObject, ObservableObject {
         guard !started else { return }
         started = true
         shouldAttemptConnect = true
+        UserDefaults.standard.set(true, forKey: autoStartKey)
         // If Bluetooth is already powered on, allow connection flow to begin
         if central.state == .poweredOn {
             connect()
@@ -436,7 +447,13 @@ extension BLEManager: CBCentralManagerDelegate {
     }
 
     func centralManager(_ central: CBCentralManager, willRestoreState dict: [String: Any]) {
-        guard started else { return }
+        if !started {
+            if UserDefaults.standard.bool(forKey: autoStartKey) {
+                start()
+            } else {
+                return
+            }
+        }
         if let peripherals = dict[CBCentralManagerRestoredStatePeripheralsKey] as? [CBPeripheral],
            let restored    = peripherals.first {
             peripheral = restored
