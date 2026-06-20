@@ -81,7 +81,7 @@ struct ContentView: View {
             }
         }
         .navigationBarBackButtonHidden(true)
-        .foregroundStyle(Color(.text))
+        
         
         
     }
@@ -146,9 +146,21 @@ struct AppBackgroundStyle: ViewModifier {
     }
 }
 
+private struct TextColorModifier: ViewModifier {
+    @Environment(\.colorScheme) private var colorScheme
+    
+    func body(content: Content) -> some View {
+        if(colorScheme == .dark){
+            content.foregroundStyle(Color(.text))
+        }
+    }
+}
+
 extension View {
     func appBackground() -> some View {
         self.modifier(AppBackgroundStyle())
     }
+    func textColor() -> some View {
+        self.modifier(TextColorModifier())
+    }
 }
-
