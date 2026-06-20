@@ -5,6 +5,16 @@ More info coming soon!
 
 Bangle.js info: [https://banglejs.com/](https://banglejs.com/)
 
+Find the related Bangle.js app that facilitates communications between the Bangle and this app [here](https://banglejs.com/apps/?id=bluewatch)!
+## Quick-start
+1. Open the app
+2. Authorize required permissions for app to work properly
+3. Select your device and follow prompts on-screen
+4. Once device is selected, the app will begin scanning for that device near you. Ensure it is turned on, and BLE is powered on for both devices.
+5. The app will initiate device pairing
+6. Once device is paired, you're good to go!
+
+
 ## Privacy Policy
 We do not collect, store, use, or sell any user data. All data is stored only on-device, and is not sent anywhere else.
 
@@ -21,10 +31,3 @@ BlueWatch is developed and maintained with the knowing consent and authorization
 
 Anyone can contribute and suggest changes! Just open an issue :)
 
-## Quick-start
-1. Open the app
-2. Authorize required permissions for app to work properly
-3. Select your device and follow prompts on-screen
-4. Once device is selected, the app will begin scanning for that device near you. Ensure it is turned on, and BLE is powered on for both devices.
-5. The app will initiate device pairing
-6. Once device is paired, you're good to go!
