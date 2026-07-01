@@ -1,6 +1,5 @@
 # BlueWatch
 An open-source iOS app for watches like Bangle.js.
-More info coming soon!
 
 For information on how to contribute to this repo, go to [`CONTRIBUTING.md`](https://github.com/rkboss6/bluewatch?tab=contributing-ov-file#contributing)
 
