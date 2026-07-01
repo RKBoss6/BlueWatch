@@ -10,5 +10,5 @@ After that, you are able to start developing. Before you build the product to yo
 which can be found in the Signing & Capabilities section on the main app target. 
 
 Finally, you can build, test, and when OK, you can make a PR and make your changes live!
-
-**NOTE: in order to test your app changes on a device or simulator, you must have the paid Apple Developer account. The app uses WeatherKit and other capabilities that only work in testing if you have a paid developer account :(**
+> [!IMPORTANT]
+> In order to test your app changes on a device or simulator, you must have the paid Apple Developer account. The app uses WeatherKit and other capabilities that only work in testing if you have a paid Apple Developer account :(
