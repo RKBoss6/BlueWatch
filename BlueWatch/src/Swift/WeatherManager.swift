@@ -25,7 +25,7 @@ class WeatherManager: ObservableObject {
         let lastDate = UserDefaults.standard.object(forKey: "lastWeatherUpdate") as? Date
 
         // If we have a last date and the elapsed time is less than the rate limit set, cancel request
-        if let last = lastDate, let diff = Utils.minutesBetweenDates(last, toDate: Date()), diff < Int(settings.weatherRateLimit) {
+        if let last = lastDate, let diff = Utils.minutesBetweenDates(last, toDate: Date()), diff < 8{
             logger.log("Skipping weather update; only \(diff) minutes since last update.")
             return;
         }

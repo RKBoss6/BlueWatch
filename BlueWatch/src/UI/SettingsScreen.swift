@@ -88,11 +88,11 @@ struct WatchSettingsScreen: View {
                             Text("Push weather updates")
                             
                         }
-                        if(settings.pushWeather){
-                            Divider()
-                            Stepper("Weather Rate Limit: \(settings.weatherRateLimit.formatted(.number.precision(.fractionLength(0)))) min", value: $settings.weatherRateLimit, in: 10...60, step:5)
-
-                        }
+//                        if(settings.pushWeather){
+//                            Divider()
+//                            Stepper("Weather Rate Limit: \(settings.weatherRateLimit.formatted(.number.precision(.fractionLength(0)))) min", value: $settings.weatherRateLimit, in: 10...60, step:5)
+//
+//                        }
                         
                         
                         
