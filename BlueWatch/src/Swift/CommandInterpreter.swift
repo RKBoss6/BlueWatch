@@ -11,6 +11,7 @@ class CommandInterpreter {
     private let findPhoneAlarm = FindPhoneAlarm()
     @MainActor
     public func handleCommand(command: String) {
+        logger.log("[CommandInterpreter] received: '\(command, privacy: .public)' len=\(command.count, privacy: .public)")
         switch command {
         case "Start Polling GPS":
             LocationManager.shared.startGPSForwarding()

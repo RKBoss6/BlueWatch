@@ -71,6 +71,11 @@ class BLEManager: NSObject, ObservableObject {
     // ~30 seconds, so this must NOT be held for the whole connection.
     private var setupBackgroundTask: UIBackgroundTaskIdentifier = .invalid
 
+    private let sendQueue = DispatchQueue(label: "com.rk.bluewatch.sendQueue")
+    private var sendBusy = false
+    private var pendingMessages: [(String, Bool)] = []
+
+    
     override init() {
         super.init()
         // Pass bleQueue instead of nil so BLE callbacks don't run on main.
@@ -207,11 +212,26 @@ class BLEManager: NSObject, ObservableObject {
 
     // MARK: - Native send (BlueWatch protocol)
 
-    func send(_ text: String, sendRaw:Bool = false) {
-        guard started, let p = peripheral, let c = writeCharacteristic, isConnected else { return }
-        let payload = ((sendRaw ? "RAW: " : "")+text + "|")
+    func send(_ text: String, sendRaw: Bool = false) {
+        sendQueue.async { [weak self] in
+            guard let self = self else { return }
+            self.pendingMessages.append((text, sendRaw))
+            self.drainSendQueue()
+        }
+    }
+
+    private func drainSendQueue() {
+        guard !sendBusy, !pendingMessages.isEmpty else { return }
+        guard started, let p = peripheral, let c = writeCharacteristic, isConnected else {
+            pendingMessages.removeAll()
+            return
+        }
+        sendBusy = true
+        let (text, sendRaw) = pendingMessages.removeFirst()
+
+        let payload = ((sendRaw ? "RAW: " : "") + text + "|")
             .replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "'",  with: "\\'")
+            .replacingOccurrences(of: "'", with: "\\'")
         var idx = payload.startIndex
         while idx < payload.endIndex {
             let end = payload.index(idx, offsetBy: 60, limitedBy: payload.endIndex) ?? payload.endIndex
@@ -220,6 +240,8 @@ class BLEManager: NSObject, ObservableObject {
             }
             idx = end
         }
+        sendBusy = false
+        drainSendQueue()   // move to next queued message
     }
 
     // MARK: - Write queue
@@ -699,9 +721,9 @@ extension BLEManager: CBPeripheralDelegate {
            
         }
        if let raw = String(data: data, encoding: .utf8) {
-           logger.log("[BLE RAW] charId=\(charId) bytes=\(bytes.count) text=\(raw.debugDescription)")
+           logger.log("[BLE RAW] charId=\(charId, privacy: .public) bytes=\(bytes.count, privacy: .public) text=\(raw.debugDescription, privacy: .public)")
        } else {
-           logger.log("[BLE RAW] charId=\(charId) bytes=\(bytes.count) (non-UTF8)")
+           logger.log("[BLE RAW] charId=\(charId, privacy: .public) bytes=\(bytes.count, privacy: .public) (non-UTF8)")
        }
         // Skip native handling for non-RX characteristics
         guard charId.caseInsensitiveCompare(rxUUID.uuidString) == .orderedSame else { return }
@@ -712,6 +734,7 @@ extension BLEManager: CBPeripheralDelegate {
         while let range = incomingBuffer.range(of: "\n") {
             let line = incomingBuffer[..<range.lowerBound]
                 .trimmingCharacters(in: .whitespacesAndNewlines)
+                .trimmingCharacters(in: CharacterSet(charactersIn: ">"))
             incomingBuffer = String(incomingBuffer[range.upperBound...])
 
             var bgId: UIBackgroundTaskIdentifier = .invalid
