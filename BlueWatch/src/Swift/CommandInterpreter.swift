@@ -5,7 +5,7 @@ class CommandInterpreter {
     
     public static let shared = CommandInterpreter()
 
-    var ble: BLEManager?
+    public var ble: BLEManager?
 
     private let healthStore    = HKHealthStore()
     private let findPhoneAlarm = FindPhoneAlarm()
@@ -14,7 +14,8 @@ class CommandInterpreter {
         switch command {
         case "Start Polling GPS":
             LocationManager.shared.startGPSForwarding()
-            
+        case "Handshake Successful":
+            ble?.didCompleteHandshake()
         case "Stop Polling GPS":
             LocationManager.shared.stopGPSForwarding()
         case "FindPhone":
@@ -40,12 +41,12 @@ class CommandInterpreter {
         }
     }
     func handleJSON(_ j: [String: Any]){
-        print("Got json")
+        logger.log("Got json")
         switch (j["type"] as? String){
         case "health":
             handleHealthData(j)
         case "systemInfo":
-            print("Got system json")
+            logger.log("Got system json")
             handleSystemInfo(j)
         default:
             break
@@ -55,15 +56,15 @@ class CommandInterpreter {
     }
     func handleSystemInfo(_ data: [String: Any]){
         if let batt = data["batt"] as? Double{
-            print("Got battery " + String(batt))
+            logger.log("Got battery \(String(batt))"  )
             DataService.addDataPointInBackground(timestamp: Date(), value: batt, type: .battery)
             DispatchQueue.main.async {
                 LocalData.shared.battery = String(Int(batt))
-                print("batt updated")
+                logger.log("batt updated")
                 
             }
             if(batt<80 && Settings.instance.lowBattNotify){
-                Utils.pushNotification(title: "Bangle.js", subtitle: "Battery below 15%. Charge soon!", body: "", id: "LowBatt")
+                Utils.pushNotification(title: "Bangle.js", body: "Battery below 15%. Charge soon!", id: "LowBatt")
             }
         }
     }
@@ -89,7 +90,7 @@ class CommandInterpreter {
                     metadata: [HKMetadataKeyHeartRateMotionContext: context.rawValue]
                 )
                 healthStore.save(sample) { ok, err in
-                    print(ok ? "Saved HR" : " HR: \(err!)")
+                    //logger.log("HR: \(err!)")
                 }
             }
         }
@@ -102,51 +103,58 @@ class CommandInterpreter {
         }
 
     }
+    
+    private let lastWatchStepsKey = "LastWatchSteps"
 
     private func syncSteps(watchTotal: Double) {
         let type = HKQuantityType.quantityType(forIdentifier: .stepCount)!
-        let startOfDay = Calendar.current.startOfDay(for: Date())
 
-        // FIX 1: Use HKSource.default() to only count steps THIS APP saved.
-        // This stops the iPhone pocket steps from interfering with your watch steps.
-        let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
-            HKQuery.predicateForSamples(withStart: startOfDay, end: Date(), options: .strictStartDate),
-            HKQuery.predicateForObjects(from: HKSource.default())
-        ])
+        let defaults = UserDefaults.standard
+        let today = Calendar.current.startOfDay(for: Date())
 
-        let query = HKStatisticsQuery(
-            quantityType: type,
-            quantitySamplePredicate: predicate,
-            options: .cumulativeSum
-        ) { [weak self] _, result, error in
-            guard let self else { return }
-
-            let alreadySaved = result?.sumQuantity()?.doubleValue(for: .count()) ?? 0
-            
-           
-            var delta = watchTotal - alreadySaved
-            if watchTotal < alreadySaved {
-                delta = watchTotal
-            }
-            
-            guard delta > 0 else {
-                print("Steps: no delta (watch=\(Int(watchTotal)) saved=\(Int(alreadySaved)))")
-                return
-            }
-            
-            let sample = HKCumulativeQuantitySample(
-                type: type,
-                quantity: HKQuantity(unit: .count(), doubleValue: delta),
-                start: Date().addingTimeInterval(-60),
-                end: Date()
-            )
-            
-            self.healthStore.save(sample) { ok, err in
-                if ok { print("Saved \(Int(delta)) steps to HealthKit") }
-            }
+        // Reset every new day
+        let savedDay = defaults.object(forKey: "LastStepSyncDay") as? Date ?? .distantPast
+        if !Calendar.current.isDate(savedDay, inSameDayAs: today) {
+            defaults.set(today, forKey: "LastStepSyncDay")
+            defaults.removeObject(forKey: lastWatchStepsKey)
         }
 
-        healthStore.execute(query)
-    }
+        let lastWatchTotal = defaults.double(forKey: lastWatchStepsKey)
 
+        // First reading of the day: establish the baseline, don't save anything.
+        if defaults.object(forKey: lastWatchStepsKey) == nil {
+            defaults.set(watchTotal, forKey: lastWatchStepsKey)
+            logger.log("Initialized watch step baseline: \(Int(watchTotal))")
+            return
+        }
+
+        var delta = watchTotal - lastWatchTotal
+        
+        // Watch rebooted or counter reset.
+        if delta < 0 {
+            logger.log("Watch step counter reset")
+            delta = watchTotal
+        }
+
+        guard delta > 0 else {
+            logger.log("No new steps")
+            return
+        }
+
+        let sample = HKCumulativeQuantitySample(
+            type: type,
+            quantity: HKQuantity(unit: .count(), doubleValue: delta),
+            start: Date().addingTimeInterval(-600), // last 10 minutes
+            end: Date()
+        )
+
+        healthStore.save(sample) { ok, err in
+            if ok {
+                defaults.set(watchTotal, forKey: self.lastWatchStepsKey)
+                logger.log("Saved \(Int(delta)) steps (watch total \(Int(watchTotal)))")
+            } else {
+                logger.log("Failed to save steps: \(err?.localizedDescription ?? "Unknown error")")
+            }
+        }
+    }
 }

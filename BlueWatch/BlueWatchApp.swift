@@ -32,18 +32,18 @@ struct BlueWatchApp: App {
         .onChange(of: scenePhase) { oldPhase, newPhase in
             switch newPhase {
             case .background:
-                print("📱 App entering background")
+                logger.log("📱 App entering background")
                 //BlueWatchApp.scheduleAppRefresh()
                 
             case .active:
-                print("📱 App became active")
+                logger.log("📱 App became active")
                 // Reconnect if needed when app comes to foreground
                 if !bleManager.isConnected {
                     bleManager.connect()
                 }
                 
             case .inactive:
-                print("📱 App inactive")
+                logger.log("📱 App inactive")
                 
             @unknown default:
                 break
@@ -52,10 +52,10 @@ struct BlueWatchApp: App {
     }
     
     static func handleWeatherTask(task: BGAppRefreshTask) {
-        print("🌤️ Background weather task started")
+        logger.log("🌤️ Background weather task started")
         
         task.expirationHandler = {
-            print("⏰ Weather task expired")
+            logger.log("⏰ Weather task expired")
             task.setTaskCompleted(success: false)
         }
         
@@ -64,7 +64,7 @@ struct BlueWatchApp: App {
             await WeatherManager.shared.updateWeatherAndSend()
             BlueWatchApp.scheduleAppRefresh()
             task.setTaskCompleted(success: true)
-            print("✅ Weather task completed")
+            logger.log("✅ Weather task completed")
         }
     }
 
@@ -76,9 +76,9 @@ struct BlueWatchApp: App {
         
         do {
             try BGTaskScheduler.shared.submit(request)
-            print("📅 Next weather refresh scheduled")
+            logger.log("📅 Next weather refresh scheduled")
         } catch {
-            print("❌ Could not schedule weather refresh: \(error)")
+            logger.log("❌ Could not schedule weather refresh: \(error)")
         }
     }
     
@@ -93,10 +93,20 @@ struct BlueWatchApp: App {
         
         healthStore.requestAuthorization(toShare: types, read: types) { success, error in
             if let error = error {
-                print("❌ HealthKit authorization error: \(error)")
+                logger.log("❌ HealthKit authorization error: \(error)")
             } else {
-                print("✅ HealthKit authorized")
+                logger.log("✅ HealthKit authorized")
             }
+        }
+    }
+    
+    static func requestNotificationAuthorization() async{
+        let center = UNUserNotificationCenter.current()
+        do{
+            try await center.requestAuthorization(options: [.alert, .sound, .badge])
+
+        }catch {
+            logger.log("Error requesting notification")
         }
     }
 }

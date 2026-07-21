@@ -4,60 +4,119 @@ import AVFoundation
 import Foundation
 import UIKit
 import MediaPlayer
-
+import CoreHaptics
+import AudioToolbox
+import Foundation
+import AudioToolbox
+import AVFoundation
 class FindPhoneAlarm: NSObject, AVAudioPlayerDelegate {
     private var audioPlayer: AVAudioPlayer?
     private var backgroundTaskID: UIBackgroundTaskIdentifier = .invalid
 
 
-    private func forceSystemVolumeToMax() {
-        // MPVolumeView must be added to an active view hierarchy to manipulate the system audio pipeline
-        let volumeView = MPVolumeView(frame: CGRect(x: -100, y: -100, width: 1, height: 1))
-        
-        // Find the hidden underlying slider that hooks into coreaudiod
-        if let slider = volumeView.subviews.first(where: { $0 is UISlider }) as? UISlider {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                // Force the global system media volume track to max blast
-                slider.setValue(0.2, animated: false)
-                print("[FindPhone] System Media Volume forcefully overridden to 100%")
-            }
-        }
-    }
-
     public var isActive: Bool {
         audioPlayer?.isPlaying ?? false
     }
 
+   
+
+
+    
+
+    // Global references to manage execution states
+    var backgroundTaskIdentifier: UIBackgroundTaskIdentifier = .invalid
+    var masterCycleTimer: Timer?
+    var rapidFireTimer: Timer?
+
+    /// Starts the true 3-second continuous hardware buzz followed by a 1-second pause
+    func startMaxVibration() {
+        stopVibration()
+        
+        // 1. Force the audio session to stay awake in the background
+        configureBackgroundAudioSession()
+        
+        // 2. Request a background execution assertion from iOS
+        backgroundTaskIdentifier = UIApplication.shared.beginBackgroundTask(withName: "MaxVibrationTask") {
+            self.stopVibration()
+        }
+        
+        // 3. Immediately run the first cycle
+        runThreeSecondBuzzCycle()
+        
+        // 4. Repeat the entire master cycle every 4 seconds (3s buzz + 1s pause)
+        masterCycleTimer = Timer.scheduledTimer(withTimeInterval: 4.0, repeats: true) { _ in
+            self.runThreeSecondBuzzCycle()
+        }
+    }
+
+    /// Helper that handles the rapid-fire burst for exactly 3 seconds
+    private func runThreeSecondBuzzCycle() {
+        // Stop any lingering rapid-fire timers from previous cycles
+        rapidFireTimer?.invalidate()
+        
+        // Start rapid-firing max voltage commands every 50 milliseconds
+        rapidFireTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { _ in
+            // SystemSoundID 4095 is a raw hardware alert that forces a heavy haptic click
+            AudioServicesPlaySystemSound(4095)
+        }
+        
+        // Automatically kill the rapid-fire timer after 3.0 seconds to create the 1-second pause
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+            self.rapidFireTimer?.invalidate()
+            self.rapidFireTimer = nil
+        }
+    }
+
+    /// Configures the audio subsystem to override silent switches and background suspension
+    private func configureBackgroundAudioSession() {
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playback, options: [.mixWithOthers])
+            try session.setActive(true)
+        } catch {
+            logger.log("Audio configuration failure: \(error)")
+        }
+    }
+
+    /// Halts all loops instantly and releases system execution flags
+    func stopVibration() {
+        rapidFireTimer?.invalidate()
+        rapidFireTimer = nil
+        
+        masterCycleTimer?.invalidate()
+        masterCycleTimer = nil
+        
+        if backgroundTaskIdentifier != .invalid {
+            UIApplication.shared.endBackgroundTask(backgroundTaskIdentifier)
+            backgroundTaskIdentifier = .invalid
+        }
+    }
+
+
+
+
+    
     func start() {
         guard !isActive else { return }
 
-        // ── Background task ───────────────────────────────────────────────────
-        backgroundTaskID = UIApplication.shared.beginBackgroundTask { [weak self] in
-            self?.stop()
-        }
+    
 
-        // ── Audio session ─────────────────────────────────────────────────────
-        // .playback bypasses the silent/ringer switch — this is the documented
-        // behaviour of the category and is how Garmin/similar apps do it.
-        // No special entitlements needed. The only thing that can silence it is
-        // the user having their volume slider at zero.
+        startMaxVibration()
+        
         do {
             let session = AVAudioSession.sharedInstance()
             try session.setCategory(.playback, mode: .default, options: [.duckOthers])
             try session.setActive(true)
 
         } catch {
-            print("[FindPhone] Audio session setup failed: \(error)")
+            logger.log("[FindPhone] Audio session setup failed: \(error)")
             endBackgroundTask()
             return
         }
 
-        // ── Load and play ─────────────────────────────────────────────────────
-        // Make sure "findphone.wav" is listed under:
-        // Target → Build Phases → Copy Bundle Resources
-        // If this guard fires, that's why nothing plays.
+
         guard let url = Bundle.main.url(forResource: "findphone", withExtension: "wav") else {
-            print("[FindPhone] ‼️ Sound file 'findphone.wav' not found in bundle — add it to Copy Bundle Resources")
+            logger.log("[FindPhone] Sound file 'findphone.wav' not found in bundle — add it to Copy Bundle Resources")
             endBackgroundTask()
             return
         }
@@ -66,25 +125,27 @@ class FindPhoneAlarm: NSObject, AVAudioPlayerDelegate {
             audioPlayer = try AVAudioPlayer(contentsOf: url)
             audioPlayer?.delegate      = self
             audioPlayer?.volume        = 1.0
-            audioPlayer?.numberOfLoops = -1  // loop until stop() is called
+            audioPlayer?.numberOfLoops = 3
             audioPlayer?.prepareToPlay()
 
             let started = audioPlayer?.play() ?? false
             if started {
-                print("[FindPhone] Alarm started")
+                logger.log("[FindPhone] Alarm started")
             } else {
-                print("[FindPhone] ‼️ play() returned false — audio session may not be ready")
+                logger.log("[FindPhone] play() returned false — audio session may not be ready")
                 endBackgroundTask()
             }
         } catch {
-            print("[FindPhone] Player init failed: \(error)")
+            logger.log("[FindPhone] Player init failed: \(error)")
             endBackgroundTask()
         }
     }
 
     func stop() {
+       
         guard isActive else { return }
-
+        showNotification()
+        stopVibration()
         audioPlayer?.stop()
         audioPlayer = nil
 
@@ -92,7 +153,8 @@ class FindPhoneAlarm: NSObject, AVAudioPlayerDelegate {
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
 
         endBackgroundTask()
-        print("[FindPhone] Alarm stopped")
+        logger.log("[FindPhone] Alarm stopped")
+        BLEManager.instance.send("FindPhone Stopped")
     }
 
     // MARK: - AVAudioPlayerDelegate
@@ -102,10 +164,14 @@ class FindPhoneAlarm: NSObject, AVAudioPlayerDelegate {
     }
 
     func audioPlayerDecodeErrorDidOccur(_ player: AVAudioPlayer, error: Error?) {
-        print("[FindPhone] Decode error: \(error?.localizedDescription ?? "unknown")")
+        logger.log("[FindPhone] Decode error: \(error?.localizedDescription ?? "unknown")")
         stop()
     }
 
+    func showNotification(){
+        Utils.pushNotification(title: "Find Phone", body: "Find phone triggered from watch." , id: "FindPhoneConfirm")
+
+    }
     // MARK: - Private
 
     private func endBackgroundTask() {

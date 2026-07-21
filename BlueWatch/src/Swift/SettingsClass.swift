@@ -25,51 +25,64 @@ public class Settings:ObservableObject{
     }
     
     private var enableHScrollKey:String="enableHScroll"
-    public var enableHScroll:Bool{
+    @Published public var enableHScroll:Bool{
         didSet{
             LocalStorage.set(enableHScroll, forKey: enableHScrollKey)
         }
     }
     
     private var enableVScrollKey:String="enableVScroll"
-    public var enableVScroll:Bool{
+    @Published public var enableVScroll:Bool{
         didSet{
             LocalStorage.set(enableVScroll, forKey: enableVScrollKey)
         }
     }
     
     private var autoConnectKey:String="autoConnect"
-    public var autoConnect:Bool{
+    @Published public var autoConnect:Bool{
         didSet{
             LocalStorage.set(autoConnect, forKey: autoConnectKey)
         }
     }
     
     private var pushWeatherKey:String="pushWeather"
-    public var pushWeather:Bool{
+    @Published public var pushWeather:Bool{
         didSet{
             LocalStorage.set(pushWeather, forKey: pushWeatherKey)
         }
     }
     
     private var pushLocationKey:String="pushLocation"
-    public var pushLocation:Bool{
+    @Published public var pushLocation:Bool{
         didSet{
             LocalStorage.set(pushLocation, forKey: pushLocationKey)
         }
     }
     
     private var sendToHealthKitKey:String="sendToHealthKit"
-    public var sendToHealthKit:Bool{
+    @Published public var sendToHealthKit:Bool{
         didSet{
             LocalStorage.set(sendToHealthKit, forKey: sendToHealthKitKey)
         }
     }
     
     private var lowBattNotifyKey:String="lowBattNotify"
-    public var lowBattNotify:Bool{
+    @Published public var lowBattNotify:Bool{
         didSet{
             LocalStorage.set(lowBattNotify, forKey: lowBattNotifyKey)
+        }
+    }
+    
+    private var weatherRateLimitKey:String="weatherRateLimit"
+    @Published public var weatherRateLimit:Int{
+        didSet{
+            LocalStorage.set(weatherRateLimit, forKey: weatherRateLimitKey)
+        }
+    }
+    private var locationRateLimitKey:String="locationRateLimit"
+    @Published public var locationRateLimit:Int{
+        didSet{
+            LocalStorage.set(locationRateLimit, forKey: locationRateLimitKey)
         }
     }
     
@@ -86,7 +99,8 @@ public class Settings:ObservableObject{
             pushLocationKey: true,
             lowBattNotifyKey: false,
             sendToHealthKitKey: true,
-            deviceNameKey: ViewModel.instance.savedDevice
+            deviceNameKey: ViewModel.instance.savedDevice,
+            weatherRateLimitKey: 10
         ])
         // load
         webURL=LocalStorage.getString(forKey: webURLKey) ?? "banglejs.com/apps"
@@ -98,5 +112,8 @@ public class Settings:ObservableObject{
         lowBattNotify=LocalStorage.getBool(forKey: lowBattNotifyKey) ?? false
         sendToHealthKit=LocalStorage.getBool(forKey: sendToHealthKitKey) ?? true
         deviceName=LocalStorage.getString(forKey: deviceNameKey) ?? ViewModel.instance.savedDevice
+        weatherRateLimit=Int(LocalStorage.getNumber(forKey: weatherRateLimitKey) ?? 10)
+        locationRateLimit=Int(LocalStorage.getNumber(forKey: locationRateLimitKey) ?? 10)
+
     }
 }

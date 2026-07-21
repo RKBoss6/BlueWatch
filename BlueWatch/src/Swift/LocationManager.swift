@@ -14,13 +14,16 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     private var gpsTimer: Timer?
     private let gpsInterval: TimeInterval = 6   // seconds between Bangle.GPS events
     private var isForwardingGPS = false
-
+    private var settings = Settings.instance
     override init() {
         super.init()
         clManager.delegate = self
+        requestAuthorization()
+    }
+    
+    func requestAuthorization(){
         clManager.requestAlwaysAuthorization()
     }
-
     // MARK: - GPS forwarding
 
     func startGPSForwarding() {
@@ -35,7 +38,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
                await self?.sendLocation()
             }
         }
-        print("[GPS] Started forwarding phone GPS to Bangle.js every \(Int(gpsInterval))s")
+        logger.log("[GPS] Started forwarding phone GPS to Bangle.js every \(Int(self.gpsInterval))s")
     }
 
     func stopGPSForwarding() {
@@ -49,7 +52,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         for c in pending { c.resume(throwing: CancellationError()) }
         clManager.stopUpdatingLocation()
         clManager.desiredAccuracy = kCLLocationAccuracyHundredMeters
-        print("[GPS] Stopped GPS forwarding")
+        logger.log("[GPS] Stopped GPS forwarding")
     }
 
   
@@ -57,7 +60,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     // MARK: - Location packet (your existing LocationUpdate)
 
     func sendLocation() async {
-        print("Doing Location Collection from Function")
+        logger.log("Doing Location Collection from Function")
         
         let location: CLLocation?
         if isForwardingGPS {
@@ -67,10 +70,10 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
             location = await getLocation(useCache: false)
         }
         
-        guard let location else { print("Not there"); return }
+        guard let location else { logger.log("Not there"); return }
        
     
-        print("Got location")
+        logger.log("Got location")
         let placemarks = try? await geocoder.reverseGeocodeLocation(location)
         let cityName  = placemarks?.first?.locality ?? "undefined"
         let hasFix   = location.horizontalAccuracy > 0 && location.horizontalAccuracy < 100
@@ -87,7 +90,9 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         course:\(String(format:"%.1f", course)),\
         fix:\(fix),\
         satellites:8,\
+        city:\(cityName),\
         hdop:\(String(format:"%.1f", hdop))\
+        
         })
         """
 
@@ -100,17 +105,29 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     // MARK: - Location retrieval (used by WeatherManager too)
 
     func getLocation(useCache:Bool) async -> CLLocation? {
+        var useCache = useCache
+        let lastDate = UserDefaults.standard.object(forKey: "lastLocationUpdate") as? Date
+
+        // If we have a last date and the elapsed time is less than the rate limit set, cancel request
+        if let last = lastDate, let diff = Utils.minutesBetweenDates(last, toDate: Date()), diff < Int(settings.locationRateLimit) {
+            logger.log("Skipping location update; only \(diff) minutes since last update.")
+            useCache=true;
+        }else{
+            
+        }
+        
         if let lastKnown = clManager.location,
-           lastKnown.timestamp.timeIntervalSinceNow > -1800 && useCache {
-            print("Using cached location")
+            useCache {
+            logger.log("Using cached location")
             return lastKnown
         }
         do {
             let loc = try await requestCurrentLocation()
-            print("Got fresh location")
+            logger.log("Got fresh location")
+            UserDefaults.standard.set(Date(), forKey: "lastLocationUpdate")
             return loc
         } catch {
-            print("Failed to get location: \(error)")
+            logger.log("Failed to get location: \(error)")
             return nil
         }
     }
@@ -146,9 +163,9 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
             // Only request once, don't loop
             break
         case .denied, .restricted:
-            print("[GPS] Location access denied by user")
+            logger.log("[GPS] Location access denied by user")
         case .authorizedAlways, .authorizedWhenInUse:
-            print("[GPS] Location access granted")
+            logger.log("[GPS] Location access granted")
         @unknown default:
             break
         }

@@ -30,7 +30,7 @@ struct LockedWebView: UIViewRepresentable {
                 if let body = message.body as? [String: Any] {
                     let level = body["level"] as? String ?? "log"
                     let text  = body["text"]  as? String ?? String(describing: message.body)
-                    print("[JS:\(level)] \(text)")
+                    logger.log("[JS:\(level)] \(text)")
                 }
                 return
             }
@@ -48,15 +48,15 @@ struct LockedWebView: UIViewRepresentable {
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            print("[LockedWebView] Page loaded: \(webView.url?.absoluteString ?? "?")")
+            logger.log("[LockedWebView] Page loaded: \(webView.url?.absoluteString ?? "?")")
         }
 
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-            print("[LockedWebView] Navigation error: \(error.localizedDescription)")
+            logger.log("[LockedWebView] Navigation error: \(error.localizedDescription)")
         }
 
         func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
-            print("[LockedWebView] Provisional navigation error: \(error.localizedDescription)")
+            logger.log("[LockedWebView] Provisional navigation error: \(error.localizedDescription)")
         }
     }
 

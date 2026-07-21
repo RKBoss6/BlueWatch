@@ -11,7 +11,7 @@ import SwiftUI
 
 struct WatchSettingsScreen: View {
     @Environment(\.colorScheme) var colorScheme
-    @ObservedObject var settings:Settings=Settings.instance
+    @StateObject var settings: Settings = Settings.instance
     @State var temp:Bool=false
     var vm:ViewModel=ViewModel.instance
     @State private var showDeletePrompt = false
@@ -66,17 +66,6 @@ struct WatchSettingsScreen: View {
                             Text("Push health data to Apple Health")
                             
                         }
-                        Divider()
-                        Toggle(isOn:$settings.pushWeather ) {
-                            Text("Push weather updates")
-                            
-                        }
-                        Divider()
-                        Toggle(isOn:$settings.pushLocation ) {
-                            Text("Push location updates")
-                            
-                        }
-                        
                         
                         
                     }
@@ -88,11 +77,68 @@ struct WatchSettingsScreen: View {
                 } header:{
                     Text("Data")
                 }
+               
+                
+                    .listRowBackground(Color.clear)
+                Section{
+                    VStack(spacing: 16) {
+                        
+    
+                        Toggle(isOn:$settings.pushWeather ) {
+                            Text("Push weather updates")
+                            
+                        }
+                        if(settings.pushWeather){
+                            Divider()
+                            Stepper("Weather Rate Limit: \(settings.weatherRateLimit.formatted(.number.precision(.fractionLength(0)))) min", value: $settings.weatherRateLimit, in: 10...60, step:5)
+
+                        }
+                        
+                        
+                        
+                    }
+                    .padding()
+                    .liquidGlass(cornerRadius: 24)
+                    .ignoresSafeArea(.all)
+                    .listRowInsets(EdgeInsets())
+                    
+                }
                 footer:{
-                    Text("Periodically pushes location data to 'MyLocation.json'\nWeather data from [Weather](https://developer.apple.com/weatherkit/data-source-attribution/)")
+                    Text("Weather data from [Weather](https://developer.apple.com/weatherkit/data-source-attribution/)")
                 }
                 
                     .listRowBackground(Color.clear)
+                Section{
+                    VStack(spacing: 16) {
+                        
+
+                        Toggle(isOn:$settings.pushLocation ) {
+                            Text("Push location updates")
+                            
+                        }
+                        
+                        if(settings.pushLocation){
+                            Divider()
+                            Stepper("Location Rate Limit: \(settings.locationRateLimit) min", value: $settings.locationRateLimit, in: 0...60, step:5)
+
+                        }
+                        
+                        
+                        
+                        
+                    }
+                    .padding()
+                    .liquidGlass(cornerRadius: 24)
+                    .ignoresSafeArea(.all)
+                    .listRowInsets(EdgeInsets())
+                    
+                }
+                footer:{
+                    Text("Periodically pushes location data to 'MyLocation.json'")
+                }
+                
+                    .listRowBackground(Color.clear)
+                
                 Section {
                     VStack(spacing: 16) {
                         Button(role:.destructive) {
@@ -104,7 +150,8 @@ struct WatchSettingsScreen: View {
                                     Button("Delete", role: .destructive) {
                                         DataManager.clearAllData()
                                     }
-                                    Button("Cancel", role: .cancel) { }
+                            Button("Cancel", role: .cancel) { }
+                            
                                 } message: {
                                     Text("This action removes all your watch's saved health and battery data from all time on your device. This action cannot be undone.")
                                 }
@@ -158,6 +205,47 @@ struct WatchSettingsScreen: View {
                 .listRowBackground(
                     Color.clear
                 )
+                Section{
+                    VStack(spacing: 16) {
+                        Button{
+                            BlueWatchApp.requestHealthAuthorization()
+
+                        }label:{
+                            Text("Request Health Permissions")
+                        }
+                        Divider()
+                        Button{
+                            Task{
+                                await BlueWatchApp.requestNotificationAuthorization()
+                            }
+                        }label:{
+                            Text("Request Notification Permissions")
+                        }
+                        Divider()
+                        Button{
+                            LocationManager.shared.requestAuthorization()
+                        }label:{
+                            Text("Request Location Permissions")
+                        }
+                        
+                        
+                        
+                        
+                        
+                    }
+                    .padding()
+                    .liquidGlass(cornerRadius: 24)
+                    .ignoresSafeArea(.all)
+                    .listRowInsets(EdgeInsets())
+                    
+                } header:{
+                    Text("Permissions")
+                } footer:{
+                    Text("If you've already accepted permissions, no pop-up will show.")
+                }
+                
+                
+                    .listRowBackground(Color.clear)
                 
                 Section("Other"){
                     VStack(spacing: 16) {

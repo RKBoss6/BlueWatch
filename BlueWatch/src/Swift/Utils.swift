@@ -9,31 +9,43 @@ import Foundation
 import UserNotifications
 import SwiftData
 import _SwiftData_SwiftUI
+import OSLog
 enum Utils{
-    static func pushNotification(title:String,subtitle:String,body:String,id:String){
-        let center=UNUserNotificationCenter.current();
+    static func pushNotification(title:String,body:String,id:String){
         Task{
-            try await center.requestAuthorization(options: [.alert, .sound, .badge])
+            await BlueWatchApp.requestNotificationAuthorization()
         }
-        
+        let center=UNUserNotificationCenter.current()
         let content = UNMutableNotificationContent()
         content.title = title
-        content.body = subtitle
+        content.body = body
         content.sound = UNNotificationSound.default
         
         let request = UNNotificationRequest(identifier: id, content: content, trigger: nil)
         
         center.add(request) { error in
             if let error = error {
-                print("Error adding notification: \(error)")
+                logger.log("Error adding notification: \(error)")
             }
         }
-        print("pushed")
+        logger.log("pushed")
     }
-    
+    static  func minutesBetweenDates(_ fromDate: Date, toDate: Date) -> Int? {
+        // Use Calendar.current to access the user's current calendar and time zone settings.
+        let calendar = Calendar.current
+        
+        // Request only the .minute component. The Calendar intelligently calculates
+        // the total difference in minutes, considering any DST or time zone shifts.
+        let components = calendar.dateComponents([.minute], from: fromDate, to: toDate)
+        
+        // The result is an optional Int
+        return components.minute
+    }
 
     
 }
+
+let logger = Logger(subsystem: "com.RK.BlueWatch", category: "Debugging")
 
 
 
@@ -85,9 +97,9 @@ class DataManager {
                 
                 // Persist the changes instantly
                 try context.save()
-                print("Successfully deleted all DataPoint data.")
+                logger.log("Successfully deleted all DataPoint data.")
             } catch {
-                print("Failed to delete SwiftData records: \(error.localizedDescription)")
+                logger.log("Failed to delete SwiftData records: \(error.localizedDescription)")
             }
         }
     }
@@ -114,7 +126,7 @@ enum DataService {
             // 3. Compare values
             if let lastPoint = try? context.fetch(limitedDescriptor).first {
                 if lastPoint.value == value {
-                    print("Skipping save: Value for \(type.rawValue) hasn't changed (\(value))")
+                    logger.log("Skipping save: Value for \(type.rawValue) hasn't changed (\(value))")
                     return // Stop here, don't insert
                 }
             }

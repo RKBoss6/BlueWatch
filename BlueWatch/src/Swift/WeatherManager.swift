@@ -11,32 +11,22 @@ class WeatherManager: ObservableObject {
 
     private let service  = WeatherService.shared
     private let geocoder = CLGeocoder()
-
+    private let settings = Settings.instance
     // MARK: - Permissions
 
     
     // MARK: - Weather update
-    func minutesBetweenDates(_ fromDate: Date, toDate: Date) -> Int? {
-        // Use Calendar.current to access the user's current calendar and time zone settings.
-        let calendar = Calendar.current
-        
-        // Request only the .minute component. The Calendar intelligently calculates
-        // the total difference in minutes, considering any DST or time zone shifts.
-        let components = calendar.dateComponents([.minute], from: fromDate, to: toDate)
-        
-        // The result is an optional Int
-        return components.minute
-    }
+    
     
     func updateWeatherAndSend() async {
-        print("Starting weather update...")
+        logger.log("Starting weather update...")
 
         // Retrieve the last update date from UserDefaults safely
         let lastDate = UserDefaults.standard.object(forKey: "lastWeatherUpdate") as? Date
 
-        // If we have a last date and fewer than 8 minutes have passed, bail out
-        if let last = lastDate, let diff = minutesBetweenDates(last, toDate: Date()), diff < 8 {
-            print("Skipping weather update; only \(diff) minutes since last update.")
+        // If we have a last date and the elapsed time is less than the rate limit set, cancel request
+        if let last = lastDate, let diff = Utils.minutesBetweenDates(last, toDate: Date()), diff < Int(settings.weatherRateLimit) {
+            logger.log("Skipping weather update; only \(diff) minutes since last update.")
             return;
         }
         UserDefaults.standard.set(Date(), forKey: "lastWeatherUpdate")
@@ -53,7 +43,7 @@ class WeatherManager: ObservableObject {
             let cityName   = placemarks?.first?.locality ?? "Unknown"
 
             guard let today = daily.first else {
-                print("No daily forecast available"); return
+                logger.log("No daily forecast available"); return
             }
             // Record this update time immediately for rate limiting
             UserDefaults.standard.set(Date(), forKey: "lastWeatherUpdate")
@@ -76,13 +66,13 @@ class WeatherManager: ObservableObject {
 
             let jsonData = try JSONEncoder().encode(packet)
             if let jsonString = String(data: jsonData, encoding: .utf8) {
-                print("Sending weather JSON (\(jsonString.count) bytes)")
-                print("JSON: \(jsonString)")
+                logger.log("Sending weather JSON (\(jsonString.count) bytes)")
+                logger.log("JSON: \(jsonString)")
                 BLEManager.instance.send(jsonString)
                 
             }
         } catch {
-            print("Weather Error: \(error)")
+            logger.log("Weather Error: \(error)")
         }
     }
 

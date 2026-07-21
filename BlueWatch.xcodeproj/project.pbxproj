@@ -34,6 +34,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				src/Swift/SettingsClass.swift,
+				src/Swift/Utils.swift,
 			);
 			target = 368901482D7206AD00AD492A /* BlueWatchTests */;
 		};
@@ -41,6 +42,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				src/Swift/SettingsClass.swift,
+				src/Swift/Utils.swift,
 			);
 			target = 368901522D7206AD00AD492A /* BlueWatchUITests */;
 		};
