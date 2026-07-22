@@ -32,7 +32,7 @@ class WeatherManager: ObservableObject {
         UserDefaults.standard.set(Date(), forKey: "lastWeatherUpdate")
         
         
-        guard let location = await LocationManager.shared.getLocation(useCache: true) else { return }
+        guard let location = await LocationManager.shared.getLocation(useCache: false) else { return }
         
         do {
             let (current, daily) = try await service.weather(

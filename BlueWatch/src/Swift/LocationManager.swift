@@ -110,7 +110,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
 
         // If we have a last date and the elapsed time is less than the rate limit set, cancel request
         if let last = lastDate, let diff = Utils.minutesBetweenDates(last, toDate: Date()), diff < Int(settings.locationRateLimit) {
-            logger.log("Skipping location update; only \(diff) minutes since last update.")
+            logger.log("Skipping location update and using Cached location; only \(diff) minutes since last update.")
             useCache=true;
         }else{
             
