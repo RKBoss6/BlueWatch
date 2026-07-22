@@ -7,12 +7,13 @@ Bangle.js info: [`https://banglejs.com/`](https://banglejs.com/)
 
 Find the related Bangle.js app that facilitates communications between the Bangle and this app [here](https://banglejs.com/apps/?id=bluewatch)!
 ## Quick-start
-1. Open the app
-2. Authorize required permissions for app to work properly
-3. Select your device and follow prompts on-screen
-4. Once device is selected, the app will begin scanning for that device near you. Ensure it is turned on, and BLE is powered on for both devices.
-5. The app will initiate device pairing
-6. Once device is paired, you're good to go!
+1. Ensure you have the Bangle.js companion app installed on your Bangle.
+2. Open the app
+3. Authorize required permissions for app to work properly
+4. Select your device and follow prompts on-screen
+5. Once device is selected, the app will begin scanning for that device near you. Ensure it is turned on, and BLE is powered on for both devices.
+6. The app will initiate device pairing
+7. Once device is paired, you're good to go!
 
 
 ## Privacy Policy
