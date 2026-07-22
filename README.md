@@ -26,7 +26,7 @@ BlueWatch is open-source! The entire codebase is in this GitHub Repository, feel
 BlueWatch is developed and maintained with the knowing consent and authorization of Pur3 Ltd. Pur3 Ltd is the owner of the Espruino and Bangle.js software and trademarks, and have authorized the use of these trademarks and hardware for BlueWatch.
 
 ## Notes
-- BlueWatch rate-limits WeatherKit API calls to 10 minutes. This means that if you request to push weather to your watch and it already has pushed it less than 10 minutes ago, it will ignore your request until you or the watch requests again after 10 minutes have elapsed.
+- BlueWatch rate-limits WeatherKit API calls to 8 minutes. This means that if you request to push weather to your watch and it already has pushed it less than 10 minutes ago, it will ignore your request until you or the watch requests again after 8 minutes have elapsed.
 
 - Currently, the Find My Phone feature requires your phone to be unmuted, and is not very stable (wil be fixed soon!)
 
