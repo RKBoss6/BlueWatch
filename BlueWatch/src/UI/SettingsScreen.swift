@@ -255,6 +255,7 @@ struct WatchSettingsScreen: View {
                         Toggle(isOn:$settings.lowBattNotify) {
                             Text("Notify when watch battery low")
                         }
+                        .tint(.accentColor)
                     }
                     .padding()
                     .liquidGlass(cornerRadius: 24)

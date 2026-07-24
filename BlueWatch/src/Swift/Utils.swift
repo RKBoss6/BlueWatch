@@ -53,6 +53,8 @@ enum DataType: String, Codable {
     case steps
     case heartRate
     case battery
+    case test
+    case bluetoothBoundary
 }
 
 @Model
