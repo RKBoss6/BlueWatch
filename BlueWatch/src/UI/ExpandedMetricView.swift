@@ -85,7 +85,7 @@ struct ExpandedMetricView: View {
                 Button(action: {
                     moveDay(by: -1)
                 }) {
-                    Image(systemName: "arrowshape.left")
+                    Image(systemName: "arrowshape.left.fill")
                         .font(.title) // Changes icon size
                         .tint(color) // Changes icon color
                 }
@@ -95,7 +95,7 @@ struct ExpandedMetricView: View {
                 Button(action: {
                     moveDay(by: 1)
                 }) {
-                    Image(systemName: "arrowshape.right")
+                    Image(systemName: "arrowshape.right.fill")
                         .font(.title) // Changes icon size
                         .tint(color)
                 }
@@ -103,6 +103,17 @@ struct ExpandedMetricView: View {
                 .opacity(calendar.isDateInToday(selectedDay) ? 0.4 : 1)
                 Spacer()
             }
+            
+            Button{
+                moveDay(by: calendar.dateComponents([.day], from: selectedDay, to: Date.now).day ?? 0)
+            }label:{
+               Text("Today")
+            }
+            .buttonStyle(.borderedProminent)
+            .padding(10)
+            .disabled(calendar.isDate(Date.now, inSameDayAs: selectedDay))
+            .tint(color)
+            .opacity(0.8)
             Spacer()
             
         }.appBackground()
