@@ -81,11 +81,11 @@ struct ChooseDeviceScreen: View {
                 .fontWeight(.bold)
                 .padding()
             Spacer()
-            let sampleDevices = [
+            let devices = [
                // DeviceData(img: "BangleJS1", name: "Bangle.js 1"),
-                DeviceData(img: "BangleJS2", name: "Bangle.js 2")
+                DeviceData(img: "BangleJS2", name: "Bangle.js 2", manufacturer: "Espruino")
             ]
-            DeviceCarouselView(devices: sampleDevices)
+            DeviceCarouselView(devices: devices)
             //DeviceCard(img: "BangleJS2", name: "Bangle.js 2")
              //   .padding()
             Spacer()
@@ -100,7 +100,7 @@ struct ChooseDeviceScreen: View {
 struct DeviceCard: View {
     let img: String
     let name: String
-    
+    let manufacturer: String
     // 1. A simple boolean to control the screen shift
     @State private var isPresented = false
     
@@ -118,6 +118,10 @@ struct DeviceCard: View {
                 Text(name)
                     .font(.title2)
                     .fontWeight(.semibold)
+                Text(manufacturer)
+                    .font(.headline)
+                    .fontWeight(.medium)
+                    .opacity(0.7)
                 Spacer()
             }
             .padding(.top, 50)
@@ -142,6 +146,7 @@ struct DeviceData: Identifiable {
     let id = UUID()
     let img: String
     let name: String
+    let manufacturer: String
 }
 
 import SwiftUI
@@ -158,7 +163,7 @@ struct DeviceCarouselView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(spacing: 0) { // Keep zero spacing here; offset handle the gap
                         ForEach(devices) { device in
-                            DeviceCard(img: device.img, name: device.name)
+                            DeviceCard(img: device.img, name: device.name, manufacturer:device.manufacturer)
                                 // count: 1, span: 1 stretches the item across container size
                                 .containerRelativeFrame(.horizontal, count: 1, span: 1, spacing: 0)
                                 .scrollTransition(.interactive, axis: .horizontal) { content, phase in
@@ -203,36 +208,6 @@ struct DeviceCarouselView: View {
     }
 }
 
-
-struct ScanForDevice: View {
-    let img:String
-    let description:String
-    var body: some View {
-        NavigationLink (destination: ContentView()){
-            VStack{
-                Image(img)
-                    .resizable()
-                    .frame(width: 180,height: 180)
-                Text(description)
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                
-                Spacer()
-                
-            }
-            .padding(.top,50)
-            .padding(.bottom,50)
-            .padding(20)
-            .frame(height:270)
-            .padding()
-            .foregroundStyle(.white)
-            .background(.tint,in: RoundedRectangle(cornerRadius: 40))
-            .shadow(color: .black.opacity(0.2), radius: 15)
-            .contentShape(Rectangle())
-        }
-        
-    }
-}
 
 
 #Preview {
