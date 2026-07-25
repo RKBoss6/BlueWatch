@@ -130,8 +130,8 @@ class BLEManager: NSObject, ObservableObject {
             // When Bluetooth powers on, centralManagerDidUpdateState will call connect()
         }
     }
-
-    func stop() {
+    //destructive force-disconnects device from  phone
+    func stop(destructive:Bool) {
         // Stop all BLE activity and prevent future actions until start() is called again
         started = false
         shouldAttemptConnect = false
@@ -155,7 +155,11 @@ class BLEManager: NSObject, ObservableObject {
         incomingBuffer = ""
         DispatchQueue.main.async {
             self.isConnected = false
-            self.status = "Idle"
+            if(!destructive){
+                self.status = "Inactive"
+            }else{
+                self.status = "Disconnected"
+            }
         }
         endSetupBackgroundTask()
     }
@@ -289,7 +293,8 @@ class BLEManager: NSObject, ObservableObject {
         default: wbReject(id: id, error: "Unknown method: \(method)")
         }
     }
-    private func attemptHandshake(){
+    func attemptHandshake(){
+        status = "Waiting for response"
         guard started, isConnected else{
             logger.log("[BLE] Handshake failed, not connected or started")
             return
@@ -297,6 +302,7 @@ class BLEManager: NSObject, ObservableObject {
         if (handshakeSuccessful) {
             logger.log("Handshake attempt stopped, already successful")
             return
+            
         }
         if (handshakeAttempts>=10){
             status = "Handshake Failed"
@@ -692,8 +698,6 @@ extension BLEManager: CBPeripheralDelegate {
         guard started else { return }
         // Already on main thread (dispatched from didDiscoverCharacteristicsFor).
         // isConnected is true here, so send() will pass its guard.
-        status = "Attempting Handshake"
-
         
         attemptHandshake()
         // Setup is done — end the short background task now.

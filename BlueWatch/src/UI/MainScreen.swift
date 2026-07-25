@@ -69,22 +69,29 @@ struct WatchScreen: View {
                  .cornerRadius(8)
                  */
                 HStack {
-                    Button(bleManager.isConnected ? "Paired" : "Connect") {
-                        if(bleManager.isConnected){
+                    Text(bleManager.status)
+                        .foregroundColor(bleManager.isConnected ? .green : .orange)
+                    Spacer()
+                    Button(bleManager.isConnected && bleManager.handshakeSuccessful ? "Disconnect" : ( !bleManager.isConnected ? "Connect" : "Retry")) {
+                        
+                        if(bleManager.isConnected && !bleManager.handshakeSuccessful){
+                            bleManager.attemptHandshake()
+                        }else if bleManager.isConnected{
+                            bleManager.stop(destructive: true)
                         }else{
+                            bleManager.start()
                             bleManager.connect()
                         }
                         
                     }
                     .buttonStyle(.borderedProminent)
                     .buttonStyle(.bordered)
-                    Spacer()
-                    Text(bleManager.status)
-                        .foregroundColor(bleManager.isConnected ? .green : .orange)
+                    
                     
                 }
                 .padding(.leading)
                 .padding(.trailing)
+                .padding(.top,-10)
                 Divider()
                 Spacer()
                 HStack{
@@ -178,7 +185,7 @@ struct WatchScreen: View {
                         Spacer()
                         Image(systemName: "arrowshape.right")
                             .bold()
-                            .font(.title2)
+                            .font(.title3)
                             .tint(.graphRed)
                     }
                 }
@@ -201,7 +208,7 @@ struct WatchScreen: View {
                         Spacer()
                         Image(systemName: "arrowshape.right")
                             .bold()
-                            .font(.title2)
+                            .font(.title3)
                             .tint(.graphPurple)
                     }
                 }
@@ -224,7 +231,7 @@ struct WatchScreen: View {
                         Spacer()
                         Image(systemName: "arrowshape.right")
                             .bold()
-                            .font(.title2)
+                            .font(.title3)
                             .tint(.graphGreen)
                     }
                 }
