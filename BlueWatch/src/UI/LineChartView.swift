@@ -7,14 +7,27 @@ struct LineChartView: View {
     let color: Color
     let isTimewise: Bool
     let unitSuffix: String
+    let xDomain: ClosedRange<Date>?
     
     @State private var selectedX: Date? = nil
 
     // Helper to define the fixed 24-hour window
     var timeRange: ClosedRange<Date> {
+        if let xDomain {
+            return xDomain
+        }
+        
         let now = Date()
         let dayAgo = now.addingTimeInterval(-86400)
         return dayAgo...now
+    }
+
+    init(data: [ChartData], color: Color, isTimewise: Bool, unitSuffix: String, xDomain: ClosedRange<Date>? = nil) {
+        self.data = data
+        self.color = color
+        self.isTimewise = isTimewise
+        self.unitSuffix = unitSuffix
+        self.xDomain = xDomain
     }
 
     var body: some View {
@@ -120,7 +133,7 @@ struct DynamicDataChart: View {
     var body: some View {
         // Evaluate data type to pass either mock or real SwiftData array
         if dataType == .test {
-            var now = Date()
+            let now = Date()
             let mockPoints: [ChartData] = [
                     ChartData(x: now.addingTimeInterval(-80000), y: 58),
                     ChartData(x: now.addingTimeInterval(-72000), y: 55),
@@ -169,4 +182,3 @@ struct DynamicDataChart: View {
     
     return DynamicDataChart(dataType: .test, color: Color("GraphRed"), suffix: "bpm").appBackground()
 }
-

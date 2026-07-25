@@ -159,24 +159,75 @@ struct WatchScreen: View {
                 }
                 Spacer()
                 Divider()
-                Text("Data from the last 24 hours")
-                    .font(.headline)
+                Text("Metrics")
+                    .font(.title3)
+                    .bold()
                     .frame(maxWidth: .infinity,alignment: .leading)
                     .padding(.leading,10)
-                Text("Heart Rate")
-                    .font(.subheadline)
-                    .frame(maxWidth: .infinity,alignment: .leading)
-                    .padding(.leading,10)
+                NavigationLink{
+                    ExpandedMetricView(title: "Heart Rate", dataType: .heartRate, color: .graphRed)
+                }label:{
+                    HStack{
+                        Text("Heart Rate")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity,alignment: .leading)
+                            .padding(.leading,10)
+                            .bold()
+                            .tint(.primary)
+                            .frame(maxWidth: .infinity)
+                        Spacer()
+                        Image(systemName: "arrowshape.right.fill")
+                            .bold()
+                            .font(.title2)
+                            .tint(.graphRed)
+                    }
+                }
                 DynamicDataChart(dataType: .heartRate, color: Color("GraphRed"), suffix: " bpm")
-                Text("Steps")
-                    .font(.subheadline)
-                    .frame(maxWidth: .infinity,alignment: .leading)
-                    .padding(.leading,10)
+                
+                Divider()
+                    .background(.primary)
+                
+                NavigationLink{
+                    ExpandedMetricView(title: "Steps", dataType: .steps, color: .graphPurple)
+                }label:{
+                    HStack{
+                        Text("Steps")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity,alignment: .leading)
+                            .padding(.leading,10)
+                            .bold()
+                            .tint(.primary)
+                            .frame(maxWidth: .infinity)
+                        Spacer()
+                        Image(systemName: "arrowshape.right.fill")
+                            .bold()
+                            .font(.title2)
+                            .tint(.graphPurple)
+                    }
+                }
                 DynamicDataChart(dataType: .steps, color: Color("GraphPurple"), suffix: " steps")
-                Text("Battery")
-                    .font(.subheadline)
-                    .frame(maxWidth: .infinity,alignment: .leading)
-                    .padding(.leading,10)
+                
+                Divider()
+                    .background(.primary)
+                
+                NavigationLink{
+                    ExpandedMetricView(title: "Battery", dataType: .battery, color: .graphGreen)
+                }label:{
+                    HStack{
+                        Text("Battery")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity,alignment: .leading)
+                            .padding(.leading,10)
+                            .bold()
+                            .tint(.primary)
+                            .frame(maxWidth: .infinity)
+                        Spacer()
+                        Image(systemName: "arrowshape.right.fill")
+                            .bold()
+                            .font(.title2)
+                            .tint(.graphGreen)
+                    }
+                }
                 DynamicDataChart(dataType: .battery, color: Color("GraphGreen"), suffix: "%")
                     .padding(.bottom,70)
                 
