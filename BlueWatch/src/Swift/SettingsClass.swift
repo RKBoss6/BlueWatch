@@ -45,6 +45,13 @@ public class Settings:ObservableObject{
         }
     }
     
+    private var overrideReplKey:String="overrideRepl"
+    @Published public var overrideRepl:Bool{
+        didSet{
+            LocalStorage.set(overrideRepl, forKey: overrideReplKey)
+        }
+    }
+    
     private var pushWeatherKey:String="pushWeather"
     @Published public var pushWeather:Bool{
         didSet{
@@ -98,6 +105,7 @@ public class Settings:ObservableObject{
             pushWeatherKey: true,
             pushLocationKey: true,
             lowBattNotifyKey: false,
+            overrideReplKey: false,
             sendToHealthKitKey: true,
             deviceNameKey: ViewModel.instance.savedDevice,
             weatherRateLimitKey: 10
@@ -114,6 +122,7 @@ public class Settings:ObservableObject{
         deviceName=LocalStorage.getString(forKey: deviceNameKey) ?? ViewModel.instance.savedDevice
         weatherRateLimit=Int(LocalStorage.getNumber(forKey: weatherRateLimitKey) ?? 10)
         locationRateLimit=Int(LocalStorage.getNumber(forKey: locationRateLimitKey) ?? 10)
+        overrideRepl = LocalStorage.getBool(forKey: overrideReplKey) ?? false
 
     }
 }

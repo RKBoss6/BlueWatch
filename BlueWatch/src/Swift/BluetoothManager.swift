@@ -249,7 +249,13 @@ class BLEManager: NSObject, ObservableObject {
     }
 
     // MARK: - Write queue
-
+    func toggleReplOverride(on: Bool){
+        if(on){
+            
+        }else{
+            
+        }
+    }
     private func enqueueWrite(callId: Int, data: Data, char: CBCharacteristic) {
         writeQueue.append(WriteJob(callId: callId, data: data, char: char))
         drainWriteQueue()

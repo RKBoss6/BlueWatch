@@ -59,6 +59,30 @@ struct WatchSettingsScreen: View {
                     .listRowInsets(EdgeInsets())
                 }
                 .listRowBackground(Color.clear)
+                Section(header: Text("Bluetooth"), footer: Text("Improves communication reliablility significantly, but removes app loader compatibility.")){
+                    VStack(spacing: 16) {
+                        Toggle(isOn:$settings.overrideRepl ) {
+                            Text("Override REPL")
+                            
+                        }
+                        .onChange(of: settings.overrideRepl, initial: false) { oldValue, newValue in
+                            if(newValue==false){
+                                // toggled off
+                                BLEManager.instance.toggleReplOverride(on:false)
+                            }else{
+                                // toggled on
+                                BLEManager.instance.toggleReplOverride(on:true)
+                            }
+                        }
+                        .tint(.accentColor)
+                    }
+                    .padding()
+                    .liquidGlass(cornerRadius: 24)
+                    .frame(width:.infinity,height: .infinity)
+                    .ignoresSafeArea(.all)
+                    .listRowInsets(EdgeInsets())
+                }
+                .listRowBackground(Color.clear)
                 Section{
                     VStack(spacing: 16) {
                         
