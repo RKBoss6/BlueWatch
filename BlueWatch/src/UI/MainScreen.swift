@@ -9,6 +9,7 @@ import SwiftUI
 
 
 struct WatchScreen: View {
+    @Environment(\.isPreview) var isPreview
     @Environment(\.modelContext) private var modelContext
     var vm:ViewModel=ViewModel.instance
     @ObservedObject var settings = Settings.instance
@@ -196,7 +197,7 @@ struct WatchScreen: View {
                     .frame(maxWidth: .infinity,alignment: .leading)
                     .padding(.leading,10)
                 NavigationLink{
-                    ExpandedMetricView(title: "Heart Rate", dataType: .heartRate, color: .graphRed)
+                    ExpandedMetricView(title: "Heart Rate", dataType: isPreview ? .test : .heartRate, color: .graphRed)
                 }label:{
                     HStack{
                         Text("Heart Rate")
@@ -213,13 +214,13 @@ struct WatchScreen: View {
                             .tint(.graphRed)
                     }
                 }
-                DynamicDataChart(dataType: .heartRate, color: Color("GraphRed"), suffix: " bpm")
+                DynamicDataChart(dataType: isPreview ? .test : .heartRate, color: Color("GraphRed"), suffix: " bpm")
                 
                 Divider()
                     .background(.primary)
                 
                 NavigationLink{
-                    ExpandedMetricView(title: "Steps", dataType: .steps, color: .graphPurple)
+                    ExpandedMetricView(title: "Steps", dataType: isPreview ? .test : .steps, color: .graphPurple)
                 }label:{
                     HStack{
                         Text("Steps")
@@ -236,13 +237,13 @@ struct WatchScreen: View {
                             .tint(.graphPurple)
                     }
                 }
-                DynamicDataChart(dataType: .steps, color: Color("GraphPurple"), suffix: " steps")
+                DynamicDataChart(dataType: isPreview ? .test : .steps, color: Color("GraphPurple"), suffix: " steps")
                 
                 Divider()
                     .background(.primary)
                 
                 NavigationLink{
-                    ExpandedMetricView(title: "Battery", dataType: .battery, color: .graphGreen)
+                    ExpandedMetricView(title: "Battery", dataType: isPreview ? .test : .battery, color: .graphGreen)
                 }label:{
                     HStack{
                         Text("Battery")
@@ -259,7 +260,7 @@ struct WatchScreen: View {
                             .tint(.graphGreen)
                     }
                 }
-                DynamicDataChart(dataType: .battery, color: Color("GraphGreen"), suffix: "%")
+                DynamicDataChart(dataType: isPreview ? .test : .battery, color: Color("GraphGreen"), suffix: "%")
                     .padding(.bottom,70)
                 
                 

@@ -246,7 +246,7 @@ class BLEManager: NSObject, ObservableObject {
         
         let base64Payload = payload.data(using: .utf8)?.base64EncodedString() ?? ""
         //use \x10 to prevent echo
-        let jsCommand = "require('bluewatch').receive(atob('\(base64Payload)'));\n"
+        let jsCommand = "\u{10}require('bluewatch').receive(atob('\(base64Payload)'));\n"
 
 
         
@@ -615,6 +615,7 @@ extension BLEManager: CBCentralManagerDelegate {
             self.isHandshaking=false;
             self.send("Request System Info")
             self.status = "Connected"
+            
             Task {
                 await LocationManager.shared.sendLocation()
                 await WeatherManager.shared.updateWeatherAndSend()
@@ -773,30 +774,33 @@ extension BLEManager: CBPeripheralDelegate {
 
         guard let text = String(data: data, encoding: .utf8) else { return }
         incomingBuffer += text
-
+        logger.log("[Receive] incoming buffer: \(self.incomingBuffer,privacy: .public)")
         while let range = incomingBuffer.range(of: "\n") {
             let line = String(incomingBuffer[..<range.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
             incomingBuffer = String(incomingBuffer[range.upperBound...])
-            
-            // 1. If it doesn't start with BW:, it's REPL noise. Drop it.
+            logger.log("[Receive] got command: \(line,privacy: .public)")
+            // 1. If it doesn't start with bwRX:, it's REPL noise. Drop it.
             guard line.hasPrefix("bwRX:") else { continue }
-
+            print("Command is good, continuing: " + line)
             var bgId: UIBackgroundTaskIdentifier = .invalid
             bgId = UIApplication.shared.beginBackgroundTask(withName: "BLELine") {
                 UIApplication.shared.endBackgroundTask(bgId); bgId = .invalid
             }
-
+            logger.log("[Receive] Command in while: \(line,privacy: .public)")
             DispatchQueue.main.async {
                 // 2. Strip the BW: prefix
                 let payload = String(line.dropFirst("bwRX:".count))
                 self.lastMessage = payload
-                
+                logger.log("[Receive] Stripped payload in main: \(payload,privacy: .public)")
                 // 3. Try parsing as JSON first, fallback to raw command
                 if let d = payload.data(using: .utf8),
                    let j = try? JSONSerialization.jsonObject(with: d) as? [String: Any] {
                     self.commandInterpreter.handleJSON(j)
+                    logger.log("[Receive] registered as json: \(payload,privacy: .public)")
+                    
                 } else {
                     self.commandInterpreter.handleCommand(command: payload)
+                    logger.log("[Receive] sent as command: \(payload,privacy: .public)")
                 }
                 
                 UIApplication.shared.endBackgroundTask(bgId); bgId = .invalid

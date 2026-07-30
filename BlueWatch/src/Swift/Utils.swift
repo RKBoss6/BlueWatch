@@ -10,6 +10,7 @@ import UserNotifications
 import SwiftData
 import _SwiftData_SwiftUI
 import OSLog
+import SwiftUI
 enum Utils{
     static func pushNotification(title:String,body:String,id:String){
         Task{
@@ -56,7 +57,16 @@ enum DataType: String, Codable {
     case test
     case bluetoothBoundary
 }
+private struct IsPreviewKey: EnvironmentKey {
+    static let defaultValue: Bool = ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1"
+}
 
+extension EnvironmentValues {
+    var isPreview: Bool {
+        get { self[IsPreviewKey.self] }
+        set { self[IsPreviewKey.self] = newValue }
+    }
+}
 @Model
 final class DataPoint {
     var timestamp: Date

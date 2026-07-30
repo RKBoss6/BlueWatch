@@ -81,7 +81,7 @@ struct LineChartView: View {
                     AxisGridLine()
                     AxisTick()
                     // This will now show clean times like 12:00, 16:00, etc.
-                    AxisValueLabel(format: .dateTime.hour(.defaultDigits(amPM: .abbreviated)).minute())
+                    AxisValueLabel(format: .dateTime.hour(.defaultDigits(amPM: .narrow)).minute())
                 }
             }
             // Forces the chart to always show the full 24-hour window
@@ -148,21 +148,16 @@ struct DynamicDataChart: View {
                     ChartData(x: now.addingTimeInterval(-35000), y: 158),
                     ChartData(x: now.addingTimeInterval(-34000), y: 162),
                     ChartData(x: now.addingTimeInterval(-33000), y: 140),
-                    
-                    // Post-workout recovery (Dropping HR)
                     ChartData(x: now.addingTimeInterval(-30000), y: 95),
                     ChartData(x: now.addingTimeInterval(-25000), y: 78),
                     
-                    // Afternoon sitting / Working (Steady HR, 65-75 bpm)
                     ChartData(x: now.addingTimeInterval(-20000), y: 70),
                     ChartData(x: now.addingTimeInterval(-16000), y: 68),
                     ChartData(x: now.addingTimeInterval(-12000), y: 74),
                     
-                    // Evening walk / Commute (Light activity, 90-105 bpm)
                     ChartData(x: now.addingTimeInterval(-8000), y: 92),
                     ChartData(x: now.addingTimeInterval(-5000), y: 104),
                     
-                    // Relaxing before bed (Wind down, 65-70 bpm)
                     ChartData(x: now.addingTimeInterval(-2000), y: 67),
                     ChartData(x: now, y: 63)
                 ].sorted(by: { $0.x < $1.x })
