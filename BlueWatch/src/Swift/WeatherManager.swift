@@ -49,7 +49,7 @@ class WeatherManager: ObservableObject {
             UserDefaults.standard.set(Date(), forKey: "lastWeatherUpdate")
 
             let packet = WatchWeatherPacket(
-                id:    "WeatherUpdate",
+                id:    "Weather",
                 temp:  Int(current.temperature.converted(to: .kelvin).value),
                 feels: Int(current.apparentTemperature.converted(to: .kelvin).value),
                 hi:    Int(today.highTemperature.converted(to: .kelvin).value),
@@ -64,13 +64,8 @@ class WeatherManager: ObservableObject {
                 loc:   cityName
             )
 
-            let jsonData = try JSONEncoder().encode(packet)
-            if let jsonString = String(data: jsonData, encoding: .utf8) {
-                logger.log("Sending weather JSON (\(jsonString.count) bytes)")
-                logger.log("JSON: \(jsonString)")
-                BLEManager.instance.send(jsonString)
-                
-            }
+            BLEManager.instance.sendJSON(data: packet)
+            
         } catch {
             logger.log("Weather Error: \(error)")
         }
@@ -115,7 +110,7 @@ extension Wind {
 }
 
 // MARK: - Packet type
-struct WatchWeatherPacket: Encodable {
+struct WatchWeatherPacket: Codable {
     let id: String
     let temp: Int
     let feels: Int

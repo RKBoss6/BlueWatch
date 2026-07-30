@@ -40,9 +40,9 @@ class BLEManager: NSObject, ObservableObject {
     private let rxUUID      = CBUUID(string: "6E400003-B5A3-F393-E0A9-E50E24DCCA9E")
 
     private var setupComplete = false
-    private var started = false
+    @Published private var started = false
     private var shouldAttemptConnect = false
-
+    @Published var isHandshaking=false
     // ── Web Bluetooth bridge ───────────────────────────────────────────────────
     weak var webView: WKWebView?
 
@@ -215,7 +215,15 @@ class BLEManager: NSObject, ObservableObject {
     }
 
     // MARK: - Native send (BlueWatch protocol)
-
+    func sendJSON(data:Codable){
+        let encoder = JSONEncoder()
+        guard let jsonData = try? encoder.encode(data),
+              let jsonString = String(data: jsonData, encoding: .utf8) else {
+            fatalError("Failed to encode JSON")
+        }
+            
+        send(jsonString);
+    }
     func send(_ text: String, sendRaw: Bool = false) {
         sendQueue.async { [weak self] in
             guard let self = self else { return }
@@ -232,18 +240,29 @@ class BLEManager: NSObject, ObservableObject {
         }
         sendBusy = true
         let (text, sendRaw) = pendingMessages.removeFirst()
-
         let payload = ((sendRaw ? "RAW: " : "") + text + "|")
-            .replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "'", with: "\\'")
-        var idx = payload.startIndex
-        while idx < payload.endIndex {
-            let end = payload.index(idx, offsetBy: 60, limitedBy: payload.endIndex) ?? payload.endIndex
-            if let data = "require('bluewatch').receive('\(payload[idx..<end])')\n".data(using: .utf8) {
-                p.writeValue(data, for: c, type: .withResponse)
+            .replacingOccurrences(of: "\\", with: "\\\\") // Double the backslashes
+            .replacingOccurrences(of: "\"", with: "\\\"") // Escape the quotes
+        
+        let base64Payload = payload.data(using: .utf8)?.base64EncodedString() ?? ""
+        //use \x10 to prevent echo
+        let jsCommand = "require('bluewatch').receive(atob('\(base64Payload)'));\n"
+
+
+        
+        if let fullData = jsCommand.data(using: .utf8) {
+            let chunkSize = 60
+            var offset = 0
+            
+            while offset < fullData.count {
+                let chunkLength = min(chunkSize, fullData.count - offset)
+                let chunk = fullData.subdata(in: offset..<(offset + chunkLength))
+                
+                p.writeValue(chunk, for: c, type: .withResponse)
+                offset += chunkLength
             }
-            idx = end
         }
+        
         sendBusy = false
         drainSendQueue()   // move to next queued message
     }
@@ -294,9 +313,9 @@ class BLEManager: NSObject, ObservableObject {
         }
     }
     func attemptHandshake(){
-        status = "Waiting for response"
-        guard started, isConnected else{
-            logger.log("[BLE] Handshake failed, not connected or started")
+        
+        guard started, isConnected, isHandshaking else{
+            logger.log("[BLE] Handshake failed, not connected, started, or handshake already in progress")
             return
         }
         if (handshakeSuccessful) {
@@ -306,11 +325,12 @@ class BLEManager: NSObject, ObservableObject {
         }
         if (handshakeAttempts>=10){
             status = "Handshake Failed"
+            isHandshaking=false
             logger.log("Handshake attempt stopped, max tries reached")
             handshakeAttempts = 0
             return
         }
-        
+        status = "Waiting for response"
         send("BlueWatch Connected")
         handshakeAttempts += 1
         logger.log("Attempted handshake \(self.handshakeAttempts)")
@@ -586,12 +606,19 @@ extension BLEManager: CBCentralManagerDelegate {
     }
     
     func didCompleteHandshake(){
+        
         DispatchQueue.main.async{
+            
             logger.log("Handshake Successful!")
             self.handshakeSuccessful=true
             self.handshakeAttempts=0
+            self.isHandshaking=false;
             self.send("Request System Info")
             self.status = "Connected"
+            Task {
+                await LocationManager.shared.sendLocation()
+                await WeatherManager.shared.updateWeatherAndSend()
+            }
         }
     }
     func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
@@ -693,27 +720,44 @@ extension BLEManager: CBPeripheralDelegate {
             }
         }
     }
-
+    func startHandshake(){
+        guard !isHandshaking else { return }
+        isHandshaking=true;
+        attemptHandshake()
+    }
     func onConnectionFinished() {
         guard started else { return }
         // Already on main thread (dispatched from didDiscoverCharacteristicsFor).
         // isConnected is true here, so send() will pass its guard.
         
-        attemptHandshake()
-        // Setup is done — end the short background task now.
+        startHandshake()
         endSetupBackgroundTask()
-        Task {
-            await LocationManager.shared.sendLocation()
-            await WeatherManager.shared.updateWeatherAndSend()
-        }
+        
     }
 
-    func peripheral(_ peripheral: CBPeripheral,
-                    didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
+    func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
         guard started else { return }
-        guard let data = characteristic.value else { return }
+        
+        if let error = error {
+            print("BLE RX Error: \(error.localizedDescription)")
+            return
+        }
+        
+        guard let data = characteristic.value else {
+            print("BLE RX: Empty data packet received")
+            return
+        }
+        
         let charId = characteristic.uuid.uuidString
         let bytes  = [UInt8](data)
+        
+        if let raw = String(data: data, encoding: .utf8) {
+            print("RAW RX FROM WATCH: '\(raw)'")
+            logger.log("[BLE RAW] charId=\(charId, privacy: .public) bytes=\(bytes.count, privacy: .public) text=\(raw.debugDescription, privacy: .public)")
+        } else {
+            print("BLE RX: Received non-UTF8 data")
+            logger.log("[BLE RAW] charId=\(charId, privacy: .public) bytes=\(bytes.count, privacy: .public) (non-UTF8)")
+        }
 
         // Web Bluetooth path
         if activeWebNotifications.contains(charId) {
@@ -722,13 +766,8 @@ extension BLEManager: CBPeripheralDelegate {
             } else {
                 wbFireNotification(charId: charId, bytes: bytes)
             }
-           
         }
-       if let raw = String(data: data, encoding: .utf8) {
-           logger.log("[BLE RAW] charId=\(charId, privacy: .public) bytes=\(bytes.count, privacy: .public) text=\(raw.debugDescription, privacy: .public)")
-       } else {
-           logger.log("[BLE RAW] charId=\(charId, privacy: .public) bytes=\(bytes.count, privacy: .public) (non-UTF8)")
-       }
+        
         // Skip native handling for non-RX characteristics
         guard charId.caseInsensitiveCompare(rxUUID.uuidString) == .orderedSame else { return }
 
@@ -736,10 +775,11 @@ extension BLEManager: CBPeripheralDelegate {
         incomingBuffer += text
 
         while let range = incomingBuffer.range(of: "\n") {
-            let line = incomingBuffer[..<range.lowerBound]
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-                .trimmingCharacters(in: CharacterSet(charactersIn: ">"))
+            let line = String(incomingBuffer[..<range.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
             incomingBuffer = String(incomingBuffer[range.upperBound...])
+            
+            // 1. If it doesn't start with BW:, it's REPL noise. Drop it.
+            guard line.hasPrefix("bwRX:") else { continue }
 
             var bgId: UIBackgroundTaskIdentifier = .invalid
             bgId = UIApplication.shared.beginBackgroundTask(withName: "BLELine") {
@@ -747,13 +787,18 @@ extension BLEManager: CBPeripheralDelegate {
             }
 
             DispatchQueue.main.async {
-                self.lastMessage = line
-                if let d = line.data(using: .utf8),
+                // 2. Strip the BW: prefix
+                let payload = String(line.dropFirst("bwRX:".count))
+                self.lastMessage = payload
+                
+                // 3. Try parsing as JSON first, fallback to raw command
+                if let d = payload.data(using: .utf8),
                    let j = try? JSONSerialization.jsonObject(with: d) as? [String: Any] {
                     self.commandInterpreter.handleJSON(j)
                 } else {
-                    self.commandInterpreter.handleCommand(command: line)
+                    self.commandInterpreter.handleCommand(command: payload)
                 }
+                
                 UIApplication.shared.endBackgroundTask(bgId); bgId = .invalid
             }
         }

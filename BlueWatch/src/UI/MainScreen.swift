@@ -39,7 +39,23 @@ struct WatchScreen: View {
         }
         return img;
     }
-    
+    func getConnectButtonText() -> String {
+        var text = ""
+        if(bleManager.isConnected){
+            if(bleManager.handshakeSuccessful){
+                text="Disconnect"
+            }else{
+                if(bleManager.isHandshaking){
+                    text="In progress"
+                }else{
+                    text="Retry"
+                }
+            }
+        }else{
+            text="Connect"
+        }
+        return text
+    }
     var body: some View {
         ScrollView{
             VStack(spacing: 20) {
@@ -72,12 +88,20 @@ struct WatchScreen: View {
                     Text(bleManager.status)
                         .foregroundColor(bleManager.isConnected ? .green : .orange)
                     Spacer()
-                    Button(bleManager.isConnected && bleManager.handshakeSuccessful ? "Disconnect" : ( !bleManager.isConnected ? "Connect" : "Retry")) {
+                    
+                    Button(getConnectButtonText()) {
                         
-                        if(bleManager.isConnected && !bleManager.handshakeSuccessful){
-                            bleManager.attemptHandshake()
-                        }else if bleManager.isConnected{
-                            bleManager.stop(destructive: true)
+                        if(bleManager.isConnected){
+                            if(bleManager.handshakeSuccessful){
+                                bleManager.stop(destructive: true)
+                            }else{
+                                if(bleManager.isHandshaking){
+                                    // nothing to do while its handshaking
+                                }else{
+                                    // retry
+                                    bleManager.startHandshake()
+                                }
+                            }
                         }else{
                             bleManager.start()
                             bleManager.connect()
@@ -113,7 +137,7 @@ struct WatchScreen: View {
                         
                         
                     }
-                    .disabled(!bleManager.isConnected)
+                   // .disabled(!bleManager.isConnected)
                     .tint(findingPhone ? .orange : .accent)
                     
                     .buttonStyle(.borderedProminent)
@@ -132,7 +156,7 @@ struct WatchScreen: View {
                             .padding(10)
                         
                     }
-                    .disabled(!bleManager.isConnected)
+                    //.disabled(!bleManager.isConnected)
                     
                     .buttonStyle(.borderedProminent)
                     .tint(findingWatch ? .orange : .accent)
@@ -149,7 +173,7 @@ struct WatchScreen: View {
                             .padding(10)
                         
                     }
-                    .disabled(!bleManager.isConnected)
+                  //  .disabled(!bleManager.isConnected)
                     .buttonStyle(.borderedProminent)
                     Button{
                         Task {
@@ -161,7 +185,7 @@ struct WatchScreen: View {
                             .padding(10)
                         
                     }
-                    .disabled(!bleManager.isConnected)
+                   // .disabled(!bleManager.isConnected)
                     .buttonStyle(.borderedProminent)
                 }
                 Spacer()

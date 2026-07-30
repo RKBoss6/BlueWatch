@@ -55,7 +55,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         logger.log("[GPS] Stopped GPS forwarding")
     }
 
-  
+   
 
     // MARK: - Location packet (your existing LocationUpdate)
 
@@ -81,25 +81,33 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         let course   = location.course  >= 0 ? location.course  : 0
         let speedKmh = location.speed   >= 0 ? location.speed * 3.6 : 0
         let hdop     = max(0.5, min(99.9, location.horizontalAccuracy / 5.0))
-        let js = """
-        Bangle.emit('GPS',{\
-        lat:\(location.coordinate.latitude),\
-        lon:\(location.coordinate.longitude),\
-        alt:\(String(format:"%.1f", location.altitude)),\
-        speed:\(String(format:"%.1f", speedKmh)),\
-        course:\(String(format:"%.1f", course)),\
-        fix:\(fix),\
-        satellites:8,\
-        city:\(cityName),\
-        hdop:\(String(format:"%.1f", hdop))\
+        let packet = LocationPacket(
+            id: "GPS",
+            lat:location.coordinate.latitude ,
+            lon: location.coordinate.longitude,
+            alt: round(location.altitude*10)/10,
+            speed: round(speedKmh*10)/10,
+            course: round(course*10)/10,
+            fix: fix,
+            satellites: 8,
+            hdop: round(hdop*10)/10,
+            city: cityName)
+        BLEManager.instance.sendJSON(data: packet)
+              
         
-        })
-        """
-
-      
-        BLEManager.instance.send(js, sendRaw: true)
-        
-        
+    }
+    // MARK: - Packet type
+    struct LocationPacket: Codable {
+        let id: String
+        let lat: Double
+        let lon: Double
+        let alt: Double
+        let speed: Double
+        let course: Double
+        let fix: Int
+        let satellites: Int
+        let hdop: Double
+        let city: String
     }
 
     // MARK: - Location retrieval (used by WeatherManager too)
@@ -174,13 +182,3 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
    
 }
 
-// MARK: - Packet type
-struct WatchLocationPacket: Encodable {
-    let id: String
-    let lat: Double
-    let lon: Double
-    let alt: Double
-    let speed: Double
-    let course: Double
-    let city: String
-}
