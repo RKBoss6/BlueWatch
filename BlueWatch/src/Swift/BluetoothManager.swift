@@ -9,11 +9,11 @@ import BackgroundTasks
 class BLEManager: NSObject, ObservableObject {
     static let instance = BLEManager()
     private let autoStartKey = "BLEManagerAutoStart"
-
+    private var hasSeenPoweredOn = false
     @Published var status: String = "Idle"
     @Published var lastMessage: String = "—"
     @Published var isConnected: Bool = false
-    
+    private var setupWatchdogToken: UUID?
     // handle retries of handshake
     @Published var handshakeSuccessful: Bool = false
     private var handshakeAttempts = 0
@@ -99,7 +99,39 @@ class BLEManager: NSObject, ObservableObject {
         }
         commandInterpreter.ble=self
     }
+    // MARK: - bt power-cycle recovery
+
+    private func resetConnectionState() {
+        peripheral = nil
+        writeCharacteristic = nil
+        setupComplete = false
+        DispatchQueue.main.async {
+            self.isHandshaking = false
+            self.handshakeSuccessful = false
+        }
+        handshakeAttempts = 0
+        incomingBuffer = ""
+        activeWebNotifications = []
+        wbServices = [:]
+        wbCharacteristics = [:]
+        writeQueue = []
+        writeBusy = false
+        setupWatchdogToken = nil
+        logger.log("[BLE] Connection state reset")
+    }
+
     
+    private func recreateCentralManager() {
+        logger.log("[BLE] Recreating CBCentralManager after radio power cycle")
+        central = CBCentralManager(
+            delegate: self,
+            queue: bleQueue,
+            options: [
+                CBCentralManagerOptionRestoreIdentifierKey: "BlueWatchRestorationID",
+                CBCentralManagerOptionShowPowerAlertKey: true
+            ]
+        )
+    }
     // MARK: - Lifecycle control
     func start() {
         guard !started else { return }
@@ -241,8 +273,7 @@ class BLEManager: NSObject, ObservableObject {
         sendBusy = true
         let (text, sendRaw) = pendingMessages.removeFirst()
         let payload = ((sendRaw ? "RAW: " : "") + text + "|")
-            .replacingOccurrences(of: "\\", with: "\\\\") // Double the backslashes
-            .replacingOccurrences(of: "\"", with: "\\\"") // Escape the quotes
+        // no longer need to escape anything because we send through base64
         
         let base64Payload = payload.data(using: .utf8)?.base64EncodedString() ?? ""
         //use \x10 to prevent echo
@@ -504,6 +535,7 @@ extension BLEManager: CBCentralManagerDelegate {
         switch central.state {
         case .poweredOn:
             DispatchQueue.main.async { self.status = "Ready" }
+            hasSeenPoweredOn = true
             if self.started && self.shouldAttemptConnect { self.connect() }
         case .poweredOff:
             DispatchQueue.main.async {
@@ -511,6 +543,14 @@ extension BLEManager: CBCentralManagerDelegate {
                 self.isConnected = false
             }
             endSetupBackgroundTask()
+            resetConnectionState()
+            // Only recreate if we'd actually seen a real poweredOn before —
+            // avoids recreating on the very first launch callback.
+            if hasSeenPoweredOn {
+                bleQueue.async { [weak self] in
+                    self?.recreateCentralManager()
+                }
+            }
         case .resetting:
             DispatchQueue.main.async { self.status = "Resetting..." }
         case .unauthorized:
@@ -523,7 +563,7 @@ extension BLEManager: CBCentralManagerDelegate {
             DispatchQueue.main.async { self.status = "Bluetooth Unknown" }
         }
     }
-
+    
     func centralManager(_ central: CBCentralManager, willRestoreState dict: [String: Any]) {
         if !started {
             if UserDefaults.standard.bool(forKey: autoStartKey) {
@@ -571,11 +611,6 @@ extension BLEManager: CBCentralManagerDelegate {
             return
         }
         logger.log("[BLE] Connected — discovering services...")
-        // Open a short background task covering service/characteristic discovery.
-        // This protects the few seconds between didConnect and onConnectionFinished()
-        // so iOS can't suspend us before "BlueWatch Connected" is sent.
-        // It is ended inside onConnectionFinished() once the sends are queued.
-        // Do NOT hold this open for the whole connection — bluetooth-central handles that.
         beginSetupBackgroundTask()
         writeBusy = false; writeQueue = []
         DispatchQueue.main.async {
@@ -583,6 +618,22 @@ extension BLEManager: CBCentralManagerDelegate {
             self.isConnected = true
         }
         setupComplete = false
+
+        // Watchdog: if setup hasn't completed within 15s, force a reconnect
+        // instead of hanging on "Setting up..." forever.
+        let token = UUID()
+        setupWatchdogToken = token
+        DispatchQueue.main.asyncAfter(deadline: .now() + 15) { [weak self] in
+            guard let self = self,
+                  self.started,
+                  !self.setupComplete,
+                  self.setupWatchdogToken == token,
+                  self.peripheral === peripheral else { return }
+            logger.log("[BLE] Setup timed out after 15s — forcing reconnect")
+            self.central.cancelPeripheralConnection(peripheral)
+            // didDisconnectPeripheral will fire and re-issue central.connect(...)
+        }
+
         peripheral.discoverServices([serviceUUID])
     }
 
@@ -658,38 +709,70 @@ extension BLEManager: CBCentralManagerDelegate {
 
 // MARK: - CBPeripheralDelegate
 
+// MARK: - CBPeripheralDelegate
+
 extension BLEManager: CBPeripheralDelegate {
 
     func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
         guard started else { return }
-        if let e = error { logger.log("[BLE] Service error: \(e)"); return }
+
+        if let e = error {
+            logger.log("[BLE] Service discovery error: \(e.localizedDescription) — forcing reconnect")
+            central.cancelPeripheralConnection(peripheral)
+            return
+        }
+
         let deviceId = peripheral.identifier.uuidString
+        logger.log("[BLE] Services discovered: \(peripheral.services?.map { $0.uuid.uuidString } ?? [], privacy: .public)")
+
+        // Web Bluetooth path (unrelated to native TX/RX setup)
         if let entry = pendingServices.removeValue(forKey: deviceId) {
             if let svc = peripheral.services?.first(where: {
                 $0.uuid.uuidString.caseInsensitiveCompare(entry.uuid) == .orderedSame
             }) {
                 let sid = svc.uuid.uuidString; wbServices[sid] = svc
                 wbResolve(id: entry.callId, result: ["serviceId": sid])
-            } else { wbReject(id: entry.callId, error: "Service not found") }
+            } else {
+                wbReject(id: entry.callId, error: "Service not found")
+            }
             return
         }
-        peripheral.services?.forEach { peripheral.discoverCharacteristics([txUUID, rxUUID], for: $0) }
+
+        guard let services = peripheral.services, !services.isEmpty else {
+            logger.log("[BLE] No services found on peripheral — forcing reconnect")
+            central.cancelPeripheralConnection(peripheral)
+            return
+        }
+
+        services.forEach { peripheral.discoverCharacteristics([txUUID, rxUUID], for: $0) }
     }
 
     func peripheral(_ peripheral: CBPeripheral,
                     didDiscoverCharacteristicsFor service: CBService, error: Error?) {
         guard started else { return }
-        if let e = error { logger.log("[BLE] Char error: \(e)"); return }
+
+        if let e = error {
+            logger.log("[BLE] Characteristic discovery error: \(e.localizedDescription) — forcing reconnect")
+            central.cancelPeripheralConnection(peripheral)
+            return
+        }
+
         let serviceId = service.uuid.uuidString
+        logger.log("[BLE] Characteristics for \(serviceId, privacy: .public): \(service.characteristics?.map { $0.uuid.uuidString } ?? [], privacy: .public)")
+
+        // Web Bluetooth path
         if let entry = pendingChars.removeValue(forKey: serviceId) {
             if let char = service.characteristics?.first(where: {
                 $0.uuid.uuidString.caseInsensitiveCompare(entry.uuid) == .orderedSame
             }) {
                 let cid = char.uuid.uuidString; wbCharacteristics[cid] = char
                 wbResolve(id: entry.callId, result: ["charId": cid, "props": char.properties.rawValue])
-            } else { wbReject(id: entry.callId, error: "Characteristic not found") }
+            } else {
+                wbReject(id: entry.callId, error: "Characteristic not found")
+            }
             return
         }
+
         var foundTX = false, foundRX = false
         service.characteristics?.forEach { c in
             if c.uuid == txUUID {
@@ -701,9 +784,12 @@ extension BLEManager: CBPeripheralDelegate {
                 logger.log("[BLE] RX ready")
             }
         }
+
         if foundTX && foundRX {
             setupComplete = true
+            setupWatchdogToken = nil   // setup succeeded, cancel the watchdog
             logger.log("[BLE] Setup complete")
+
             if let id = pendingRequestDevice {
                 pendingRequestDevice = nil
                 logger.log("[WB] requestDevice → \(peripheral.name ?? "Bangle.js") (post-setup)")
@@ -712,46 +798,43 @@ extension BLEManager: CBPeripheralDelegate {
                     "name":     peripheral.name ?? "Bangle.js"
                 ])
             }
-            // Must dispatch to main: isConnected was set via DispatchQueue.main.async
-            // in didConnect. Calling onConnectionFinished() directly here (on bleQueue)
-            // races with that async — isConnected may still be false, causing send() to
-            // silently bail. On main, isConnected is guaranteed true before this runs.
+
             DispatchQueue.main.async {
                 self.onConnectionFinished()
             }
+        } else {
+            logger.log("[BLE] Setup still incomplete — foundTX=\(foundTX) foundRX=\(foundRX). Waiting for further discovery callbacks or watchdog timeout.")
         }
     }
+
     func startHandshake(){
         guard !isHandshaking else { return }
-        isHandshaking=true;
+        isHandshaking = true
         attemptHandshake()
     }
+
     func onConnectionFinished() {
         guard started else { return }
-        // Already on main thread (dispatched from didDiscoverCharacteristicsFor).
-        // isConnected is true here, so send() will pass its guard.
-        
         startHandshake()
         endSetupBackgroundTask()
-        
     }
 
     func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
         guard started else { return }
-        
+
         if let error = error {
             print("BLE RX Error: \(error.localizedDescription)")
             return
         }
-        
+
         guard let data = characteristic.value else {
             print("BLE RX: Empty data packet received")
             return
         }
-        
+
         let charId = characteristic.uuid.uuidString
         let bytes  = [UInt8](data)
-        
+
         if let raw = String(data: data, encoding: .utf8) {
             print("RAW RX FROM WATCH: '\(raw)'")
             logger.log("[BLE RAW] charId=\(charId, privacy: .public) bytes=\(bytes.count, privacy: .public) text=\(raw.debugDescription, privacy: .public)")
@@ -760,7 +843,6 @@ extension BLEManager: CBPeripheralDelegate {
             logger.log("[BLE RAW] charId=\(charId, privacy: .public) bytes=\(bytes.count, privacy: .public) (non-UTF8)")
         }
 
-        // Web Bluetooth path
         if activeWebNotifications.contains(charId) {
             if let id = pendingReads.removeValue(forKey: charId) {
                 wbResolve(id: id, result: bytes)
@@ -768,41 +850,39 @@ extension BLEManager: CBPeripheralDelegate {
                 wbFireNotification(charId: charId, bytes: bytes)
             }
         }
-        
-        // Skip native handling for non-RX characteristics
+
         guard charId.caseInsensitiveCompare(rxUUID.uuidString) == .orderedSame else { return }
 
         guard let text = String(data: data, encoding: .utf8) else { return }
         incomingBuffer += text
-        logger.log("[Receive] incoming buffer: \(self.incomingBuffer,privacy: .public)")
+        logger.log("[Receive] incoming buffer: \(self.incomingBuffer, privacy: .public)")
         while let range = incomingBuffer.range(of: "\n") {
             let line = String(incomingBuffer[..<range.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
             incomingBuffer = String(incomingBuffer[range.upperBound...])
-            logger.log("[Receive] got command: \(line,privacy: .public)")
-            // 1. If it doesn't start with bwRX:, it's REPL noise. Drop it.
+            logger.log("[Receive] got command: \(line, privacy: .public)")
             guard line.hasPrefix("bwRX:") else { continue }
             print("Command is good, continuing: " + line)
             var bgId: UIBackgroundTaskIdentifier = .invalid
             bgId = UIApplication.shared.beginBackgroundTask(withName: "BLELine") {
                 UIApplication.shared.endBackgroundTask(bgId); bgId = .invalid
             }
-            logger.log("[Receive] Command in while: \(line,privacy: .public)")
+            logger.log("[Receive] Command in while: \(line, privacy: .public)")
             DispatchQueue.main.async {
-                // 2. Strip the BW: prefix
                 let payload = String(line.dropFirst("bwRX:".count))
                 self.lastMessage = payload
-                logger.log("[Receive] Stripped payload in main: \(payload,privacy: .public)")
-                // 3. Try parsing as JSON first, fallback to raw command
+                logger.log("[Receive] Stripped payload in main: \(payload, privacy: .public)")
                 if let d = payload.data(using: .utf8),
                    let j = try? JSONSerialization.jsonObject(with: d) as? [String: Any] {
+                    // treat any incoming json as completion of handshake
+                    if(!self.handshakeSuccessful && self.isHandshaking){ self.didCompleteHandshake() }
                     self.commandInterpreter.handleJSON(j)
-                    logger.log("[Receive] registered as json: \(payload,privacy: .public)")
-                    
+                    logger.log("[Receive] registered as json: \(payload, privacy: .public)")
                 } else {
+                    // also end handshake here ( TODO: maybe check if its valid )
+                    if(!self.handshakeSuccessful && self.isHandshaking){ self.didCompleteHandshake() }
                     self.commandInterpreter.handleCommand(command: payload)
-                    logger.log("[Receive] sent as command: \(payload,privacy: .public)")
+                    logger.log("[Receive] sent as command: \(payload, privacy: .public)")
                 }
-                
                 UIApplication.shared.endBackgroundTask(bgId); bgId = .invalid
             }
         }

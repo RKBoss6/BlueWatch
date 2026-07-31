@@ -9,6 +9,8 @@ class CommandInterpreter {
 
     private let healthStore    = HKHealthStore()
     private let findPhoneAlarm = FindPhoneAlarm()
+    
+    
     @MainActor
     public func handleCommand(command: String) {
         logger.log("[CommandInterpreter] received: '\(command, privacy: .public)' len=\(command.count, privacy: .public)")
@@ -44,6 +46,7 @@ class CommandInterpreter {
     }
     func handleJSON(_ j: [String: Any]){
         logger.log("Got json")
+        
         switch (j["type"] as? String){
         case "health":
             handleHealthData(j)
