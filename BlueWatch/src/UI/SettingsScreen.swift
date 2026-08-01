@@ -80,6 +80,7 @@ struct WatchSettingsScreen: View {
                 } footer:{
                     Text("Lowers chunk size from 60 to 20 bytes for more reliable Bluetooth transmissions.")
                 }
+                .listRowBackground(Color.clear)
                 Section{
                     VStack(spacing: 16) {
                         
