@@ -26,7 +26,10 @@ class BLEManager: NSObject, ObservableObject {
     private var peripheral: CBPeripheral?
     private var incomingBuffer = ""
     private var writeCharacteristic: CBCharacteristic?
-
+    
+    private var pendingChunks: [Data] = []
+    private var currentWriteCharacteristic: CBCharacteristic?
+    private var writeInProgress = false
     // reconnectTimer REMOVED entirely.
     // central.connect(_:options:) in didDisconnectPeripheral is already a
     // persistent reconnect request that survives suspension — a Timer
@@ -263,7 +266,25 @@ class BLEManager: NSObject, ObservableObject {
             self.drainSendQueue()
         }
     }
+    private func sendNextChunk() {
+        guard
+            !writeInProgress,
+            let p = peripheral,
+            let c = currentWriteCharacteristic,
+            !pendingChunks.isEmpty
+        else {
+            if pendingChunks.isEmpty {
+                sendBusy = false
+                drainSendQueue()
+            }
+            return
+        }
 
+        writeInProgress = true
+
+        let chunk = pendingChunks.removeFirst()
+        p.writeValue(chunk, for: c, type: .withResponse)
+    }
     private func drainSendQueue() {
         guard !sendBusy, !pendingMessages.isEmpty else { return }
         guard started, let p = peripheral, let c = writeCharacteristic, isConnected else {
@@ -282,16 +303,20 @@ class BLEManager: NSObject, ObservableObject {
 
         
         if let fullData = jsCommand.data(using: .utf8) {
-            let chunkSize = 60
-            var offset = 0
             
+            let chunkSize =  Settings.instance.optimizedBtChunks ? 20 : 60
+            logger.log("ChunkSize \(chunkSize, privacy: .public)")
+            pendingChunks.removeAll()
+
+            var offset = 0
             while offset < fullData.count {
-                let chunkLength = min(chunkSize, fullData.count - offset)
-                let chunk = fullData.subdata(in: offset..<(offset + chunkLength))
-                
-                p.writeValue(chunk, for: c, type: .withResponse)
-                offset += chunkLength
+                let length = min(chunkSize, fullData.count - offset)
+                pendingChunks.append(fullData.subdata(in: offset..<(offset + length)))
+                offset += length
             }
+
+            currentWriteCharacteristic = c
+            sendNextChunk()
         }
         
         sendBusy = false
@@ -860,7 +885,9 @@ extension BLEManager: CBPeripheralDelegate {
             let line = String(incomingBuffer[..<range.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
             incomingBuffer = String(incomingBuffer[range.upperBound...])
             logger.log("[Receive] got command: \(line, privacy: .public)")
-            guard line.hasPrefix("bwRX:") else { continue }
+            guard let range = line.range(of: "bwRX:") else { continue }
+
+            
             print("Command is good, continuing: " + line)
             var bgId: UIBackgroundTaskIdentifier = .invalid
             bgId = UIApplication.shared.beginBackgroundTask(withName: "BLELine") {
@@ -868,7 +895,7 @@ extension BLEManager: CBPeripheralDelegate {
             }
             logger.log("[Receive] Command in while: \(line, privacy: .public)")
             DispatchQueue.main.async {
-                let payload = String(line.dropFirst("bwRX:".count))
+                let payload = String(line[range.upperBound...])
                 self.lastMessage = payload
                 logger.log("[Receive] Stripped payload in main: \(payload, privacy: .public)")
                 if let d = payload.data(using: .utf8),
@@ -889,8 +916,19 @@ extension BLEManager: CBPeripheralDelegate {
     }
 
     func peripheral(_ peripheral: CBPeripheral,
-                    didWriteValueFor characteristic: CBCharacteristic, error: Error?) {
-        if let e = error { logger.log("[BLE] write error: \(e.localizedDescription)") }
+                    didWriteValueFor characteristic: CBCharacteristic,
+                    error: Error?) {
+
+        if let e = error {
+            logger.log("[BLE] write error: \(e.localizedDescription)")
+            writeInProgress = false
+            sendBusy = false
+            pendingChunks.removeAll()
+            return
+        }
+
+        writeInProgress = false
+        sendNextChunk()
     }
 
     func peripheral(_ peripheral: CBPeripheral,

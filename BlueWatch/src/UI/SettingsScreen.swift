@@ -62,6 +62,27 @@ struct WatchSettingsScreen: View {
                 Section{
                     VStack(spacing: 16) {
                         
+                        Toggle(isOn:$settings.optimizedBtChunks ) {
+                            Text("Optimize chunks")
+                            
+                        }
+                        .tint(.accentColor)
+                        
+                        
+                    }
+                    .padding()
+                    .liquidGlass(cornerRadius: 24)
+                    .ignoresSafeArea(.all)
+                    .listRowInsets(EdgeInsets())
+                    
+                } header:{
+                    Text("Bluetooth")
+                } footer:{
+                    Text("Lowers chunk size from 60 to 20 bytes for more reliable Bluetooth transmissions.")
+                }
+                Section{
+                    VStack(spacing: 16) {
+                        
                         Toggle(isOn:$settings.sendToHealthKit ) {
                             Text("Push health data to Apple Health")
                             

@@ -24,6 +24,13 @@ public class Settings:ObservableObject{
         }
     }
     
+    private var optimizedBtChunksKey:String="optimizedBtChunks"
+    @Published public var optimizedBtChunks:Bool{
+        didSet{
+            LocalStorage.set(deviceName, forKey: deviceNameKey)
+        }
+    }
+    
     private var enableHScrollKey:String="enableHScroll"
     @Published public var enableHScroll:Bool{
         didSet{
@@ -99,6 +106,7 @@ public class Settings:ObservableObject{
             pushLocationKey: true,
             lowBattNotifyKey: false,
             sendToHealthKitKey: true,
+            optimizedBtChunksKey: true,
             deviceNameKey: ViewModel.instance.savedDevice,
             weatherRateLimitKey: 10
         ])
@@ -114,6 +122,6 @@ public class Settings:ObservableObject{
         deviceName=LocalStorage.getString(forKey: deviceNameKey) ?? ViewModel.instance.savedDevice
         weatherRateLimit=Int(LocalStorage.getNumber(forKey: weatherRateLimitKey) ?? 10)
         locationRateLimit=Int(LocalStorage.getNumber(forKey: locationRateLimitKey) ?? 10)
-
+        optimizedBtChunks=LocalStorage.getBool(forKey: optimizedBtChunksKey) ?? true
     }
 }
