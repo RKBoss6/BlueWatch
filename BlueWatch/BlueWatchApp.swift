@@ -32,7 +32,9 @@ struct BlueWatchApp: App {
         .onChange(of: scenePhase) { oldPhase, newPhase in
             switch newPhase {
             case .background:
+                
                 logger.log("📱 App entering background")
+                
                 //BlueWatchApp.scheduleAppRefresh()
                 
             case .active:
@@ -40,6 +42,10 @@ struct BlueWatchApp: App {
                 // Reconnect if needed when app comes to foreground
                 if !bleManager.isConnected {
                     bleManager.connect()
+                }
+                // fetch up to date system info
+                if(bleManager.isConnected && bleManager.handshakeSuccessful){
+                    bleManager.send("Request System Info")
                 }
                 
             case .inactive:
