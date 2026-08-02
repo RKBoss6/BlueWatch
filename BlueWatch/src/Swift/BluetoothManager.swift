@@ -304,7 +304,7 @@ class BLEManager: NSObject, ObservableObject {
         
         if let fullData = jsCommand.data(using: .utf8) {
             
-            let chunkSize =  Settings.instance.optimizedBtChunks ? 20 : 60
+            let chunkSize =  Settings.instance.optimizedBtChunks ? 15 : 40
             logger.log("ChunkSize \(chunkSize, privacy: .public)")
             pendingChunks.removeAll()
 

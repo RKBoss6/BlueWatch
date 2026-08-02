@@ -78,7 +78,7 @@ struct WatchSettingsScreen: View {
                 } header:{
                     Text("Bluetooth")
                 } footer:{
-                    Text("Lowers chunk size from 60 to 20 bytes for more reliable Bluetooth transmissions.")
+                    Text("Lowers chunk size from 40 to 15 bytes for more reliable Bluetooth transmissions. Highly recommended.")
                 }
                 .listRowBackground(Color.clear)
                 Section{
