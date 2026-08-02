@@ -689,7 +689,6 @@ extension BLEManager: CBCentralManagerDelegate {
             self.handshakeSuccessful=true
             self.handshakeAttempts=0
             self.isHandshaking=false;
-            self.send("Request System Info")
             self.status = "Connected"
             
             Task {

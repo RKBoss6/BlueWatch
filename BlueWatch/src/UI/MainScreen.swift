@@ -273,14 +273,6 @@ struct WatchScreen: View {
 
             
         .padding()
-        .onChange(of: scenePhase) { newPhase in
-            if newPhase == .active {
-                logger.log("Active")
-                bleManager.send("Request System Info")
-                // Do something here
-            
-            }
-        }
         .appBackground()
     }
 }
