@@ -31,6 +31,20 @@ enum Utils{
         }
         logger.log("pushed")
     }
+    static func unitSuffix(dataType: DataType) -> String {
+        switch dataType {
+        case .heartRate:
+            return " bpm"
+        case .steps:
+            return " steps"
+        case .calories:
+            return " kcal"
+        case .battery:
+            return "%"
+        case .test, .bluetoothBoundary:
+            return " test units"
+        }
+    }
     static  func minutesBetweenDates(_ fromDate: Date, toDate: Date) -> Int? {
         // Use Calendar.current to access the user's current calendar and time zone settings.
         let calendar = Calendar.current
@@ -55,6 +69,7 @@ enum DataType: String, Codable {
     case heartRate
     case battery
     case test
+    case calories
     case bluetoothBoundary
 }
 private struct IsPreviewKey: EnvironmentKey {

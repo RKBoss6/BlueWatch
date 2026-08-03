@@ -214,7 +214,7 @@ struct WatchScreen: View {
                             .tint(.graphRed)
                     }
                 }
-                DynamicDataChart(dataType: isPreview ? .test : .heartRate, color: Color("GraphRed"), suffix: " bpm")
+                DataChart(dataType: isPreview ? .test : .heartRate, color: .graphRed)
                 
                 Divider()
                     .background(.primary)
@@ -237,11 +237,9 @@ struct WatchScreen: View {
                             .tint(.graphPurple)
                     }
                 }
-                DynamicDataChart(dataType: isPreview ? .test : .steps, color: Color("GraphPurple"), suffix: " steps")
-                
+                DataChart(dataType: isPreview ? .test : .steps, color: Color("GraphPurple"))
                 Divider()
                     .background(.primary)
-                
                 NavigationLink{
                     ExpandedMetricView(title: "Battery", dataType: isPreview ? .test : .battery, color: .graphGreen)
                 }label:{
@@ -260,8 +258,34 @@ struct WatchScreen: View {
                             .tint(.graphGreen)
                     }
                 }
+                DataChart(dataType: isPreview ? .test : .battery, color: .graphGreen)
+                    .padding(.bottom,70)
+                /*
+                Divider()
+                    .background(.primary)
+                
+                NavigationLink{
+                    ExpandedMetricView(title: "Calories", dataType: isPreview ? .test : .calories, color: .graphOrange)
+                }label:{
+                    HStack{
+                        Text("Battery")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity,alignment: .leading)
+                            .padding(.leading,10)
+                            .bold()
+                            .tint(.primary)
+                            .frame(maxWidth: .infinity)
+                        Spacer()
+                        Image(systemName: "arrowshape.right")
+                            .bold()
+                            .font(.title3)
+                            .tint(.graphGreen)
+                    }
+                }
                 DynamicDataChart(dataType: isPreview ? .test : .battery, color: Color("GraphGreen"), suffix: "%")
                     .padding(.bottom,70)
+                */
+                
                 
                 
                 

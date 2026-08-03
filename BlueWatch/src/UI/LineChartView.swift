@@ -103,15 +103,15 @@ struct ChartData: Identifiable {
 
 
 
-struct DynamicDataChart: View {
+struct DataChart: View {
     @Query private var filteredPoints: [DataPoint]
     let color: Color
     let suffix: String
     let dataType: DataType
 
-    init(dataType: DataType, color: Color, suffix: String) {
+    init(dataType: DataType, color: Color) {
         self.color = color
-        self.suffix = suffix
+        self.suffix = Utils.unitSuffix(dataType: dataType)
         self.dataType = dataType
         
         let typeRawValue = dataType.rawValue
@@ -175,5 +175,5 @@ struct DynamicDataChart: View {
 #Preview {
   
     
-    return DynamicDataChart(dataType: .test, color: Color("GraphRed"), suffix: "bpm").appBackground()
+    return DataChart(dataType: .test, color: Color("GraphRed")).appBackground()
 }

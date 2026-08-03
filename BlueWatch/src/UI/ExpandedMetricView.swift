@@ -31,18 +31,7 @@ struct ExpandedMetricView: View {
     
     
     
-    private var unitSuffix: String {
-        switch dataType {
-        case .heartRate:
-            return " bpm"
-        case .steps:
-            return " steps"
-        case .battery:
-            return "%"
-        case .test, .bluetoothBoundary:
-            return ""
-        }
-    }
+    
     
     private var chartData: [ChartData] {
         if dataType == .test {
@@ -75,7 +64,7 @@ struct ExpandedMetricView: View {
                 data: chartData,
                 color: color,
                 isTimewise: true,
-                unitSuffix: unitSuffix,
+                unitSuffix: Utils.unitSuffix(dataType: dataType),
                 xDomain: dayRange
             )
             Divider()
