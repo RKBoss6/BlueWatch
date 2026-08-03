@@ -35,6 +35,9 @@ struct WelcomeScreen: View {
                 FeatureCard(icon: "cloud.sun", description: "Push weather, location and more")
                     .padding(.leading,15)
                     .padding(.trailing,15)
+                FeatureCard(icon: "iphone.homebutton.radiowaves.left.and.right", description: "Play alerts to find your phone and watch")
+                    .padding(.leading,15)
+                    .padding(.trailing,15)
                 Spacer()
                 
                 if #available(iOS 26.0, *) {
