@@ -133,32 +133,33 @@ class DataManager {
 }
 
 enum DataService {
-    static func addDataPointInBackground(timestamp: Date, value: Double, type: DataType) {
+    static func addDataPointInBackground(timestamp: Date, value: Double, type: DataType, alwaysSave:Bool) {
         let container = DataManager.sharedContainer
         
         Task.detached(priority: .background) {
             let context = ModelContext(container)
             
-            // 1. Setup a fetch to find the LATEST point of this type
+            // Setup a fetch to find the LATEST point of this type
             let typeRawValue = type.rawValue
             let descriptor = FetchDescriptor<DataPoint>(
                 predicate: #Predicate<DataPoint> { $0.rawType == typeRawValue },
                 sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
             )
             
-            // 2. Limit the fetch to 1 to save performance
+            // Limit the fetch to 1 to save performance
             var limitedDescriptor = descriptor
             limitedDescriptor.fetchLimit = 1
-            
-            // 3. Compare values
-            if let lastPoint = try? context.fetch(limitedDescriptor).first {
-                if lastPoint.value == value {
-                    logger.log("Skipping save: Value for \(type.rawValue) hasn't changed (\(value))")
-                    return // Stop here, don't insert
+            // Check to make sure values arent the same only when alwaysSave is false
+            if(!alwaysSave){
+                // Compare values
+                if let lastPoint = try? context.fetch(limitedDescriptor).first {
+                    if lastPoint.value == value && Date().timeIntervalSince(lastPoint.timestamp) < 60*9 /*Only skip a save if its less than 9 minutes apart from the last one.*/  {
+                        logger.log("Skipping save: Value for \(type.rawValue, privacy: .public) hasn't changed (\(value))")
+                        return // Stop here, don't insert
+                    }
                 }
             }
-            
-            // 4. If we get here, the value is different or it's the first entry
+            // If we get here, the value is different or it's the first entry
             let newPoint = DataPoint(timestamp: timestamp, value: value, type: type)
             context.insert(newPoint)
             

@@ -354,7 +354,8 @@
                     return wbReject(id: id, error: "Bluetooth is not started")
                 }
             }
-            logger.log("[WB] → \(method) id=\(id)")
+            // BluetoothManager.swift — entry point
+            logger.log("[WB] → \(method, privacy: .public) id=\(id, privacy: .public) args=\(String(describing: args), privacy: .public)")
             switch method {
             case "requestDevice":      wbRequestDevice(id: id)
             case "gattConnect":        wbGattConnect(id: id, args: args)
@@ -407,7 +408,7 @@
             if let p = peripheral, isConnected, setupComplete {
                 let deviceId = p.identifier.uuidString
                 let name     = p.name ?? "Bangle.js"
-                logger.log("[WB] requestDevice → \(name)")
+                logger.log("[WB] requestDevice → \(name,privacy: .public)")
                 DispatchQueue.main.async {
                     self.webView?.evaluateJavaScript(
                         "window.__bluetoothResetSession && window.__bluetoothResetSession()"
@@ -523,7 +524,9 @@
 
         // MARK: JS helpers
 
+        // BluetoothManager.swift — make resolve/reject actually log
         func wbResolve(id: Int, result: Any) {
+            logger.log("[WB] ← resolve id=\(id, privacy: .public) result=\(String(describing: result), privacy: .public)")
             guard let json = try? JSONSerialization.data(withJSONObject: result),
                   let str  = String(data: json, encoding: .utf8) else { return }
             DispatchQueue.main.async {
@@ -532,6 +535,7 @@
         }
 
         func wbReject(id: Int, error: String) {
+            logger.log("[WB] ← reject id=\(id, privacy: .public) error=\(error, privacy: .public)")
             let safe = error.replacingOccurrences(of: "\"", with: "'")
             DispatchQueue.main.async {
                 self.webView?.evaluateJavaScript("window.__bluetoothCallback(\(id), \"\(safe)\", null)")

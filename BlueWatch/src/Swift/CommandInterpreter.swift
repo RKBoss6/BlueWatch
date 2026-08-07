@@ -62,7 +62,7 @@ class CommandInterpreter {
     func handleSystemInfo(_ data: [String: Any]){
         if let batt = data["batt"] as? Double{
             logger.log("Got battery \(String(batt))"  )
-            DataService.addDataPointInBackground(timestamp: Date(), value: batt, type: .battery)
+            DataService.addDataPointInBackground(timestamp: Date(), value: batt, type: .battery, alwaysSave: false)
             DispatchQueue.main.async {
                 LocalData.shared.battery = String(Int(batt))
                 logger.log("batt updated")
@@ -82,7 +82,7 @@ class CommandInterpreter {
         }
         if let hr = data["hr"] as? Double {
             
-            DataService.addDataPointInBackground(timestamp: time, value: hr, type: DataType.heartRate)
+            DataService.addDataPointInBackground(timestamp: time, value: hr, type: DataType.heartRate, alwaysSave: true)
             if(Settings.instance.sendToHealthKit==true){
                 let type = HKQuantityType.quantityType(forIdentifier: .heartRate)!
                 
@@ -103,7 +103,7 @@ class CommandInterpreter {
         }
 
         if let total = data["steps"] as? Double {
-            DataService.addDataPointInBackground(timestamp: time, value: total, type: DataType.steps)
+            DataService.addDataPointInBackground(timestamp: time, value: total, type: DataType.steps,alwaysSave: true)
             if(Settings.instance.sendToHealthKit==true){
                 syncSteps(watchTotal: total)
             }

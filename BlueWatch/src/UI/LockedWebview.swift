@@ -30,7 +30,8 @@ struct LockedWebView: UIViewRepresentable {
                 if let body = message.body as? [String: Any] {
                     let level = body["level"] as? String ?? "log"
                     let text  = body["text"]  as? String ?? String(describing: message.body)
-                    logger.log("[JS:\(level)] \(text)")
+                    // LockedWebview.swift
+                    logger.log("[JS:\(level, privacy: .public)] \(text, privacy: .public)")
                 }
                 return
             }
