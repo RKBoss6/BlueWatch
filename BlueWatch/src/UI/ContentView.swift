@@ -39,11 +39,11 @@ extension BluetoothViewModel: CBCentralManagerDelegate{
 struct ContentView: View {
     var vm:ViewModel = ViewModel.instance
     var body: some View {
-        NavigationView {
+        NavigationStack{
             if vm.savedDevice == "" {
                 WelcomeScreen()
             } else {
-                NavigationStack{
+                
                     TabView{
                         
                         Tab("My Watch",systemImage:"watch.analog"){
@@ -78,7 +78,7 @@ struct ContentView: View {
                     }
                     
                 }
-            }
+            
         }
         .navigationBarBackButtonHidden(true)
   
