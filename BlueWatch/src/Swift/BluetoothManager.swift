@@ -1,5 +1,4 @@
-    // BluetoothManager.swift
-
+// BluetoothManager.swift
     import Foundation
     import CoreBluetooth
     import SwiftUI
@@ -354,8 +353,7 @@
                     return wbReject(id: id, error: "Bluetooth is not started")
                 }
             }
-            // BluetoothManager.swift — entry point
-            logger.log("[WB] → \(method, privacy: .public) id=\(id, privacy: .public) args=\(String(describing: args), privacy: .public)")
+            logger.log("[WB] → \(method) id=\(id)")
             switch method {
             case "requestDevice":      wbRequestDevice(id: id)
             case "gattConnect":        wbGattConnect(id: id, args: args)
@@ -377,7 +375,7 @@
             }
             if (handshakeSuccessful) {
                 logger.log("Handshake attempt stopped, already successful")
-                isHandshaking = false   
+                isHandshaking = false
                 return
             }
             if (handshakeAttempts>=10){
@@ -408,7 +406,7 @@
             if let p = peripheral, isConnected, setupComplete {
                 let deviceId = p.identifier.uuidString
                 let name     = p.name ?? "Bangle.js"
-                logger.log("[WB] requestDevice → \(name,privacy: .public)")
+                logger.log("[WB] requestDevice → \(name)")
                 DispatchQueue.main.async {
                     self.webView?.evaluateJavaScript(
                         "window.__bluetoothResetSession && window.__bluetoothResetSession()"
@@ -524,9 +522,7 @@
 
         // MARK: JS helpers
 
-        // BluetoothManager.swift — make resolve/reject actually log
         func wbResolve(id: Int, result: Any) {
-            logger.log("[WB] ← resolve id=\(id, privacy: .public) result=\(String(describing: result), privacy: .public)")
             guard let json = try? JSONSerialization.data(withJSONObject: result),
                   let str  = String(data: json, encoding: .utf8) else { return }
             DispatchQueue.main.async {
@@ -535,7 +531,6 @@
         }
 
         func wbReject(id: Int, error: String) {
-            logger.log("[WB] ← reject id=\(id, privacy: .public) error=\(error, privacy: .public)")
             let safe = error.replacingOccurrences(of: "\"", with: "'")
             DispatchQueue.main.async {
                 self.webView?.evaluateJavaScript("window.__bluetoothCallback(\(id), \"\(safe)\", null)")
@@ -587,6 +582,11 @@
         }
         
         func centralManager(_ central: CBCentralManager, willRestoreState dict: [String: Any]) {
+            // Unconditional, before any guard — if this line is missing from the
+            // log after an overnight gap, the process never got a background
+            // relaunch at all (force-quit, Low Power Mode throttling, or the OS
+            // just didn't grant one) as opposed to relaunching and failing later.
+            logger.log("[BLE] willRestoreState — process relaunched in background")
             if !started {
                 if UserDefaults.standard.bool(forKey: autoStartKey) {
                     start()
@@ -829,15 +829,33 @@
             }
         }
 
-        func startHandshake(){
-            guard !isHandshaking else { return }
+        // `force: true` always restarts the handshake from attempt 0, even if
+        // isHandshaking is already true. This matters because the retry chain
+        // in attemptHandshake() is a self-scheduled DispatchQueue.main.asyncAfter,
+        // which does NOT survive the app being suspended — if that happens
+        // mid-retry, isHandshaking is stranded `true` forever (nothing else
+        // resets it, since the BLE link itself can stay nominally "connected"
+        // all night even though the app-level handshake never finished, so
+        // didDisconnectPeripheral never fires to clean it up either). Without
+        // `force`, every recovery path (foreground, manual retry) was refusing
+        // to act specifically in that stuck state — the one state that needed it.
+        func startHandshake(force: Bool = false){
+            if isHandshaking && !force {
+                logger.log("[BLE] startHandshake: already in progress, ignoring")
+                return
+            }
+            handshakeAttempts = 0
             isHandshaking = true
             attemptHandshake()
         }
 
         func onConnectionFinished() {
             guard started else { return }
-            startHandshake()
+            // force: true — a fresh CB-level connection (we just finished
+            // service/characteristic discovery) is an unambiguous signal to
+            // start clean, regardless of whatever handshake state was left
+            // over from a previous, possibly-interrupted attempt.
+            startHandshake(force: true)
             endSetupBackgroundTask()
         }
 

@@ -43,11 +43,16 @@ struct BlueWatchApp: App {
                     
                     bleManager.connect()
                     
-                } else if !bleManager.handshakeSuccessful && !bleManager.isHandshaking {
+                } else if !bleManager.handshakeSuccessful {
                     
-                    // BLE link is already up but the handshake never finished —
-                    // don't make the user notice and tap "Retry" manually.
-                    bleManager.startHandshake()
+                    // BLE link is already up but the handshake never finished.
+                    // Note: no `&& !isHandshaking` check here — isHandshaking can be
+                    // stranded `true` from a retry that got interrupted by the app
+                    // being suspended overnight, and if we required it to be false
+                    // first, this fallback could never fire in exactly the state it
+                    // exists to recover from. force: true always restarts clean.
+                    logger.log("📱 [Fallback] Connected but handshake not done — forcing retry")
+                    bleManager.startHandshake(force: true)
                 }
                 if(bleManager.isConnected && bleManager.handshakeSuccessful){
                     bleManager.send("Request System Info")

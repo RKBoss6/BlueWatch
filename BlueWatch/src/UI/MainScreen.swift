@@ -46,11 +46,11 @@ struct WatchScreen: View {
             if(bleManager.handshakeSuccessful){
                 text="Disconnect"
             }else{
-                if(bleManager.isHandshaking){
-                    text="In progress"
-                }else{
-                    text="Retry"
-                }
+                // Always "Retry", never a non-actionable "In progress" state.
+                // isHandshaking can be true because a retry attempt got stranded
+                // (the retry timer doesn't survive the app being suspended), and
+                // in that exact case a manual tap needs to be able to do something.
+                text="Retry"
             }
         }else{
             text="Connect"
@@ -96,12 +96,11 @@ struct WatchScreen: View {
                             if(bleManager.handshakeSuccessful){
                                 bleManager.stop(destructive: true)
                             }else{
-                                if(bleManager.isHandshaking){
-                                    // nothing to do while its handshaking
-                                }else{
-                                    // retry
-                                    bleManager.startHandshake()
-                                }
+                                // Always force a fresh attempt. isHandshaking may
+                                // already be true from a stranded retry (see
+                                // startHandshake's doc comment) — that's precisely
+                                // the case this button needs to be able to fix.
+                                bleManager.startHandshake(force: true)
                             }
                         }else{
                             bleManager.start()
@@ -138,7 +137,7 @@ struct WatchScreen: View {
                         
                         
                     }
-                   // .disabled(!bleManager.isConnected)
+                    .disabled(!isPreview && !bleManager.isConnected)
                     .tint(findingPhone ? .orange : .accent)
                     
                     .buttonStyle(.borderedProminent)
@@ -157,7 +156,7 @@ struct WatchScreen: View {
                             .padding(10)
                         
                     }
-                    //.disabled(!bleManager.isConnected)
+                    .disabled(!isPreview && !bleManager.isConnected)
                     
                     .buttonStyle(.borderedProminent)
                     .tint(findingWatch ? .orange : .accent)
@@ -174,7 +173,7 @@ struct WatchScreen: View {
                             .padding(10)
                         
                     }
-                  //  .disabled(!bleManager.isConnected)
+                    .disabled(!isPreview && !bleManager.isConnected)
                     .buttonStyle(.borderedProminent)
                     Button{
                         Task {
@@ -186,7 +185,7 @@ struct WatchScreen: View {
                             .padding(10)
                         
                     }
-                   // .disabled(!bleManager.isConnected)
+                    .disabled(!isPreview && !bleManager.isConnected)
                     .buttonStyle(.borderedProminent)
                 }
                 Spacer()
