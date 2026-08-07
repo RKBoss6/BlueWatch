@@ -118,78 +118,91 @@ struct WatchScreen: View {
                 .padding(.trailing)
                 .padding(.top,-10)
                 Divider()
-                Spacer()
-                HStack{
-                    
-                    Button{
-                        if(findingPhone){
-                            findPhoneAlarm.stop()
+                ScrollView(.horizontal){
+                    HStack{
+                        /*
+                        Button{
+                            if(findingPhone){
+                                findPhoneAlarm.stop()
+                                
+                            }else{
+                                findPhoneAlarm.start()
+                            }
+                            findingPhone = !findingPhone
                             
-                        }else{
-                            findPhoneAlarm.start()
+                            
+                        }label:{
+                            Text(findingPhone ? "Stop" : "Find Phone")
+                                .frame(width: 120, height: 30)
+                                .padding(10)
+                            
+                            
                         }
-                        findingPhone = !findingPhone
-
+                        .disabled(!bleManager.isConnected)
+                        .tint(findingPhone ? .orange : .accent)
+                         .buttonStyle(.borderedProminent)
+                        */
                         
-                    }label:{
-                        Text(findingPhone ? "Stop" : "Find Phone")
-                            .frame(maxWidth: .infinity)
-                            .padding(10)
-                        
-                        
-                    }
-                   // .disabled(!bleManager.isConnected)
-                    .tint(findingPhone ? .orange : .accent)
-                    
-                    .buttonStyle(.borderedProminent)
-                    Button{
-                        if(findingWatch){
-                            bleManager.send("Stop Find Watch")
-                            findingWatch=false
-                        }else{
-                            bleManager.send("Find Watch")
-                            findingWatch=true
+                        Button{
+                            if(findingWatch){
+                                bleManager.send("Stop Find Watch")
+                                findingWatch=false
+                            }else{
+                                bleManager.send("Find Watch")
+                                findingWatch=true
+                            }
+                            
+                        }label:{
+                            Text(findingWatch ? "Stop Finding" : "Find Watch")
+                                .frame(width: 120, height: 30)
+                                .padding(10)
+                            
                         }
+                        .buttonStyle(.borderedProminent)
+                        .tint(findingWatch ? .orange : .accent)
+                        .disabled(!isPreview && !bleManager.isConnected)
+                        Button{
+                            Task {
+                                await WeatherManager.shared.updateWeatherAndSend()
+                            }
+                        }label:{
+                            Text("Push Weather")
+                                .frame(width: 120, height: 30)
+                                .padding(10)
+                            
+                        }
+                        .disabled(!isPreview && !bleManager.isConnected)
+                        .buttonStyle(.borderedProminent)
+                        Button{
+                            Task {
+                                await LocationManager.shared.sendLocation()
+                            }
+                        }label:{
+                            Text("Push Location")
+                                .frame(width: 120, height: 30)
+                                .padding(10)
+                            
+                        }
+                        .disabled(!isPreview && !bleManager.isConnected)
+                        .buttonStyle(.borderedProminent)
+                        Button{
+                            bleManager.send("Request Health")
+                            bleManager.send("Request System Info")
+                        }label:{
+                            Text("Force Sync")
+                                .frame(width: 120, height: 30)
+                                .padding(10)
+                            
+                        }
+                        .disabled(!isPreview && !bleManager.isConnected)
+                        .buttonStyle(.borderedProminent)
                         
-                    }label:{
-                        Text(findingWatch ? "Stop Finding" : "Find Watch")
-                            .frame(maxWidth: .infinity)
-                            .padding(10)
-                        
-                    }
-                    //.disabled(!bleManager.isConnected)
                     
-                    .buttonStyle(.borderedProminent)
-                    .tint(findingWatch ? .orange : .accent)
+                    }
+                    Spacer().padding(1)
                 }
-                HStack{
-                    
-                    Button{
-                        Task {
-                            await WeatherManager.shared.updateWeatherAndSend()
-                        }
-                    }label:{
-                        Text("Push Weather")
-                            .frame(maxWidth: .infinity)
-                            .padding(10)
-                        
-                    }
-                  //  .disabled(!bleManager.isConnected)
-                    .buttonStyle(.borderedProminent)
-                    Button{
-                        Task {
-                            await LocationManager.shared.sendLocation()
-                        }
-                    }label:{
-                        Text("Push Location")
-                            .frame(maxWidth: .infinity)
-                            .padding(10)
-                        
-                    }
-                   // .disabled(!bleManager.isConnected)
-                    .buttonStyle(.borderedProminent)
-                }
-                Spacer()
+                .scrollIndicators(.visible)
+              
                 Divider()
                 Text("Metrics")
                     .font(.title3)
@@ -294,7 +307,7 @@ struct WatchScreen: View {
             
         }
         .scrollIndicators(.hidden) // Hides indicators for this ScrollView
-
+        
             
         .padding()
         .appBackground()
