@@ -7,17 +7,13 @@
 
 import SwiftUI
 
-
-
-struct WatchSettingsScreen: View {
-    @Environment(\.colorScheme) var colorScheme
+struct MoreScreen: View {
+    @Environment(\.openURL) var openURL
     @StateObject var settings: Settings = Settings.instance
     @State var temp:Bool=false
     var vm:ViewModel=ViewModel.instance
-    @State private var showDeletePrompt = false
-
     var body: some View {
-        VStack {
+        VStack{
             HStack {
 
                 Text(settings.deviceName.isEmpty==false ? settings.deviceName : vm.savedDevice)
@@ -26,7 +22,116 @@ struct WatchSettingsScreen: View {
                 
                
             }.padding()
+            Spacer()
+            
+            Image(vm.savedDevice=="Bangle.js 2" ? "BangleJS2" : "BangleJS1" )
+                .resizable()
+                .frame(width: 240,height: 240)
+            
+            Spacer()
+            VStack{
+                Section(){
+                    VStack(spacing: 16) {
+                        
+                        Button {
+                            if let url = URL(string: "https://github.com/RKBoss6/BlueWatch") {
+                                openURL(url)
+                            }
+                            
+                        } label:{
+                            HStack{
+                                Text("BlueWatch is open source!")
+                                    .frame(maxWidth:.infinity, alignment: .leading)
+                                    .tint(.primary)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .tint(.primary)
+                            }
+                        }
+                        Divider()
+                        Button {
+                            if let url = URL(string: "https://github.com/RKBoss6/BlueWatch/issues/new") {
+                                openURL(url)
+                            }
+                            
+                        } label:{
+                            HStack{
+                                Text("Report an issue or suggest new features")
+                                    .frame(maxWidth:.infinity, alignment: .leading)
+                                    .tint(.primary)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .tint(.primary)
+                            }
+                        }
+                        
+                        
+                        
+                        
+                    }
+                    .padding()
+                    .liquidGlass(cornerRadius: 24)
+                    .frame(width:.infinity,height: .infinity)
+                    .ignoresSafeArea(.all)
+                    .listRowInsets(EdgeInsets())
+                }
+                
+                .listRowBackground(Color.clear)
+                Section {
+                    HStack {
+                        Text("Needs Bangle.js BlueWatch version:")
+                        Spacer()
+                        Text("v0.03")
+                            .bold()
+                    }
+                    
+                }
+                .padding()
+                .liquidGlass(cornerRadius: 24)
+                .ignoresSafeArea(.all)
+                .listRowInsets(EdgeInsets())
+                .padding(.top, 10)
+                Section {
+                    // 💡 Added spacing: 16 to match the top container exactly
+                    VStack(spacing: 16) {
+                        
+                        
+                        NavigationLink(destination: WatchSettingsScreen()) {
+                            HStack {
+                                Image(systemName: "gear")
+                                Text("Settings")
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .foregroundStyle(.primary)
+                    }
+                    .padding()
+                    .liquidGlass(cornerRadius: 24)
+                    .ignoresSafeArea(.all)
+                    .listRowInsets(EdgeInsets())
+                }
+                .padding(.top, 12)
+            }.padding()
+                .padding(.bottom,20)
+                .listRowBackground(Color.clear)
+        }
+        .appBackground()
+    }
+}
+
+#warning("Make sure you change the BlueWatch bangle.js version before upload!!!")
+struct WatchSettingsScreen: View {
+    @Environment(\.colorScheme) var colorScheme
+    @StateObject var settings: Settings = Settings.instance
+    var vm:ViewModel=ViewModel.instance
+    @State private var showDeletePrompt = false
+
+    var body: some View {
+        VStack {
             Form{
+                
                 /*
                 Section("Bluetooth"){
                     VStack(spacing: 16) {
@@ -42,7 +147,8 @@ struct WatchSettingsScreen: View {
                 }
                  .listRowBackground(Color.clear)
                  */
-                
+    
+                    
                 Section("Device"){
                     VStack(spacing: 16) {
                         HStack {
@@ -272,32 +378,35 @@ struct WatchSettingsScreen: View {
                 
                     .listRowBackground(Color.clear)
                 
-                Section("Other"){
-                    VStack(spacing: 16) {
-                        Toggle(isOn:$settings.lowBattNotify) {
-                            Text("Notify when watch battery low")
-                        }
-                        .tint(.accentColor)
-                    }
-                    .padding()
-                    .liquidGlass(cornerRadius: 24)
-                    .frame(width:.infinity,height: .infinity)
-                    .listRowInsets(EdgeInsets())
-                    
-                }
-                .listRowBackground(Color.clear)
+//                Section("Other"){
+//                    VStack(spacing: 16) {
+//                        Toggle(isOn:$settings.lowBattNotify) {
+//                            Text("Notify when watch battery low")
+//                        }
+//                        .tint(.accentColor)
+//                    }
+//                    .padding()
+//                    .liquidGlass(cornerRadius: 24)
+//                    .frame(width:.infinity,height: .infinity)
+//                    .listRowInsets(EdgeInsets())
+//                    
+//                }
+//                .listRowBackground(Color.clear)
                 
                 
             }
         }
         .scrollContentBackground(.hidden)
+        .navigationTitle("Settings")
         .appBackground()
         
     }
 }
 
 #Preview {
-    WatchSettingsScreen()
+    NavigationStack{
+        MoreScreen()
+    }
 }
 
 

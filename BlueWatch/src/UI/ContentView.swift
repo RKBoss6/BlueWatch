@@ -58,8 +58,8 @@ struct ContentView: View {
                             
                         }
                         
-                        Tab("Watch Settings",systemImage:"gearshape"){
-                            WatchSettingsScreen()
+                        Tab("More",systemImage:"ellipsis"){
+                            MoreScreen()
                         }
                         //.badge("1")
                         
