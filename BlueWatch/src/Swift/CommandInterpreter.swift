@@ -74,16 +74,18 @@ class CommandInterpreter {
         }
     }
     func handleHealthData(_ data: [String: Any]) {
+        var time: Date
+        if let t = data["start"] as? Double {
+            time=Date(timeIntervalSince1970: t / 1000)
+        }else{
+            time=Date()
+        }
         if let hr = data["hr"] as? Double {
-            DataService.addDataPointInBackground(timestamp: Date(), value: hr, type: DataType.heartRate)
+            
+            DataService.addDataPointInBackground(timestamp: time, value: hr, type: DataType.heartRate)
             if(Settings.instance.sendToHealthKit==true){
                 let type = HKQuantityType.quantityType(forIdentifier: .heartRate)!
-                var time: Date
-                if let t = data["time"] as? Double {
-                    time=Date(timeIntervalSince1970: t / 1000)
-                }else{
-                    time=Date()
-                }
+                
                 let quantity = HKQuantity(unit: .count().unitDivided(by: .minute()), doubleValue: hr)
                 let context: HKHeartRateMotionContext = (data["state"] as? String) == "sedentary"
                 ? .sedentary : .notSet
@@ -101,7 +103,7 @@ class CommandInterpreter {
         }
 
         if let total = data["steps"] as? Double {
-            DataService.addDataPointInBackground(timestamp: Date(), value: total, type: DataType.steps)
+            DataService.addDataPointInBackground(timestamp: time, value: total, type: DataType.steps)
             if(Settings.instance.sendToHealthKit==true){
                 syncSteps(watchTotal: total)
             }
