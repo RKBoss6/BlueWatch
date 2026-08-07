@@ -268,7 +268,7 @@ struct WatchScreen: View {
                     ExpandedMetricView(title: "Calories", dataType: isPreview ? .test : .calories, color: .graphOrange)
                 }label:{
                     HStack{
-                        Text("Battery")
+                        Text("Calories")
                             .font(.headline)
                             .frame(maxWidth: .infinity,alignment: .leading)
                             .padding(.leading,10)
@@ -279,13 +279,13 @@ struct WatchScreen: View {
                         Image(systemName: "arrowshape.right")
                             .bold()
                             .font(.title3)
-                            .tint(.graphGreen)
+                            .tint(.graphOrange)
                     }
                 }
-                DynamicDataChart(dataType: isPreview ? .test : .battery, color: Color("GraphGreen"), suffix: "%")
+                DataChart(dataType: isPreview ? .test : .calories, color: .graphOrange)
                     .padding(.bottom,70)
-                */
                 
+                */
                 
                 
                 
