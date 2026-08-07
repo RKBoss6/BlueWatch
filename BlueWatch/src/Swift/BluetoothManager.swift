@@ -260,8 +260,10 @@
                 
             send(jsonString);
         }
+        // DELETE: private let sendQueue = DispatchQueue(label: "com.rk.bluewatch.sendQueue")
+
         func send(_ text: String, sendRaw: Bool = false) {
-            sendQueue.async { [weak self] in
+            bleQueue.async { [weak self] in
                 guard let self = self else { return }
                 self.pendingMessages.append((text, sendRaw))
                 self.drainSendQueue()
@@ -295,33 +297,30 @@
             sendBusy = true
             let (text, sendRaw) = pendingMessages.removeFirst()
             let payload = ((sendRaw ? "RAW: " : "") + text + "|")
-            // no longer need to escape anything because we send through base64
-            
             let base64Payload = payload.data(using: .utf8)?.base64EncodedString() ?? ""
-            //use \x10 to prevent echo
             let jsCommand = "\u{10}require('bluewatch').receive(atob('\(base64Payload)'));\n"
 
-
-            
-            if let fullData = jsCommand.data(using: .utf8) {
-                
-                let chunkSize =  Settings.instance.optimizedBtChunks ? 15 : 40
-                logger.log("ChunkSize \(chunkSize, privacy: .public)")
-                pendingChunks.removeAll()
-
-                var offset = 0
-                while offset < fullData.count {
-                    let length = min(chunkSize, fullData.count - offset)
-                    pendingChunks.append(fullData.subdata(in: offset..<(offset + length)))
-                    offset += length
-                }
-
-                currentWriteCharacteristic = c
-                sendNextChunk()
+            guard let fullData = jsCommand.data(using: .utf8) else {
+                sendBusy = false
+                drainSendQueue()
+                return
             }
-            
-            sendBusy = false
-            drainSendQueue()   // move to next queued message
+
+            let chunkSize = Settings.instance.optimizedBtChunks ? 15 : 40
+            logger.log("ChunkSize \(chunkSize, privacy: .public)")
+            pendingChunks.removeAll()
+
+            var offset = 0
+            while offset < fullData.count {
+                let length = min(chunkSize, fullData.count - offset)
+                pendingChunks.append(fullData.subdata(in: offset..<(offset + length)))
+                offset += length
+            }
+
+            currentWriteCharacteristic = c
+            sendNextChunk()
+            // sendBusy stays true — cleared only once pendingChunks empties out,
+            // inside sendNextChunk()'s guard-else branch.
         }
 
         // MARK: - Write queue

@@ -39,11 +39,16 @@ struct BlueWatchApp: App {
                 
             case .active:
                 logger.log("📱 App became active")
-                // Reconnect if needed when app comes to foreground
                 if !bleManager.isConnected {
+                    
                     bleManager.connect()
+                    
+                } else if !bleManager.handshakeSuccessful && !bleManager.isHandshaking {
+                    
+                    // BLE link is already up but the handshake never finished —
+                    // don't make the user notice and tap "Retry" manually.
+                    bleManager.startHandshake()
                 }
-                // fetch up to date system info
                 if(bleManager.isConnected && bleManager.handshakeSuccessful){
                     bleManager.send("Request System Info")
                 }
