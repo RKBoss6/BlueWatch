@@ -1,4 +1,5 @@
 // BluetoothManager.swift
+    import UIKit
     import Foundation
     import CoreBluetooth
     import SwiftUI
@@ -9,13 +10,13 @@
         static let instance = BLEManager()
         private let autoStartKey = "BLEManagerAutoStart"
         private var hasSeenPoweredOn = false
+        private var restoredPeripheral: CBPeripheral?
         @Published var status: String = "Idle"
         @Published var lastMessage: String = "—"
         @Published var isConnected: Bool = false
-        private var setupWatchdogToken: UUID?
+        
         // handle retries of handshake
         @Published var handshakeSuccessful: Bool = false
-        private var handshakeAttempts = 0
         // Dedicated serial queue instead of nil (main thread).
         // BLE callbacks on a dedicated queue survive background better and
         // won't be blocked by UI work on the main thread.
@@ -42,9 +43,27 @@
         private let rxUUID      = CBUUID(string: "6E400003-B5A3-F393-E0A9-E50E24DCCA9E")
 
         private var setupComplete = false
+        private var rxNotificationReady = false
+
         @Published private var started = false
         private var shouldAttemptConnect = false
-        @Published var isHandshaking=false
+
+        @Published var isHandshaking = false
+        private var handshakeAttempts = 0
+
+        // Every connection/setup gets a new generation.
+        // Anything belonging to an older connection is ignored.
+        private var connectionGeneration = UUID()
+        private var handshakeGeneration = UUID()
+
+        // Setup watchdog.
+        private var setupWatchdogToken: UUID?
+
+        // Handshake retry/timeout.
+        private var handshakeWorkItem: DispatchWorkItem?
+
+        // Prevents multiple setup flows from running simultaneously.
+        private var setupInProgress = false
         // ── Web Bluetooth bridge ───────────────────────────────────────────────────
         weak var webView: WKWebView?
 
@@ -76,12 +95,67 @@
         private let sendQueue = DispatchQueue(label: "com.rk.bluewatch.sendQueue")
         private var sendBusy = false
         private var pendingMessages: [(String, Bool)] = []
+        
+        @objc private func applicationDidBecomeActive() {
+            bleQueue.async { [weak self] in
+                guard let self else { return }
 
+                guard self.started,
+                      self.shouldAttemptConnect else {
+                    return
+                }
+
+                logger.log("[BLE] Application became active — checking connection state")
+
+                // CoreBluetooth says connected but BlueWatch setup isn't ready.
+                if let peripheral = self.peripheral,
+                   peripheral.state == .connected {
+
+                    if !self.setupComplete {
+                        logger.log(
+                            "[BLE] Connected but setup incomplete — restarting setup"
+                        )
+
+                        self.resetConnectionState(keepPeripheral: true)
+                        self.beginPeripheralSetup(peripheral)
+                        return
+                    }
+
+                    if self.setupComplete,
+                       !self.handshakeSuccessful {
+
+                        if !self.isHandshaking {
+                            logger.log(
+                                "[BLE] Setup complete but handshake is not running — starting handshake"
+                            )
+
+                            self.startHandshake(force: false)
+                        } else {
+                            logger.log(
+                                "[BLE] Handshake already running — leaving it alone"
+                            )
+                        }
+                    }
+
+                    return
+                }
+
+                // No usable peripheral.
+                logger.log("[BLE] No connected peripheral — reconnecting")
+                self.connect()
+            }
+        }
         
         override init() {
             super.init()
             // Pass bleQueue instead of nil so BLE callbacks don't run on main.
             
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(applicationDidBecomeActive),
+                name: UIApplication.didBecomeActiveNotification,
+                object: nil
+            )
             
             central = CBCentralManager(
                 delegate: self,
@@ -103,25 +177,121 @@
         }
         // MARK: - bt power-cycle recovery
 
-        private func resetConnectionState() {
-            peripheral = nil
-            writeCharacteristic = nil
+        private func resetConnectionState(keepPeripheral: Bool = true) {
+            logger.log("[BLE] Resetting BlueWatch protocol state")
+
             setupComplete = false
+            setupInProgress = false
+            rxNotificationReady = false
+
+            setupWatchdogToken = nil
+
+            handshakeWorkItem?.cancel()
+            handshakeWorkItem = nil
+
+            handshakeGeneration = UUID()
+            handshakeAttempts = 0
+
+            writeCharacteristic = nil
+            currentWriteCharacteristic = nil
+
+            pendingChunks.removeAll()
+            pendingMessages.removeAll()
+
+            writeQueue.removeAll()
+            writeBusy = false
+            writeInProgress = false
+            sendBusy = false
+
+            incomingBuffer.removeAll()
+
+            activeWebNotifications.removeAll()
+            wbServices.removeAll()
+            wbCharacteristics.removeAll()
+
+            pendingServices.removeAll()
+            pendingChars.removeAll()
+            pendingReads.removeAll()
+            pendingNotify.removeAll()
+
+            if !keepPeripheral {
+                peripheral = nil
+            }
+
             DispatchQueue.main.async {
                 self.isHandshaking = false
                 self.handshakeSuccessful = false
+                self.isConnected = false
             }
-            handshakeAttempts = 0
-            incomingBuffer = ""
-            activeWebNotifications = []
-            wbServices = [:]
-            wbCharacteristics = [:]
-            writeQueue = []
-            writeBusy = false
-            setupWatchdogToken = nil
-            logger.log("[BLE] Connection state reset")
         }
 
+        private func beginPeripheralSetup(_ peripheral: CBPeripheral) {
+            guard started else { return }
+
+            // Don't start two discovery flows for the same connection.
+            guard !setupInProgress else {
+                logger.log("[BLE] Setup already in progress")
+                return
+            }
+
+            self.peripheral = peripheral
+            peripheral.delegate = self
+
+            setupInProgress = true
+            setupComplete = false
+            rxNotificationReady = false
+
+            writeCharacteristic = nil
+            currentWriteCharacteristic = nil
+
+            connectionGeneration = UUID()
+            handshakeGeneration = UUID()
+
+            handshakeWorkItem?.cancel()
+            handshakeWorkItem = nil
+
+            handshakeAttempts = 0
+
+            DispatchQueue.main.async {
+                self.isConnected = false
+                self.isHandshaking = false
+                self.handshakeSuccessful = false
+                self.status = "Setting up..."
+            }
+
+            beginSetupBackgroundTask()
+
+            // Every setup path gets a watchdog — including restoration.
+            let watchdogToken = UUID()
+            setupWatchdogToken = watchdogToken
+
+            DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 15) {
+                guard self.started else { return }
+
+                guard self.setupWatchdogToken == watchdogToken,
+                      !self.setupComplete else {
+                    return
+                }
+
+                logger.log("[BLE] Setup timed out after 15s")
+
+                self.bleQueue.async {
+                    guard self.setupWatchdogToken == watchdogToken,
+                          !self.setupComplete else {
+                        return
+                    }
+
+                    self.setupInProgress = false
+                    self.setupWatchdogToken = nil
+
+                    self.central.cancelPeripheralConnection(peripheral)
+                }
+            }
+
+            logger.log("[BLE] Discovering BlueWatch service...")
+
+            peripheral.discoverServices([serviceUUID])
+        }
         
         private func recreateCentralManager() {
             logger.log("[BLE] Recreating CBCentralManager after radio power cycle")
@@ -146,6 +316,7 @@
             } else {
                 // change display
                 switch central.state {
+                    
                 case .poweredOff:
                     DispatchQueue.main.async { self.status = "Bluetooth Off" }
                 case .resetting:
@@ -157,7 +328,29 @@
                 case .unknown:
                     DispatchQueue.main.async { self.status = "Bluetooth Unknown" }
                 case .poweredOn:
-                    DispatchQueue.main.async { self.status = "Waiting to connect" }
+
+                    DispatchQueue.main.async {
+                        self.status = "Bluetooth On"
+                    }
+
+                    if let restored = self.restoredPeripheral,
+                       restored.state == .connected {
+
+                        logger.log("[BLE] Bluetooth powered on — continuing restored connection")
+
+                        restoredPeripheral = nil
+
+                        resetConnectionState(keepPeripheral: true)
+
+                        peripheral = restored
+                        restored.delegate = self
+
+                        beginPeripheralSetup(restored)
+
+                        return
+                    }
+
+                    // Your existing normal startup/scanning logic...
                 @unknown default:
                     DispatchQueue.main.async { self.status = "Bluetooth Unknown" }
                 }
@@ -367,31 +560,94 @@
             default: wbReject(id: id, error: "Unknown method: \(method)")
             }
         }
-        func attemptHandshake(){
-            
-            guard started, isConnected, isHandshaking else{
-                logger.log("[BLE] Handshake failed, not connected, started, or handshake already in progress")
+        private func recoverFromHandshakeFailure() {
+            logger.log("[BLE] Recovering from handshake failure")
+
+            handshakeWorkItem?.cancel()
+            handshakeWorkItem = nil
+
+            resetConnectionState(keepPeripheral: true)
+
+            guard let peripheral else {
+                connect()
                 return
             }
-            if (handshakeSuccessful) {
-                logger.log("Handshake attempt stopped, already successful")
-                isHandshaking = false
+
+            DispatchQueue.main.async {
+                self.status = "Reconnecting..."
+            }
+
+            central.cancelPeripheralConnection(peripheral)
+        }
+        
+        private func performHandshakeAttempt(generation: UUID) {
+            guard started,
+                  isConnected,
+                  setupComplete,
+                  rxNotificationReady,
+                  isHandshaking,
+                  handshakeGeneration == generation else {
                 return
             }
-            if (handshakeAttempts>=10){
-                status = "Handshake Failed"
-                isHandshaking=false
-                logger.log("Handshake attempt stopped, max tries reached")
+
+            if handshakeSuccessful {
+                DispatchQueue.main.async {
+                    self.isHandshaking = false
+                }
+                return
+            }
+
+            if handshakeAttempts >= 10 {
+                logger.log("[BLE] Handshake failed after 10 attempts")
+
+                handshakeWorkItem?.cancel()
+                handshakeWorkItem = nil
+
+                
                 handshakeAttempts = 0
+
+                DispatchQueue.main.async {
+                    self.isHandshaking = false
+                    self.status = "Handshake Failed"
+                }
+
+                recoverFromHandshakeFailure()
                 return
             }
-            status = "Waiting for response"
-            send("BlueWatch Connected")
+
             handshakeAttempts += 1
-            logger.log("Attempted handshake \(self.handshakeAttempts)")
-            DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
-                self?.attemptHandshake()
+
+            DispatchQueue.main.async {
+                self.status = "Waiting for handshake"
             }
+
+            logger.log(
+                "[BLE] Sending handshake attempt \(self.handshakeAttempts)"
+            )
+
+            send("BlueWatch Connected")
+
+            let work = DispatchWorkItem { [weak self] in
+                guard let self else { return }
+
+                self.bleQueue.async {
+                    guard self.handshakeGeneration == generation,
+                          self.isHandshaking,
+                          !self.handshakeSuccessful else {
+                        return
+                    }
+
+                    self.performHandshakeAttempt(generation: generation)
+                }
+            }
+
+            handshakeWorkItem?.cancel()
+            handshakeWorkItem = work
+
+            bleQueue.asyncAfter(
+                deadline: .now() + 5,
+                execute: work
+            )
         }
 
         private func wbRequestDevice(id: Int) {
@@ -581,43 +837,70 @@
             }
         }
         
-        func centralManager(_ central: CBCentralManager, willRestoreState dict: [String: Any]) {
-            // Unconditional, before any guard — if this line is missing from the
-            // log after an overnight gap, the process never got a background
-            // relaunch at all (force-quit, Low Power Mode throttling, or the OS
-            // just didn't grant one) as opposed to relaunching and failing later.
-            logger.log("[BLE] willRestoreState — process relaunched in background")
+        func centralManager(
+            _ central: CBCentralManager,
+            willRestoreState dict: [String: Any]
+        ) {
+            logger.log("[BLE] willRestoreState — process restored")
+
             if !started {
                 if UserDefaults.standard.bool(forKey: autoStartKey) {
                     start()
                 } else {
+                    logger.log("[BLE] Restoration ignored — auto start disabled")
                     return
                 }
             }
-            if let peripherals = dict[CBCentralManagerRestoredStatePeripheralsKey] as? [CBPeripheral],
-               let restored    = peripherals.first {
+
+            guard
+                let peripherals = dict[CBCentralManagerRestoredStatePeripheralsKey] as? [CBPeripheral],
+                let restored = peripherals.first
+            else {
+                logger.log("[BLE] No restored peripheral")
+                return
+            }
+
+            logger.log(
+                "[BLE] Restored peripheral \(restored.identifier.uuidString), state=\(restored.state.rawValue)"
+            )
+
+            // CRITICAL:
+            // Keep the CBPeripheral, but throw away all old BlueWatch protocol state.
+            resetConnectionState(keepPeripheral: true)
+
+            restoredPeripheral = restored
+            peripheral = restored
+            restored.delegate = self
+
+            if restored.state == .connected {
+                logger.log("[BLE] Restored peripheral is already connected")
+
                 peripheral = restored
                 restored.delegate = self
-                DispatchQueue.main.async { self.status = "Restoring..." }
 
-                if restored.state == .connected {
-                    // Already connected — discover services to finish setup.
-                    DispatchQueue.main.async { self.isConnected = true }
-                    beginSetupBackgroundTask()
-                    restored.discoverServices([serviceUUID])
-                } else {
-                    // App was terminated while disconnected. The old persistent
-                    // connect() request died with the process, so re-issue it now.
-                    // centralManagerDidUpdateState(.poweredOn) → connect() also runs,
-                    // but having it here too means we cover the race where poweredOn
-                    // fires before willRestoreState completes.
-                    central.connect(restored, options: [
-                        CBConnectPeripheralOptionNotifyOnConnectionKey:    true,
-                        CBConnectPeripheralOptionNotifyOnDisconnectionKey: true,
-                        CBConnectPeripheralOptionNotifyOnNotificationKey:  true,
-                        CBConnectPeripheralOptionStartDelayKey:            0
-                    ])
+                DispatchQueue.main.async {
+                    self.status = "Restored — waiting for Bluetooth..."
                 }
+
+                // Do NOT call discoverServices here.
+                //
+                // CBCentralManager may not have reached .poweredOn yet.
+                // centralManagerDidUpdateState will continue restoration.
+            } else {
+                logger.log("[BLE] Restored peripheral is not connected — reconnecting")
+
+                DispatchQueue.main.async {
+                    self.status = "Reconnecting..."
+                }
+
+                central.connect(
+                    restored,
+                    options: [
+                        CBConnectPeripheralOptionNotifyOnConnectionKey: true,
+                        CBConnectPeripheralOptionNotifyOnDisconnectionKey: true,
+                        CBConnectPeripheralOptionNotifyOnNotificationKey: true
+                    ]
+                )
             }
         }
 
@@ -627,38 +910,30 @@
             setupAndConnect(peripheral)
         }
 
-        func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
+        func centralManager(
+            _ central: CBCentralManager,
+            didConnect peripheral: CBPeripheral
+        ) {
             guard started else {
                 central.cancelPeripheralConnection(peripheral)
                 return
             }
-            logger.log("[BLE] Connected — discovering services...")
-            beginSetupBackgroundTask()
-            writeBusy = false; writeQueue = []
+
+            logger.log("[BLE] Connected")
+
+            // A new CB connection means the old protocol state is invalid.
+            resetConnectionState(keepPeripheral: true)
+
+            self.peripheral = peripheral
+            peripheral.delegate = self
+
             DispatchQueue.main.async {
                 self.status = "Setting up..."
-                self.isConnected = true
-            }
-            setupComplete = false
-
-            // Watchdog: if setup hasn't completed within 15s, force a reconnect
-            // instead of hanging on "Setting up..." forever.
-            let token = UUID()
-            setupWatchdogToken = token
-            DispatchQueue.main.asyncAfter(deadline: .now() + 15) { [weak self] in
-                guard let self = self,
-                      self.started,
-                      !self.setupComplete,
-                      self.setupWatchdogToken == token,
-                      self.peripheral === peripheral else { return }
-                logger.log("[BLE] Setup timed out after 15s — forcing reconnect")
-                self.central.cancelPeripheralConnection(peripheral)
-                // didDisconnectPeripheral will fire and re-issue central.connect(...)
             }
 
-            peripheral.discoverServices([serviceUUID])
+            beginPeripheralSetup(peripheral)
         }
-
+        
         func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
             DispatchQueue.main.async {
                 self.isConnected = false
@@ -678,37 +953,54 @@
             }
         }
         
-        func didCompleteHandshake(){
-            
+        func didCompleteHandshake() {
+            guard isHandshaking else {
+                return
+            }
+
+            logger.log("[BLE] Handshake Successful!")
             DispatchQueue.main.async{
-                
-                logger.log("Handshake Successful!")
-                self.handshakeSuccessful=true
-                self.handshakeAttempts=0
-                self.isHandshaking=false;
+                self.handshakeSuccessful = true
+                self.isHandshaking = false
+            }
+            handshakeAttempts = 0
+            handshakeWorkItem?.cancel()
+            handshakeWorkItem = nil
+
+            // Invalidate any already-scheduled retry.
+            handshakeGeneration = UUID()
+
+            DispatchQueue.main.async {
                 self.status = "Connected"
-                
-                Task {
-                    await LocationManager.shared.sendLocation()
-                    await WeatherManager.shared.updateWeatherAndSend()
-                }
+                self.isConnected = true
+            }
+
+            Task {
+                await LocationManager.shared.sendLocation()
+                await WeatherManager.shared.updateWeatherAndSend()
             }
         }
-        func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
-            logger.log("[BLE] Disconnected: \(error?.localizedDescription ?? "normal")")
+        
+        func centralManager(
+            _ central: CBCentralManager,
+            didDisconnectPeripheral peripheral: CBPeripheral,
+            error: Error?
+        ) {
+            logger.log(
+                "[BLE] Disconnected: \(error?.localizedDescription ?? "normal")"
+            )
+
+            resetConnectionState(keepPeripheral: true)
+
             DispatchQueue.main.async {
                 self.isConnected = false
                 self.status = "Reconnecting..."
                 self.handshakeSuccessful = false
-                self.handshakeAttempts = 0
                 self.isHandshaking = false
+
                 LocalData.shared.battery = "--"
                 LocationManager.shared.stopGPSForwarding()
             }
-            setupComplete = false
-            activeWebNotifications = []
-            writeBusy = false; writeQueue = []
-            wbServices = [:]; wbCharacteristics = [:]
 
             DispatchQueue.main.async {
                 self.webView?.evaluateJavaScript(
@@ -716,16 +1008,21 @@
                 )
             }
 
-            if started && shouldAttemptConnect {
-                // This single persistent connect call is enough.
-                // iOS keeps this request alive even when the app is suspended and
-                // will reconnect as soon as the peripheral is in range.
-                central.connect(peripheral, options: [
-                    CBConnectPeripheralOptionNotifyOnConnectionKey:    true,
-                    CBConnectPeripheralOptionNotifyOnDisconnectionKey: true,
-                    CBConnectPeripheralOptionNotifyOnNotificationKey:  true
-                ])
+            guard started, shouldAttemptConnect else {
+                endSetupBackgroundTask()
+                return
             }
+
+            logger.log("[BLE] Reissuing persistent CoreBluetooth connection")
+
+            central.connect(
+                peripheral,
+                options: [
+                    CBConnectPeripheralOptionNotifyOnConnectionKey: true,
+                    CBConnectPeripheralOptionNotifyOnDisconnectionKey: true,
+                    CBConnectPeripheralOptionNotifyOnNotificationKey: true
+                ]
+            )
         }
     }
 
@@ -735,127 +1032,246 @@
 
     extension BLEManager: CBPeripheralDelegate {
 
-        func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
+        func peripheral(
+            _ peripheral: CBPeripheral,
+            didDiscoverServices error: Error?
+        ) {
             guard started else { return }
 
-            if let e = error {
-                logger.log("[BLE] Service discovery error: \(e.localizedDescription) — forcing reconnect")
+            if let error {
+                logger.log(
+                    "[BLE] Service discovery error: \(error.localizedDescription)"
+                )
+
+                setupInProgress = false
                 central.cancelPeripheralConnection(peripheral)
                 return
             }
+
+            guard let services = peripheral.services,
+                  !services.isEmpty else {
+                logger.log("[BLE] No services found — forcing reconnect")
+
+                setupInProgress = false
+                central.cancelPeripheralConnection(peripheral)
+                return
+            }
+
+            logger.log(
+                "[BLE] Services discovered: \(services.map { $0.uuid.uuidString })"
+            )
 
             let deviceId = peripheral.identifier.uuidString
-            logger.log("[BLE] Services discovered: \(peripheral.services?.map { $0.uuid.uuidString } ?? [], privacy: .public)")
 
-            // Web Bluetooth path (unrelated to native TX/RX setup)
+            // Web Bluetooth pending service request.
             if let entry = pendingServices.removeValue(forKey: deviceId) {
-                if let svc = peripheral.services?.first(where: {
-                    $0.uuid.uuidString.caseInsensitiveCompare(entry.uuid) == .orderedSame
+                if let service = services.first(where: {
+                    $0.uuid.uuidString.caseInsensitiveCompare(entry.uuid)
+                        == .orderedSame
                 }) {
-                    let sid = svc.uuid.uuidString; wbServices[sid] = svc
-                    wbResolve(id: entry.callId, result: ["serviceId": sid])
+                    let sid = service.uuid.uuidString
+                    wbServices[sid] = service
+
+                    wbResolve(
+                        id: entry.callId,
+                        result: ["serviceId": sid]
+                    )
                 } else {
-                    wbReject(id: entry.callId, error: "Service not found")
+                    wbReject(
+                        id: entry.callId,
+                        error: "Service not found"
+                    )
                 }
+
                 return
             }
 
-            guard let services = peripheral.services, !services.isEmpty else {
-                logger.log("[BLE] No services found on peripheral — forcing reconnect")
+            // Native BlueWatch setup.
+            guard services.contains(where: {
+                $0.uuid == serviceUUID
+            }) else {
+                logger.log("[BLE] BlueWatch service missing — forcing reconnect")
+
+                setupInProgress = false
                 central.cancelPeripheralConnection(peripheral)
                 return
             }
 
-            services.forEach { peripheral.discoverCharacteristics([txUUID, rxUUID], for: $0) }
+            if let service = services.first(where: {
+                $0.uuid == serviceUUID
+            }) {
+                peripheral.discoverCharacteristics(
+                    [txUUID, rxUUID],
+                    for: service
+                )
+            }
         }
-
-        func peripheral(_ peripheral: CBPeripheral,
-                        didDiscoverCharacteristicsFor service: CBService, error: Error?) {
+        private func finishSetupIfReady() {
             guard started else { return }
 
-            if let e = error {
-                logger.log("[BLE] Characteristic discovery error: \(e.localizedDescription) — forcing reconnect")
+            guard writeCharacteristic != nil else {
+                logger.log("[BLE] Setup waiting for TX")
+                return
+            }
+
+            guard rxNotificationReady else {
+                logger.log("[BLE] Setup waiting for RX notification confirmation")
+                return
+            }
+
+            guard !setupComplete else {
+                return
+            }
+
+            setupComplete = true
+            setupInProgress = false
+            setupWatchdogToken = nil
+
+            logger.log("[BLE] BlueWatch GATT setup complete")
+
+            DispatchQueue.main.async {
+                self.isConnected = true
+                self.status = "Connected"
+            }
+
+            onConnectionFinished()
+        }
+        func peripheral(
+            _ peripheral: CBPeripheral,
+            didDiscoverCharacteristicsFor service: CBService,
+            error: Error?
+        ) {
+            guard started else { return }
+
+            if let error {
+                logger.log(
+                    "[BLE] Characteristic discovery error: \(error.localizedDescription)"
+                )
+
+                setupInProgress = false
                 central.cancelPeripheralConnection(peripheral)
                 return
             }
 
-            let serviceId = service.uuid.uuidString
-            logger.log("[BLE] Characteristics for \(serviceId, privacy: .public): \(service.characteristics?.map { $0.uuid.uuidString } ?? [], privacy: .public)")
+            logger.log(
+                "[BLE] Characteristics for \(service.uuid.uuidString): \(service.characteristics?.map { $0.uuid.uuidString } ?? [])"
+            )
 
-            // Web Bluetooth path
+            // ---- Web Bluetooth handling ----
+
+            let serviceId = service.uuid.uuidString
+
             if let entry = pendingChars.removeValue(forKey: serviceId) {
                 if let char = service.characteristics?.first(where: {
-                    $0.uuid.uuidString.caseInsensitiveCompare(entry.uuid) == .orderedSame
+                    $0.uuid.uuidString.caseInsensitiveCompare(entry.uuid)
+                        == .orderedSame
                 }) {
-                    let cid = char.uuid.uuidString; wbCharacteristics[cid] = char
-                    wbResolve(id: entry.callId, result: ["charId": cid, "props": char.properties.rawValue])
+                    let cid = char.uuid.uuidString
+                    wbCharacteristics[cid] = char
+
+                    wbResolve(
+                        id: entry.callId,
+                        result: [
+                            "charId": cid,
+                            "props": char.properties.rawValue
+                        ]
+                    )
                 } else {
-                    wbReject(id: entry.callId, error: "Characteristic not found")
+                    wbReject(
+                        id: entry.callId,
+                        error: "Characteristic not found"
+                    )
                 }
+
                 return
             }
 
-            var foundTX = false, foundRX = false
-            service.characteristics?.forEach { c in
-                if c.uuid == txUUID {
-                    writeCharacteristic = c; foundTX = true
-                    logger.log("[BLE] TX ready props=\(c.properties.rawValue)")
-                }
-                if c.uuid == rxUUID {
-                    peripheral.setNotifyValue(true, for: c); foundRX = true
-                    logger.log("[BLE] RX ready")
-                }
+            // ---- Native BlueWatch handling ----
+
+            guard service.uuid == serviceUUID else {
+                return
             }
 
-            if foundTX && foundRX {
-                setupComplete = true
-                setupWatchdogToken = nil   // setup succeeded, cancel the watchdog
-                logger.log("[BLE] Setup complete")
-
-                if let id = pendingRequestDevice {
-                    pendingRequestDevice = nil
-                    logger.log("[WB] requestDevice → \(peripheral.name ?? "Bangle.js") (post-setup)")
-                    wbResolve(id: id, result: [
-                        "deviceId": peripheral.identifier.uuidString,
-                        "name":     peripheral.name ?? "Bangle.js"
-                    ])
-                }
-
-                DispatchQueue.main.async {
-                    self.onConnectionFinished()
-                }
-            } else {
-                logger.log("[BLE] Setup still incomplete — foundTX=\(foundTX) foundRX=\(foundRX). Waiting for further discovery callbacks or watchdog timeout.")
+            guard let characteristics = service.characteristics else {
+                logger.log("[BLE] BlueWatch service has no characteristics")
+                return
             }
+
+            if let tx = characteristics.first(where: { $0.uuid == txUUID }) {
+                writeCharacteristic = tx
+                currentWriteCharacteristic = tx
+
+                logger.log(
+                    "[BLE] TX ready props=\(tx.properties.rawValue)"
+                )
+            }
+
+            if let rx = characteristics.first(where: { $0.uuid == rxUUID }) {
+                logger.log("[BLE] RX discovered — enabling notifications")
+
+                rxNotificationReady = false
+
+                peripheral.setNotifyValue(true, for: rx)
+            }
+
+            finishSetupIfReady()
         }
 
-        // `force: true` always restarts the handshake from attempt 0, even if
-        // isHandshaking is already true. This matters because the retry chain
-        // in attemptHandshake() is a self-scheduled DispatchQueue.main.asyncAfter,
-        // which does NOT survive the app being suspended — if that happens
-        // mid-retry, isHandshaking is stranded `true` forever (nothing else
-        // resets it, since the BLE link itself can stay nominally "connected"
-        // all night even though the app-level handshake never finished, so
-        // didDisconnectPeripheral never fires to clean it up either). Without
-        // `force`, every recovery path (foreground, manual retry) was refusing
-        // to act specifically in that stuck state — the one state that needed it.
-        func startHandshake(force: Bool = false){
+        func startHandshake(force: Bool = false) {
+            guard started else { return }
+
             if isHandshaking && !force {
-                logger.log("[BLE] startHandshake: already in progress, ignoring")
+                logger.log("[BLE] Handshake already in progress")
                 return
             }
+
+            guard setupComplete,
+                  isConnected,
+                  writeCharacteristic != nil,
+                  rxNotificationReady else {
+                logger.log("[BLE] Cannot start handshake — BLE setup incomplete")
+                return
+            }
+
+            // Invalidate any previous handshake.
+            handshakeWorkItem?.cancel()
+            handshakeWorkItem = nil
+
+            let generation = UUID()
+            handshakeGeneration = generation
+
             handshakeAttempts = 0
-            isHandshaking = true
-            attemptHandshake()
+            DispatchQueue.main.async{
+                self.handshakeSuccessful = false
+                self.isHandshaking = true
+            }
+            
+
+            logger.log("[BLE] Starting fresh handshake \(generation.uuidString)")
+
+            performHandshakeAttempt(generation: generation)
         }
 
         func onConnectionFinished() {
-            guard started else { return }
-            // force: true — a fresh CB-level connection (we just finished
-            // service/characteristic discovery) is an unambiguous signal to
-            // start clean, regardless of whatever handshake state was left
-            // over from a previous, possibly-interrupted attempt.
+            guard started,
+                  setupComplete,
+                  rxNotificationReady,
+                  writeCharacteristic != nil else {
+                logger.log("[BLE] onConnectionFinished ignored — setup incomplete")
+                return
+            }
+
+            logger.log("[BLE] GATT ready — starting fresh BlueWatch handshake")
+
+            // isConnected is a UI/published state.
+            // It must not be used as a synchronization primitive.
+            DispatchQueue.main.async {
+                self.isConnected = true
+                self.status = "Connected"
+            }
+
             startHandshake(force: true)
+
             endSetupBackgroundTask()
         }
 
@@ -946,17 +1362,56 @@
             sendNextChunk()
         }
 
-        func peripheral(_ peripheral: CBPeripheral,
-                        didUpdateNotificationStateFor characteristic: CBCharacteristic, error: Error?) {
+        func peripheral(
+            _ peripheral: CBPeripheral,
+            didUpdateNotificationStateFor characteristic: CBCharacteristic,
+            error: Error?
+        ) {
             guard started else { return }
-            let charId = characteristic.uuid.uuidString
-            logger.log("[BLE] notification state: \(charId.prefix(8)) isNotifying=\(characteristic.isNotifying)")
-            if let id = pendingNotify.removeValue(forKey: charId) {
-                if let e = error { wbReject(id: id, error: e.localizedDescription) }
-                else              { wbResolve(id: id, result: [:]) }
-            }
-        }
 
+            let charId = characteristic.uuid.uuidString
+
+            logger.log(
+                "[BLE] notification state: \(charId.prefix(8)) isNotifying=\(characteristic.isNotifying)"
+            )
+
+            if let id = pendingNotify.removeValue(forKey: charId) {
+                if let error {
+                    wbReject(id: id, error: error.localizedDescription)
+                } else {
+                    wbResolve(id: id, result: [:])
+                }
+            }
+
+            guard characteristic.uuid == rxUUID else {
+                return
+            }
+
+            if let error {
+                logger.log(
+                    "[BLE] RX notification setup failed: \(error.localizedDescription)"
+                )
+
+                setupInProgress = false
+                central.cancelPeripheralConnection(peripheral)
+                return
+            }
+
+            guard characteristic.isNotifying else {
+                logger.log("[BLE] RX notification is NOT active")
+
+                setupInProgress = false
+                central.cancelPeripheralConnection(peripheral)
+                return
+            }
+
+            logger.log("[BLE] RX notification confirmed")
+
+            rxNotificationReady = true
+
+            finishSetupIfReady()
+        }
+        
         func peripheralIsReady(toSendWriteWithoutResponse peripheral: CBPeripheral) {
             guard started else { return }
             writeBusy = false
