@@ -144,7 +144,9 @@ class FindPhoneAlarm: NSObject, AVAudioPlayerDelegate {
     func stop() {
        
         guard isActive else { return }
-        showNotification()
+        if(Settings.instance.showFindPhoneNotification){
+            showNotification()
+        }
         stopVibration()
         audioPlayer?.stop()
         audioPlayer = nil

@@ -116,6 +116,4 @@ struct DeviceCarouselView: View {
     }
 }
 
-#Preview {
-    DeviceCarouselView()
-}
+

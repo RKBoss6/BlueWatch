@@ -76,8 +76,8 @@ struct WatchSettingsScreen: View {
                 Section{
                     VStack(spacing: 16) {
                         
-                        Toggle(isOn:$settings.sendToHealthKit ) {
-                            Text("Push health data to Apple Health")
+                        Toggle(isOn:$settings.showFindPhoneNotification ) {
+                            Text("Show find phone notifications")
                             
                         }
                         .tint(.accentColor)
@@ -88,15 +88,22 @@ struct WatchSettingsScreen: View {
                     .liquidGlass(cornerRadius: 24)
                     .ignoresSafeArea(.all)
                     .listRowInsets(EdgeInsets())
-                    
-                } header:{
-                    Text("Data")
+                }footer:{
+                    Text("Shows a confirmation notification when the find phone alarm is triggered")
                 }
-               
-                
-                    .listRowBackground(Color.clear)
+                .listRowBackground(Color.clear)
+
                 Section{
                     VStack(spacing: 16) {
+                        
+                        Toggle(isOn:$settings.sendToHealthKit ) {
+                            Text("Push health data to Apple Health")
+                            
+                        }
+                        .tint(.accentColor)
+                        
+                        
+                    Divider()
                         
     
                         Toggle(isOn:$settings.pushWeather ) {
@@ -108,25 +115,8 @@ struct WatchSettingsScreen: View {
 //                            Divider()
 //                            Stepper("Weather Rate Limit: \(settings.weatherRateLimit.formatted(.number.precision(.fractionLength(0)))) min", value: $settings.weatherRateLimit, in: 10...60, step:5)
 //
-//                        }
-                        
-                        
-                        
-                    }
-                    .padding()
-                    .liquidGlass(cornerRadius: 24)
-                    .ignoresSafeArea(.all)
-                    .listRowInsets(EdgeInsets())
-                    
-                }
-                footer:{
-                    Text("Weather data from [Weather](https://developer.apple.com/weatherkit/data-source-attribution/)")
-                }
-                
-                    .listRowBackground(Color.clear)
-                Section{
-                    VStack(spacing: 16) {
-                        
+//
+                        Divider()
 
                         Toggle(isOn:$settings.pushLocation ) {
                             Text("Push location updates")
@@ -150,8 +140,11 @@ struct WatchSettingsScreen: View {
                     .listRowInsets(EdgeInsets())
                     
                 }
+                header:{
+                    Text("Data")
+                }
                 footer:{
-                    Text("Periodically pushes location data to 'MyLocation.json'")
+                    Text("Periodically pushes location data to 'MyLocation.json'\nWeather data from [Weather](https://developer.apple.com/weatherkit/data-source-attribution/)")
                 }
                 
                     .listRowBackground(Color.clear)
@@ -261,29 +254,3 @@ struct WatchSettingsScreen: View {
 
 
 
-// 2. Create the View Modifier for individual Form elements
-struct LiquidGlassModifier: ViewModifier {
-    var cornerRadius: CGFloat
-    
-    func body(content: Content) -> some View {
-        if #available(iOS 26.0,*) {
-            content
-                .glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
-                
-        } else {
-            content
-                .background(in: .rect(cornerRadius: cornerRadius))
-        }
-    }
-}
-
-// 3. Expose them cleanly via View extensions
-extension View {
-    // Safe modifier that applies Liquid Glass if supported by the OS, otherwise does nothing.
-    func liquidGlass(cornerRadius: CGFloat = 24) -> some View {
-        self.modifier(LiquidGlassModifier(cornerRadius: cornerRadius))
-    }
-    
-    // Wraps a view hierarchy inside a Glass Effect Container if supported, otherwise passes it straight through.
-  
-}
