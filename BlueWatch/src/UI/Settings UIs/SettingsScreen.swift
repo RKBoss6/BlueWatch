@@ -7,121 +7,7 @@
 
 import SwiftUI
 
-struct MoreScreen: View {
-    @Environment(\.openURL) var openURL
-    @StateObject var settings: Settings = Settings.instance
-    @State var temp:Bool=false
-    var vm:ViewModel=ViewModel.instance
-    var body: some View {
-        VStack{
-            HStack {
 
-                Text(settings.deviceName.isEmpty==false ? settings.deviceName : vm.savedDevice)
-                    .font(.title)
-                    .fontWeight(.bold)
-                
-               
-            }.padding()
-            Spacer()
-            
-            Image(vm.savedDevice=="Bangle.js 2" ? "BangleJS2" : "BangleJS1" )
-                .resizable()
-                .frame(width: 240,height: 240)
-            
-            Spacer()
-            VStack{
-                Section(){
-                    VStack(spacing: 16) {
-                        
-                        Button {
-                            if let url = URL(string: "https://github.com/RKBoss6/BlueWatch") {
-                                openURL(url)
-                            }
-                            
-                        } label:{
-                            HStack{
-                                Text("BlueWatch is open source!")
-                                    .frame(maxWidth:.infinity, alignment: .leading)
-                                    .tint(.primary)
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .tint(.primary)
-                            }
-                        }
-                        Divider()
-                        Button {
-                            if let url = URL(string: "https://github.com/RKBoss6/BlueWatch/issues/new") {
-                                openURL(url)
-                            }
-                            
-                        } label:{
-                            HStack{
-                                Text("Report an issue or suggest new features")
-                                    .frame(maxWidth:.infinity, alignment: .leading)
-                                    .tint(.primary)
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .tint(.primary)
-                            }
-                        }
-                        
-                        
-                        
-                        
-                    }
-                    .padding()
-                    .liquidGlass(cornerRadius: 24)
-                    .frame(width:.infinity,height: .infinity)
-                    .ignoresSafeArea(.all)
-                    .listRowInsets(EdgeInsets())
-                }
-                
-                .listRowBackground(Color.clear)
-                Section {
-                    HStack {
-                        Text("Needs Bangle.js BlueWatch version:")
-                        Spacer()
-                        Text("v0.03")
-                            .bold()
-                    }
-                    
-                }
-                .padding()
-                .liquidGlass(cornerRadius: 24)
-                .ignoresSafeArea(.all)
-                .listRowInsets(EdgeInsets())
-                .padding(.top, 10)
-                Section {
-                    // 💡 Added spacing: 16 to match the top container exactly
-                    VStack(spacing: 16) {
-                        
-                        
-                        NavigationLink(destination: WatchSettingsScreen()) {
-                            HStack {
-                                Image(systemName: "gear")
-                                Text("Settings")
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        .foregroundStyle(.primary)
-                    }
-                    .padding()
-                    .liquidGlass(cornerRadius: 24)
-                    .ignoresSafeArea(.all)
-                    .listRowInsets(EdgeInsets())
-                }
-                .padding(.top, 12)
-            }.padding()
-                .padding(.bottom,20)
-                .listRowBackground(Color.clear)
-        }
-        .appBackground()
-    }
-}
-
-#warning("Make sure you change the BlueWatch bangle.js version before upload!!!")
 struct WatchSettingsScreen: View {
     @Environment(\.colorScheme) var colorScheme
     @StateObject var settings: Settings = Settings.instance
@@ -278,19 +164,20 @@ struct WatchSettingsScreen: View {
                             Text("Delete saved data")
                         }
                         .alert("Are you sure?", isPresented: $showDeletePrompt) {
-                                    Button("Delete", role: .destructive) {
-                                        DataManager.clearAllData()
-                                    }
-                            Button("Cancel", role: .cancel) { }
-                            
-                                } message: {
-                                    Text("This action removes all your watch's saved health and battery data from all time on your device. This action cannot be undone.")
+                                Button("Delete", role: .destructive) {
+                                    DataManager.clearAllData()
                                 }
-                        .tint(.red)
+                                Button("Cancel", role: .cancel) {
+                                    // do nothing, just cancel
+                                }
+                                } message: {
+                                    Text("This action permanently deletes the metrics shown in graphs from your device. Data saved to Health will not be deleted.")
+                                }
+                                .tint(.black)
                     }
-                    .frame(maxWidth: .infinity) // Expands horizontally to screen edges
+                    .frame(maxWidth: .infinity)
                     .padding(.vertical)
-                    .listRowInsets(EdgeInsets())// Adds elegant padding inside the glass bubble
+                    .listRowInsets(EdgeInsets())
                     .liquidGlass()
                 }
                 .listRowBackground(Color.clear)
@@ -336,47 +223,9 @@ struct WatchSettingsScreen: View {
                 .listRowBackground(
                     Color.clear
                 )
-                Section{
-                    VStack(spacing: 16) {
-                        Button{
-                            BlueWatchApp.requestHealthAuthorization()
-
-                        }label:{
-                            Text("Request Health Permissions")
-                        }
-                        Divider()
-                        Button{
-                            Task{
-                                await BlueWatchApp.requestNotificationAuthorization()
-                            }
-                        }label:{
-                            Text("Request Notification Permissions")
-                        }
-                        Divider()
-                        Button{
-                            LocationManager.shared.requestAuthorization()
-                        }label:{
-                            Text("Request Location Permissions")
-                        }
-                        
-                        
-                        
-                        
-                        
-                    }
-                    .padding()
-                    .liquidGlass(cornerRadius: 24)
-                    .ignoresSafeArea(.all)
-                    .listRowInsets(EdgeInsets())
-                    
-                } header:{
-                    Text("Permissions")
-                } footer:{
-                    Text("If you've already accepted permissions, no pop-up will show.")
-                }
                 
                 
-                    .listRowBackground(Color.clear)
+                
                 
 //                Section("Other"){
 //                    VStack(spacing: 16) {

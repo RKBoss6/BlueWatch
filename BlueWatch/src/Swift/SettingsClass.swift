@@ -73,6 +73,13 @@ public class Settings:ObservableObject{
         }
     }
     
+    private var showFindPhoneNotificationKey:String="showFindPhoneNotification"
+    @Published public var showFindPhoneNotification:Bool{
+        didSet{
+            LocalStorage.set(showFindPhoneNotification, forKey: showFindPhoneNotificationKey)
+        }
+    }
+    
     private var lowBattNotifyKey:String="lowBattNotify"
     @Published public var lowBattNotify:Bool{
         didSet{
@@ -100,6 +107,7 @@ public class Settings:ObservableObject{
         UserDefaults.standard.register(defaults: [
             webURLKey: "banglejs.com/apps",
             enableHScrollKey: false,
+            showFindPhoneNotificationKey:true,
             enableVScrollKey: true,
             autoConnectKey: true,
             pushWeatherKey: true,
@@ -119,6 +127,7 @@ public class Settings:ObservableObject{
         pushLocation=LocalStorage.getBool(forKey: pushLocationKey) ?? true
         lowBattNotify=LocalStorage.getBool(forKey: lowBattNotifyKey) ?? false
         sendToHealthKit=LocalStorage.getBool(forKey: sendToHealthKitKey) ?? true
+        showFindPhoneNotification=LocalStorage.getBool(forKey: showFindPhoneNotificationKey) ?? true
         deviceName=LocalStorage.getString(forKey: deviceNameKey) ?? ViewModel.instance.savedDevice
         weatherRateLimit=Int(LocalStorage.getNumber(forKey: weatherRateLimitKey) ?? 10)
         locationRateLimit=Int(LocalStorage.getNumber(forKey: locationRateLimitKey) ?? 10)
