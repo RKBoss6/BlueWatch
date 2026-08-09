@@ -7,6 +7,7 @@ import CoreBluetooth
 import SwiftUI
 import WebKit
 import BackgroundTasks
+import UIKit
 
 final class BLEManager: NSObject, ObservableObject {
 
@@ -61,6 +62,15 @@ final class BLEManager: NSObject, ObservableObject {
     // MARK: - Connection state
 
     private var peripheral: CBPeripheral?
+
+    /*
+     iOS may restore a peripheral before CBCentralManager has reached
+     .poweredOn.
+
+     Keep the restored peripheral here until CoreBluetooth is ready
+     to perform GATT operations.
+     */
+    private var restoredPeripheralPendingSetup: CBPeripheral?
 
     private var bleConnected = false
     private var setupComplete = false
@@ -223,6 +233,7 @@ final class BLEManager: NSObject, ObservableObject {
     }
 
     private func startOnBLEQueue() {
+
         guard !started else {
             logger.log("[BLE] start() ignored — already started")
             return
@@ -238,25 +249,41 @@ final class BLEManager: NSObject, ObservableObject {
         switch central.state {
 
         case .poweredOn:
+
             publishStatus("Ready")
-            connectOnBLEQueue()
+
+            /*
+             If restoration left a peripheral waiting for setup,
+             let the restoration path handle it.
+             */
+            if restoredPeripheralPendingSetup != nil {
+                handlePendingRestorationOnPoweredOn()
+            } else {
+                connectOnBLEQueue()
+            }
 
         case .poweredOff:
+
             publishStatus("Bluetooth Off")
 
         case .resetting:
+
             publishStatus("Resetting...")
 
         case .unauthorized:
+
             publishStatus("Bluetooth Unauthorized")
 
         case .unsupported:
+
             publishStatus("Bluetooth Unsupported")
 
         case .unknown:
+
             publishStatus("Bluetooth Unknown")
 
         @unknown default:
+
             publishStatus("Bluetooth Unknown")
         }
     }
@@ -274,6 +301,8 @@ final class BLEManager: NSObject, ObservableObject {
 
             self.started = false
             self.shouldAttemptConnect = false
+
+            self.restoredPeripheralPendingSetup = nil
 
             self.invalidateConnectionState(
                 reason: destructive
@@ -341,10 +370,17 @@ final class BLEManager: NSObject, ObservableObject {
         wbServices.removeAll()
         wbCharacteristics.removeAll()
 
+        pendingServices.removeAll()
+        pendingChars.removeAll()
+        pendingReads.removeAll()
+        pendingNotify.removeAll()
+
         writeQueue.removeAll()
         writeBusy = false
 
-        logger.log("[BLE] Invalidated connection state: \(reason)")
+        logger.log(
+            "[BLE] Invalidated connection state: \(reason)"
+        )
     }
 
     // MARK: - Connection
@@ -360,17 +396,42 @@ final class BLEManager: NSObject, ObservableObject {
         guard started,
               shouldAttemptConnect,
               central.state == .poweredOn else {
-            logger.log("[BLE] connect ignored — not ready")
+
+            logger.log(
+                "[BLE] connect ignored — not ready"
+            )
+
+            return
+        }
+
+        /*
+         If CoreBluetooth restoration is still pending,
+         do not allow normal connection logic to race it.
+         */
+        if restoredPeripheralPendingSetup != nil {
+
+            logger.log(
+                "[BLE] connect ignored — restored peripheral is pending setup"
+            )
+
             return
         }
 
         if bleConnected {
-            logger.log("[BLE] connect ignored — already connected")
+
+            logger.log(
+                "[BLE] connect ignored — already connected"
+            )
+
             return
         }
 
         if connectionInProgress {
-            logger.log("[BLE] connect ignored — connection already in progress")
+
+            logger.log(
+                "[BLE] connect ignored — connection already in progress"
+            )
+
             return
         }
 
@@ -383,9 +444,10 @@ final class BLEManager: NSObject, ObservableObject {
             forKey: "banglePeripheralID"
         ),
            let uuid = UUID(uuidString: idString),
-           let savedPeripheral = central
-            .retrievePeripherals(withIdentifiers: [uuid])
-            .first {
+           let savedPeripheral =
+                central.retrievePeripherals(
+                    withIdentifiers: [uuid]
+                ).first {
 
             setupAndConnect(savedPeripheral)
             return
@@ -434,10 +496,15 @@ final class BLEManager: NSObject, ObservableObject {
         if peripheral === p,
            bleConnected {
 
-            logger.log("[BLE] setupAndConnect ignored — already connected")
+            logger.log(
+                "[BLE] setupAndConnect ignored — already connected"
+            )
+
             connectionInProgress = false
             return
         }
+
+        restoredPeripheralPendingSetup = nil
 
         peripheral = p
         p.delegate = self
@@ -464,6 +531,130 @@ final class BLEManager: NSObject, ObservableObject {
                 CBConnectPeripheralOptionStartDelayKey: 0
             ]
         )
+    }
+
+    // MARK: - Restored connection handling
+
+    /*
+     Called only after CBCentralManager reaches .poweredOn.
+
+     This is the critical restoration fix.
+
+     willRestoreState() merely remembers the peripheral.
+     This function performs the actual GATT work.
+     */
+    private func handlePendingRestorationOnPoweredOn() {
+
+        guard started,
+              shouldAttemptConnect,
+              central.state == .poweredOn else {
+
+            logger.log(
+                "[BLE] Cannot continue restoration — BLE not ready"
+            )
+
+            return
+        }
+
+        guard let restored =
+                restoredPeripheralPendingSetup else {
+
+            return
+        }
+
+        restoredPeripheralPendingSetup = nil
+
+        peripheral = restored
+        restored.delegate = self
+
+        logger.log(
+            "[BLE] Continuing restored peripheral setup after Bluetooth became powered on"
+        )
+
+        /*
+         * If iOS still considers the restored peripheral connected,
+         * rebuild our GATT state without calling connect().
+         */
+        if restored.state == .connected {
+
+            connectionGeneration = UUID()
+
+            bleConnected = true
+            connectionInProgress = false
+
+            setupComplete = false
+            notificationsReady = false
+
+            handshakeState = false
+            handshakingState = false
+            handshakeAttempts = 0
+
+            incomingBuffer = ""
+
+            writeCharacteristic = nil
+            currentWriteCharacteristic = nil
+
+            pendingChunks.removeAll()
+            writeInProgress = false
+
+            sendBusy = false
+            pendingMessages.removeAll()
+
+            cancelHandshakeTimers()
+            cancelSetupWatchdog()
+
+            activeWebNotifications.removeAll()
+            wbServices.removeAll()
+            wbCharacteristics.removeAll()
+
+            pendingServices.removeAll()
+            pendingChars.removeAll()
+            pendingReads.removeAll()
+            pendingNotify.removeAll()
+
+            writeQueue.removeAll()
+            writeBusy = false
+
+            publishConnectionState(true)
+
+            publishHandshakeState(
+                successful: false,
+                handshaking: false
+            )
+
+            publishStatus("Setting up Bluetooth...")
+
+            beginSetupBackgroundTask()
+
+            startSetupWatchdog(
+                generation: connectionGeneration,
+                peripheral: restored
+            )
+
+            logger.log(
+                "[BLE] Restored peripheral is connected — discovering BlueWatch service"
+            )
+
+            restored.discoverServices(
+                [serviceUUID]
+            )
+
+        } else {
+
+            /*
+             * Restoration remembered the peripheral, but it isn't
+             * currently connected.
+
+             * Use the normal connection path.
+             */
+            connectionInProgress = false
+
+            logger.log(
+                "[BLE] Restored peripheral is no longer connected — reconnecting"
+            )
+
+            setupAndConnect(restored)
+        }
     }
 
     // MARK: - Background task
@@ -569,7 +760,7 @@ final class BLEManager: NSObject, ObservableObject {
     /*
      Kept public because MainScreen already calls this.
 
-     `force: true` now means:
+     `force: true` means:
 
        - cancel old retry chain
        - invalidate old handshake
@@ -583,9 +774,11 @@ final class BLEManager: NSObject, ObservableObject {
             guard let self else { return }
 
             if self.handshakingState && !force {
+
                 logger.log(
                     "[BLE] startHandshake ignored — already handshaking"
                 )
+
                 return
             }
 
@@ -598,11 +791,24 @@ final class BLEManager: NSObject, ObservableObject {
                     "[BLE] Cannot start handshake — BLE/setup not ready"
                 )
 
-                self.publishStatus(
-                    self.bleConnected
-                        ? "Waiting for Bluetooth setup"
-                        : "Disconnected"
-                )
+                if self.central.state != .poweredOn {
+
+                    self.publishStatus(
+                        "Waiting for Bluetooth..."
+                    )
+
+                } else if self.bleConnected {
+
+                    self.publishStatus(
+                        "Waiting for Bluetooth setup"
+                    )
+
+                } else {
+
+                    self.publishStatus(
+                        "Disconnected"
+                    )
+                }
 
                 return
             }
@@ -626,7 +832,7 @@ final class BLEManager: NSObject, ObservableObject {
             handshaking: true
         )
 
-        publishStatus("Waiting for response")
+        publishStatus("Waiting for watch...")
 
         logger.log(
             "[BLE] Starting handshake generation \(generation)"
@@ -636,6 +842,7 @@ final class BLEManager: NSObject, ObservableObject {
          Independent watchdog.
 
          This is NOT part of the retry chain.
+
          Even if every retry callback somehow disappears,
          this watchdog independently terminates the handshake.
          */
@@ -724,9 +931,6 @@ final class BLEManager: NSObject, ObservableObject {
 
             publishStatus("Handshake Failed")
 
-            /*
-             Don't leave the BLE layer sitting in a fake connected state.
-             */
             forceReconnectOnBLEQueue(
                 reason: "Maximum handshake attempts"
             )
@@ -736,13 +940,15 @@ final class BLEManager: NSObject, ObservableObject {
 
         handshakeAttempts += 1
 
-        publishStatus("Waiting for response")
+        publishStatus("Waiting for watch...")
 
         logger.log(
             "[BLE] Handshake attempt \(self.handshakeAttempts)/\(self.maxHandshakeAttempts)"
         )
 
-        sendOnBLEQueue("BlueWatch Connected")
+        sendOnBLEQueue(
+            "BlueWatch Connected"
+        )
 
         /*
          Schedule exactly ONE retry.
@@ -812,9 +1018,12 @@ final class BLEManager: NSObject, ObservableObject {
         /*
          These happen after the BLE protocol is confirmed.
          */
-        DispatchQueue.main.async{
-            Task{
+        DispatchQueue.main.async {
+
+            Task {
+
                 await LocationManager.shared.sendLocation()
+
                 await WeatherManager.shared.updateWeatherAndSend()
             }
         }
@@ -844,7 +1053,9 @@ final class BLEManager: NSObject, ObservableObject {
         /*
          Invalidate EVERYTHING belonging to the old connection first.
          */
-        invalidateConnectionState(reason: reason)
+        invalidateConnectionState(
+            reason: reason
+        )
 
         publishConnectionState(false)
 
@@ -856,8 +1067,13 @@ final class BLEManager: NSObject, ObservableObject {
         publishStatus("Reconnecting...")
 
         guard let p = oldPeripheral else {
+
             connectionInProgress = false
-            connectOnBLEQueue()
+
+            if central.state == .poweredOn {
+                connectOnBLEQueue()
+            }
+
             return
         }
 
@@ -865,6 +1081,7 @@ final class BLEManager: NSObject, ObservableObject {
          Tell the web bridge immediately.
          */
         DispatchQueue.main.async { [weak self] in
+
             self?.webView?.evaluateJavaScript(
                 "window.__bluetoothDisconnected && window.__bluetoothDisconnected()"
             )
@@ -915,7 +1132,10 @@ final class BLEManager: NSObject, ObservableObject {
                 encoding: .utf8
               ) else {
 
-            logger.log("[BLE] Failed to encode JSON")
+            logger.log(
+                "[BLE] Failed to encode JSON"
+            )
+
             return
         }
 
@@ -958,7 +1178,9 @@ final class BLEManager: NSObject, ObservableObject {
               !pendingChunks.isEmpty else {
 
             if pendingChunks.isEmpty {
+
                 sendBusy = false
+
                 drainSendQueue()
             }
 
@@ -991,6 +1213,7 @@ final class BLEManager: NSObject, ObservableObject {
              Don't silently retain messages from an old connection.
              */
             pendingMessages.removeAll()
+
             return
         }
 
@@ -1008,15 +1231,19 @@ final class BLEManager: NSObject, ObservableObject {
 
         let base64Payload =
             payload
-            .data(using: .utf8)?
-            .base64EncodedString() ?? ""
+                .data(using: .utf8)?
+                .base64EncodedString() ?? ""
 
         let jsCommand =
             "\u{10}require('bluewatch').receive(atob('\(base64Payload)'));\n"
 
-        guard let fullData = jsCommand.data(using: .utf8) else {
+        guard let fullData =
+                jsCommand.data(using: .utf8) else {
+
             sendBusy = false
+
             drainSendQueue()
+
             return
         }
 
@@ -1035,10 +1262,11 @@ final class BLEManager: NSObject, ObservableObject {
 
         while offset < fullData.count {
 
-            let length = min(
-                chunkSize,
-                fullData.count - offset
-            )
+            let length =
+                min(
+                    chunkSize,
+                    fullData.count - offset
+                )
 
             pendingChunks.append(
                 fullData.subdata(
@@ -1085,7 +1313,9 @@ final class BLEManager: NSObject, ObservableObject {
         while !writeQueue.isEmpty {
 
             guard p.canSendWriteWithoutResponse else {
+
                 writeBusy = true
+
                 return
             }
 
@@ -1118,10 +1348,12 @@ final class BLEManager: NSObject, ObservableObject {
             guard let self else { return }
 
             guard self.started else {
+
                 self.wbReject(
                     id: id,
                     error: "Bluetooth is not started"
                 )
+
                 return
             }
 
@@ -1132,54 +1364,68 @@ final class BLEManager: NSObject, ObservableObject {
             switch method {
 
             case "requestDevice":
-                self.wbRequestDevice(id: id)
+
+                self.wbRequestDevice(
+                    id: id
+                )
 
             case "gattConnect":
+
                 self.wbGattConnect(
                     id: id,
                     args: args
                 )
 
             case "gattDisconnect":
-                self.wbGattDisconnect(id: id)
+
+                self.wbGattDisconnect(
+                    id: id
+                )
 
             case "getPrimaryService":
+
                 self.wbGetPrimaryService(
                     id: id,
                     args: args
                 )
 
             case "getCharacteristic":
+
                 self.wbGetCharacteristic(
                     id: id,
                     args: args
                 )
 
             case "startNotifications":
+
                 self.wbStartNotifications(
                     id: id,
                     args: args
                 )
 
             case "stopNotifications":
+
                 self.wbStopNotifications(
                     id: id,
                     args: args
                 )
 
             case "readValue":
+
                 self.wbReadValue(
                     id: id,
                     args: args
                 )
 
             case "writeValue":
+
                 self.wbWriteValue(
                     id: id,
                     args: args
                 )
 
             default:
+
                 self.wbReject(
                     id: id,
                     error: "Unknown method: \(method)"
@@ -1191,10 +1437,12 @@ final class BLEManager: NSObject, ObservableObject {
     private func wbRequestDevice(id: Int) {
 
         guard started else {
+
             wbReject(
                 id: id,
                 error: "Bluetooth is not started"
             )
+
             return
         }
 
@@ -1212,8 +1460,11 @@ final class BLEManager: NSObject, ObservableObject {
            setupComplete,
            notificationsReady {
 
-            let deviceId = p.identifier.uuidString
-            let name = p.name ?? "Bangle.js"
+            let deviceId =
+                p.identifier.uuidString
+
+            let name =
+                p.name ?? "Bangle.js"
 
             logger.log(
                 "[WB] requestDevice → \(name)"
@@ -1228,6 +1479,7 @@ final class BLEManager: NSObject, ObservableObject {
                     guard let self else { return }
 
                     self.bleQueue.async {
+
                         self.wbResolve(
                             id: id,
                             result: [
@@ -1246,6 +1498,7 @@ final class BLEManager: NSObject, ObservableObject {
             )
 
             DispatchQueue.main.async { [weak self] in
+
                 self?.webView?.evaluateJavaScript(
                     "window.__bluetoothResetSession && window.__bluetoothResetSession()"
                 )
@@ -1254,6 +1507,7 @@ final class BLEManager: NSObject, ObservableObject {
             pendingRequestDevice = id
 
             if !bleConnected {
+
                 connectOnBLEQueue()
             }
         }
@@ -1289,6 +1543,7 @@ final class BLEManager: NSObject, ObservableObject {
     private func wbGattDisconnect(id: Int) {
 
         activeWebNotifications.removeAll()
+
         writeQueue.removeAll()
         writeBusy = false
 
@@ -1321,8 +1576,11 @@ final class BLEManager: NSObject, ObservableObject {
 
         if let service =
             p.services?.first(where: {
+
                 $0.uuid.uuidString
-                    .caseInsensitiveCompare(requestedUUID)
+                    .caseInsensitiveCompare(
+                        requestedUUID
+                    )
                     == .orderedSame
             }) {
 
@@ -1377,8 +1635,11 @@ final class BLEManager: NSObject, ObservableObject {
 
         if let char =
             service.characteristics?.first(where: {
+
                 $0.uuid.uuidString
-                    .caseInsensitiveCompare(requestedUUID)
+                    .caseInsensitiveCompare(
+                        requestedUUID
+                    )
                     == .orderedSame
             }) {
 
@@ -1459,7 +1720,9 @@ final class BLEManager: NSObject, ObservableObject {
         if let charId =
             args["charId"] as? String {
 
-            activeWebNotifications.remove(charId)
+            activeWebNotifications.remove(
+                charId
+            )
         }
 
         wbResolve(
@@ -1513,11 +1776,12 @@ final class BLEManager: NSObject, ObservableObject {
             return
         }
 
-        let data = Data(
-            values.map {
-                UInt8(clamping: $0)
-            }
-        )
+        let data =
+            Data(
+                values.map {
+                    UInt8(clamping: $0)
+                }
+            )
 
         if char.properties.contains(
             .writeWithoutResponse
@@ -1560,6 +1824,7 @@ final class BLEManager: NSObject, ObservableObject {
                     data: json,
                     encoding: .utf8
                 ) else {
+
             return
         }
 
@@ -1578,14 +1843,14 @@ final class BLEManager: NSObject, ObservableObject {
 
         let safe =
             error
-            .replacingOccurrences(
-                of: "\\",
-                with: "\\\\"
-            )
-            .replacingOccurrences(
-                of: "\"",
-                with: "'"
-            )
+                .replacingOccurrences(
+                    of: "\\",
+                    with: "\\\\"
+                )
+                .replacingOccurrences(
+                    of: "\"",
+                    with: "'"
+                )
 
         DispatchQueue.main.async { [weak self] in
 
@@ -1600,9 +1865,10 @@ final class BLEManager: NSObject, ObservableObject {
         bytes: [UInt8]
     ) {
 
-        let arr = bytes.map {
-            Int($0)
-        }
+        let arr =
+            bytes.map {
+                Int($0)
+            }
 
         guard let json =
                 try? JSONSerialization.data(
@@ -1613,14 +1879,18 @@ final class BLEManager: NSObject, ObservableObject {
                     data: json,
                     encoding: .utf8
                 ) else {
+
             return
         }
 
         let preview =
             String(
                 bytes.prefix(8).compactMap {
+
                     $0 >= 32 && $0 < 127
-                    ? Character(UnicodeScalar($0))
+                    ? Character(
+                        UnicodeScalar($0)
+                    )
                     : nil
                 }
             )
@@ -1650,20 +1920,47 @@ extension BLEManager: CBCentralManagerDelegate {
 
         case .poweredOn:
 
-            logger.log("[BLE] Bluetooth powered on")
+            logger.log(
+                "[BLE] Bluetooth powered on"
+            )
 
+            guard started,
+                  shouldAttemptConnect else {
+
+                publishStatus("Ready")
+                return
+            }
+
+            /*
+             RESTORATION PATH
+
+             If iOS restored a peripheral while the app was suspended,
+             finish its GATT setup now that CoreBluetooth is actually
+             powered on.
+             */
+            if restoredPeripheralPendingSetup != nil {
+
+                handlePendingRestorationOnPoweredOn()
+
+                return
+            }
+
+            /*
+             NORMAL STARTUP / RECONNECT PATH
+             */
             publishStatus("Ready")
 
-            if started,
-               shouldAttemptConnect,
-               !bleConnected {
+            if !bleConnected,
+               !connectionInProgress {
 
                 connectOnBLEQueue()
             }
 
         case .poweredOff:
 
-            logger.log("[BLE] Bluetooth powered off")
+            logger.log(
+                "[BLE] Bluetooth powered off"
+            )
 
             invalidateConnectionState(
                 reason: "Bluetooth powered off"
@@ -1682,7 +1979,9 @@ extension BLEManager: CBCentralManagerDelegate {
 
         case .resetting:
 
-            logger.log("[BLE] Bluetooth resetting")
+            logger.log(
+                "[BLE] Bluetooth resetting"
+            )
 
             invalidateConnectionState(
                 reason: "Bluetooth resetting"
@@ -1694,19 +1993,27 @@ extension BLEManager: CBCentralManagerDelegate {
 
         case .unauthorized:
 
-            publishStatus("Bluetooth Unauthorized")
+            publishStatus(
+                "Bluetooth Unauthorized"
+            )
 
         case .unsupported:
 
-            publishStatus("Bluetooth Unsupported")
+            publishStatus(
+                "Bluetooth Unsupported"
+            )
 
         case .unknown:
 
-            publishStatus("Bluetooth Unknown")
+            publishStatus(
+                "Waiting for Bluetooth..."
+            )
 
         @unknown default:
 
-            publishStatus("Bluetooth Unknown")
+            publishStatus(
+                "Bluetooth Unknown"
+            )
         }
     }
 
@@ -1727,9 +2034,11 @@ extension BLEManager: CBCentralManagerDelegate {
             guard UserDefaults.standard.bool(
                 forKey: autoStartKey
             ) else {
+
                 logger.log(
                     "[BLE] Restoration ignored — auto-start disabled"
                 )
+
                 return
             }
 
@@ -1765,49 +2074,35 @@ extension BLEManager: CBCentralManagerDelegate {
             "[BLE] Restored peripheral \(restored.identifier), state=\(restored.state.rawValue)"
         )
 
-        publishStatus("Restoring...")
+        publishStatus(
+            "Restoring..."
+        )
 
-        if restored.state == .connected {
+        /*
+         IMPORTANT:
 
-            /*
-             iOS says the peripheral is connected,
-             but our GATT setup is not necessarily valid.
+         Do NOT perform GATT operations here.
 
-             Therefore rebuild the setup path.
-             */
-            bleConnected = true
-            connectionInProgress = false
-            setupComplete = false
-            notificationsReady = false
+         CBCentralManager may still be initializing.
 
-            publishConnectionState(true)
+         We simply save the restored peripheral and allow
+         centralManagerDidUpdateState(.poweredOn) to continue.
+         */
+        restoredPeripheralPendingSetup = restored
 
-            beginSetupBackgroundTask()
+        bleConnected = false
+        connectionInProgress = false
 
-            startSetupWatchdog(
-                generation: connectionGeneration,
-                peripheral: restored
-            )
+        setupComplete = false
+        notificationsReady = false
 
-            restored.discoverServices(
-                [serviceUUID]
-            )
+        handshakeState = false
+        handshakingState = false
+        handshakeAttempts = 0
 
-        } else {
-
-            bleConnected = false
-            connectionInProgress = true
-
-            central.connect(
-                restored,
-                options: [
-                    CBConnectPeripheralOptionNotifyOnConnectionKey: true,
-                    CBConnectPeripheralOptionNotifyOnDisconnectionKey: true,
-                    CBConnectPeripheralOptionNotifyOnNotificationKey: true,
-                    CBConnectPeripheralOptionStartDelayKey: 0
-                ]
-            )
-        }
+        logger.log(
+            "[BLE] Restored peripheral saved — waiting for Bluetooth power"
+        )
     }
 
     func centralManager(
@@ -1849,9 +2144,13 @@ extension BLEManager: CBCentralManagerDelegate {
          */
         connectionGeneration = UUID()
 
-        let generation = connectionGeneration
+        let generation =
+            connectionGeneration
+
+        restoredPeripheralPendingSetup = nil
 
         self.peripheral = peripheral
+
         peripheral.delegate = self
 
         connectionInProgress = false
@@ -1882,6 +2181,11 @@ extension BLEManager: CBCentralManagerDelegate {
         wbServices.removeAll()
         wbCharacteristics.removeAll()
 
+        pendingServices.removeAll()
+        pendingChars.removeAll()
+        pendingReads.removeAll()
+        pendingNotify.removeAll()
+
         writeQueue.removeAll()
         writeBusy = false
 
@@ -1890,12 +2194,15 @@ extension BLEManager: CBCentralManagerDelegate {
         )
 
         publishConnectionState(true)
+
         publishHandshakeState(
             successful: false,
             handshaking: false
         )
 
-        publishStatus("Setting up...")
+        publishStatus(
+            "Setting up Bluetooth..."
+        )
 
         beginSetupBackgroundTask()
 
@@ -1939,7 +2246,9 @@ extension BLEManager: CBCentralManagerDelegate {
             handshaking: false
         )
 
-        publishStatus("Connection Failed")
+        publishStatus(
+            "Connection Failed"
+        )
 
         if let id = pendingRequestDevice {
 
@@ -2013,7 +2322,8 @@ extension BLEManager: CBCentralManagerDelegate {
         )
 
         LocalData.shared.battery = "--"
-        DispatchQueue.main.async{
+
+        DispatchQueue.main.async {
             LocationManager.shared.stopGPSForwarding()
         }
 
@@ -2040,6 +2350,27 @@ extension BLEManager: CBCentralManagerDelegate {
         logger.log(
             "[BLE] Re-issuing persistent connect request"
         )
+
+        /*
+         If Bluetooth is not currently powered on, don't issue
+         the command yet.
+
+         centralManagerDidUpdateState(.poweredOn) will handle it.
+         */
+        guard central.state == .poweredOn else {
+
+            connectionInProgress = false
+
+            logger.log(
+                "[BLE] Bluetooth not powered on — waiting for poweredOn before reconnect"
+            )
+
+            publishStatus(
+                "Waiting for Bluetooth..."
+            )
+
+            return
+        }
 
         central.connect(
             peripheral,
@@ -2100,15 +2431,19 @@ extension BLEManager: CBPeripheralDelegate {
 
             if let service =
                 services.first(where: {
+
                     $0.uuid.uuidString
-                        .caseInsensitiveCompare(entry.uuid)
+                        .caseInsensitiveCompare(
+                            entry.uuid
+                        )
                         == .orderedSame
                 }) {
 
                 let serviceId =
                     service.uuid.uuidString
 
-                wbServices[serviceId] = service
+                wbServices[serviceId] =
+                    service
 
                 wbResolve(
                     id: entry.callId,
@@ -2215,15 +2550,19 @@ extension BLEManager: CBPeripheralDelegate {
 
             if let char =
                 service.characteristics?.first(where: {
+
                     $0.uuid.uuidString
-                        .caseInsensitiveCompare(entry.uuid)
+                        .caseInsensitiveCompare(
+                            entry.uuid
+                        )
                         == .orderedSame
                 }) {
 
                 let charId =
                     char.uuid.uuidString
 
-                wbCharacteristics[charId] = char
+                wbCharacteristics[charId] =
+                    char
 
                 wbResolve(
                     id: entry.callId,
@@ -2265,7 +2604,9 @@ extension BLEManager: CBPeripheralDelegate {
 
             if characteristic.uuid == txUUID {
 
-                writeCharacteristic = characteristic
+                writeCharacteristic =
+                    characteristic
+
                 foundTX = true
 
                 logger.log(
@@ -2320,7 +2661,7 @@ extension BLEManager: CBPeripheralDelegate {
              RX found
              +
              notifications actually enabled
-        */
+         */
         if foundTX && foundRX {
 
             logger.log(
@@ -2442,12 +2783,16 @@ extension BLEManager: CBPeripheralDelegate {
             )
         }
 
-        endSetupBackgroundTask()
-
         /*
-         Start a completely fresh handshake for this connection generation.
+         Start handshake BEFORE ending the temporary background
+         execution window.
+
+         This gives the initial handshake its best opportunity to
+         run when restoration happened in the background.
          */
         beginHandshakeOnBLEQueue()
+
+        endSetupBackgroundTask()
     }
 
     func peripheral(
@@ -2629,25 +2974,35 @@ extension BLEManager: CBPeripheralDelegate {
                 didCompleteHandshakeOnBLEQueue()
             }
 
-            publishLastMessage(payload)
+            publishLastMessage(
+                payload
+            )
 
             /*
              CommandInterpreter is existing application logic.
-             It is kept on the BLE queue to preserve ordering with received data.
+             It is kept on the BLE queue to preserve ordering with
+             received data.
              */
-            if let payloadData = payload.data(using: .utf8),
-               let json = try? JSONSerialization.jsonObject(
+            if let payloadData =
+                payload.data(using: .utf8),
+               let json =
+                try? JSONSerialization.jsonObject(
                     with: payloadData
-               ) as? [String: Any] {
+                ) as? [String: Any] {
 
                 logger.log(
                     "[Receive] registered as JSON: \(payload, privacy: .public)"
                 )
 
                 DispatchQueue.main.async { [weak self] in
-                    guard let self else { return }
 
-                    self.commandInterpreter.handleJSON(json)
+                    guard let self else {
+                        return
+                    }
+
+                    self.commandInterpreter.handleJSON(
+                        json
+                    )
                 }
 
             } else {
@@ -2657,7 +3012,10 @@ extension BLEManager: CBPeripheralDelegate {
                 )
 
                 DispatchQueue.main.async { [weak self] in
-                    guard let self else { return }
+
+                    guard let self else {
+                        return
+                    }
 
                     self.commandInterpreter.handleCommand(
                         command: payload
@@ -2693,11 +3051,16 @@ extension BLEManager: CBPeripheralDelegate {
              don't leave the send system permanently locked.
              */
             if bleConnected {
+
                 drainSendQueue()
             }
 
             return
         }
+
+        logger.log(
+            "[BLE] Write success"
+        )
 
         writeInProgress = false
 
