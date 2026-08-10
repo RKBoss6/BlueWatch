@@ -18,8 +18,6 @@ class CommandInterpreter {
         switch command {
         case "Start Polling GPS":
             LocationManager.shared.startGPSForwarding()
-        case "Handshake Successful":
-            ble?.didCompleteHandshake()
         case "Stop Polling GPS":
             LocationManager.shared.stopGPSForwarding()
         case "FindPhone":

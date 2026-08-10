@@ -2,12 +2,36 @@ import SwiftUI
 import HealthKit
 import BackgroundTasks
 import SwiftData
+import CoreLocation
+import HealthKit
+import UserNotifications
 
 @main
 struct BlueWatchApp: App {
     // Use the singleton we defined
     @StateObject private var bleManager = BLEManager.instance
+
+    static func checkNotificationPermissions() async -> Bool {
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        return settings.authorizationStatus == .authorized ||
+               settings.authorizationStatus == .provisional
+    }
     
+    static func hasHealthKitPermissions() -> Bool {
+        if HKHealthStore.isHealthDataAvailable(),
+           let stepType = HKQuantityType.quantityType(forIdentifier: .stepCount) {
+            let healthStatus = HKHealthStore().authorizationStatus(for: stepType)
+            // .sharingAuthorized means you have permission to WRITE/SHARE data
+           return (healthStatus == .sharingAuthorized)
+        } else {
+            return false
+        }
+    }
+
+    static var hasLocationPermissions: Bool {
+        let status = CLLocationManager().authorizationStatus
+        return status == .authorizedWhenInUse || status == .authorizedAlways
+    }
     // ID must match Info.plist "Permitted background task scheduler identifiers"
     static let weatherTaskID = "com.rk.bluewatch.weatherRefresh"
     
