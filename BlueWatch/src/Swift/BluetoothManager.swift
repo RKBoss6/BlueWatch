@@ -525,6 +525,8 @@ final class BLEManager: NSObject, ObservableObject {
         central.connect(
             p,
             options: [
+                // Ask CoreBluetooth to maintain this reconnect request across long background periods.
+                CBConnectPeripheralOptionEnableAutoReconnect: true,
                 CBConnectPeripheralOptionNotifyOnConnectionKey: true,
                 CBConnectPeripheralOptionNotifyOnDisconnectionKey: true,
                 CBConnectPeripheralOptionNotifyOnNotificationKey: true,
@@ -2282,9 +2284,9 @@ extension BLEManager: CBCentralManagerDelegate {
         }
     }
 
-    func centralManager(
-        _ central: CBCentralManager,
-        didDisconnectPeripheral peripheral: CBPeripheral,
+    private func handleDisconnect(
+        peripheral: CBPeripheral,
+        isReconnecting: Bool,
         error: Error?
     ) {
 
@@ -2297,7 +2299,7 @@ extension BLEManager: CBCentralManagerDelegate {
          starting another connection.
          */
         logger.log(
-            "[BLE] Disconnected: \(error?.localizedDescription ?? "normal")"
+            "[BLE] Disconnected: \(error?.localizedDescription ?? "normal") isReconnecting=\(isReconnecting)"
         )
 
         let shouldReconnect =
@@ -2345,6 +2347,15 @@ extension BLEManager: CBCentralManagerDelegate {
          */
         self.peripheral = peripheral
 
+        guard !isReconnecting else {
+
+            logger.log(
+                "[BLE] System is already auto-reconnecting — skipping manual connect"
+            )
+
+            return
+        }
+
         connectionInProgress = true
 
         logger.log(
@@ -2375,10 +2386,38 @@ extension BLEManager: CBCentralManagerDelegate {
         central.connect(
             peripheral,
             options: [
+                // Ask CoreBluetooth to maintain the reconnect request across long background periods.
+                CBConnectPeripheralOptionEnableAutoReconnect: true,
                 CBConnectPeripheralOptionNotifyOnConnectionKey: true,
                 CBConnectPeripheralOptionNotifyOnDisconnectionKey: true,
                 CBConnectPeripheralOptionNotifyOnNotificationKey: true
             ]
+        )
+    }
+
+    func centralManager(
+        _ central: CBCentralManager,
+        didDisconnectPeripheral peripheral: CBPeripheral,
+        timestamp: CFAbsoluteTime,
+        isReconnecting: Bool,
+        error: Error?
+    ) {
+        handleDisconnect(
+            peripheral: peripheral,
+            isReconnecting: isReconnecting,
+            error: error
+        )
+    }
+
+    func centralManager(
+        _ central: CBCentralManager,
+        didDisconnectPeripheral peripheral: CBPeripheral,
+        error: Error?
+    ) {
+        handleDisconnect(
+            peripheral: peripheral,
+            isReconnecting: false,
+            error: error
         )
     }
 }
