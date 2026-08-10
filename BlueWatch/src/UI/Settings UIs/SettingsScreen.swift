@@ -46,7 +46,6 @@ struct WatchSettingsScreen: View {
                     }
                     .padding()
                     .liquidGlass(cornerRadius: 24)
-                    .frame(width:.infinity,height: .infinity)
                     .ignoresSafeArea(.all)
                     .listRowInsets(EdgeInsets())
                 }
@@ -247,7 +246,7 @@ struct WatchSettingsScreen: View {
 
 #Preview {
     NavigationStack{
-        MoreScreen()
+        WatchSettingsScreen()
     }
 }
 
