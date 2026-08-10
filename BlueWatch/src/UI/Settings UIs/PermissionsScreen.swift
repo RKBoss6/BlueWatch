@@ -7,9 +7,65 @@
 
 import SwiftUI
 struct PermissionsScreen :View {
+    var hasNotifications = 
     var body: some View{
         VStack{
             Spacer()
+            Section{
+                VStack(spacing: 16) {
+                        Text("Has Health Permissions")
+                            .frame(maxWidth:.infinity)
+                    
+                
+                }
+                .padding()
+                .liquidGlass(cornerRadius: 24, backgroundColor: BlueWatchApp.hasHealthKitPermissions() ? .green : .red)
+
+                .ignoresSafeArea(.all)
+                .listRowInsets(EdgeInsets())
+                
+            
+            }
+            .listRowBackground(Color.clear)
+            .padding(.leading)
+            .padding(.trailing)
+
+            Section{
+                VStack(spacing: 16) {
+                        Text("Has Notification Permissions")
+                            .frame(maxWidth:.infinity)
+                    
+                
+                }
+                .padding()
+                .liquidGlass(cornerRadius: 24, backgroundColor: BlueWatchApp.checkNotificationPermissions() ? .green : .red)
+
+                .ignoresSafeArea(.all)
+                .listRowInsets(EdgeInsets())
+                
+            
+            }
+            .listRowBackground(Color.clear)
+            .padding(.leading)
+            .padding(.trailing)
+            Section{
+                VStack(spacing: 16) {
+                        Text("Has Health Permissions")
+                            .frame(maxWidth:.infinity)
+                    
+                
+                }
+                .padding()
+                .liquidGlass(cornerRadius: 24, backgroundColor: .red)
+
+                .ignoresSafeArea(.all)
+                .listRowInsets(EdgeInsets())
+                
+            
+            }
+            .listRowBackground(Color.clear)
+            .padding(.leading)
+            .padding(.trailing)
             Section{
                 VStack(spacing: 16) {
                     Button{
@@ -51,7 +107,6 @@ struct PermissionsScreen :View {
             }
             .listRowBackground(Color.clear)
             .padding()
-            Spacer()
             Spacer()
         }
         .appBackground()
