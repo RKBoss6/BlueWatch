@@ -7,7 +7,6 @@
 
 import SwiftUI
 
-#warning("Make sure you change the BlueWatch bangle.js version before upload!!!")
 struct MoreScreen: View {
     @Environment(\.openURL) var openURL
     @StateObject var settings: Settings = Settings.instance
@@ -78,11 +77,12 @@ struct MoreScreen: View {
                 }
                 
                 .listRowBackground(Color.clear)
+                #warning("Make sure you change the BlueWatch bangle.js version before upload!!!")
                 Section {
                     HStack {
                         Text("Needs Bangle.js BlueWatch version:")
                         Spacer()
-                        Text("v0.03")
+                        Text("v0.04")
                             .bold()
                     }
                     
