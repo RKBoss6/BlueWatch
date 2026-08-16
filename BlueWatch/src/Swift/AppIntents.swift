@@ -95,7 +95,7 @@ struct ShortcutsProvider: AppShortcutsProvider {
 
             ],
             shortTitle: "Push Weather",
-            systemImageName: "cloud.sun.rain"
+            systemImageName: "cloud.sun.rain.fill"
         )
         AppShortcut(
             intent: SendLocationIntent(),
