@@ -259,32 +259,56 @@ struct WatchScreen: View {
                 }
                 DataChart(dataType: isPreview ? .test : .battery, color: .graphGreen)
                     .padding(.bottom,70)
-                /*
-                Divider()
-                    .background(.primary)
-                
-                NavigationLink{
-                    ExpandedMetricView(title: "Calories", dataType: isPreview ? .test : .calories, color: .graphOrange)
-                }label:{
-                    HStack{
-                        Text("Calories")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity,alignment: .leading)
-                            .padding(.leading,10)
-                            .bold()
-                            .tint(.primary)
-                            .frame(maxWidth: .infinity)
-                        Spacer()
-                        Image(systemName: "arrowshape.right")
-                            .bold()
-                            .font(.title3)
-                            .tint(.graphOrange)
+                if(true){
+                    Divider()
+                        .background(.primary)
+                    
+                    NavigationLink{
+                        ExpandedMetricView(title: "Active Calories", dataType: isPreview ? .test : .activeCalories, color: .graphOrange)
+                    }label:{
+                        HStack{
+                            Text("Active Calories")
+                                .font(.headline)
+                                .frame(maxWidth: .infinity,alignment: .leading)
+                                .padding(.leading,10)
+                                .bold()
+                                .tint(.primary)
+                                .frame(maxWidth: .infinity)
+                            Spacer()
+                            Image(systemName: "arrowshape.right")
+                                .bold()
+                                .font(.title3)
+                                .tint(.graphOrange)
+                        }
                     }
+                    DataChart(dataType: isPreview ? .test : .activeCalories, color: .graphOrange)
+                        .padding(.bottom,70)
+                    
+                    Divider()
+                        .background(.primary)
+                    
+                    NavigationLink{
+                        ExpandedMetricView(title: "Resting (BMR) Calories", dataType: isPreview ? .test : .activeCalories, color: .graphBlue)
+                    }label:{
+                        HStack{
+                            Text("Resting Calories")
+                                .font(.headline)
+                                .frame(maxWidth: .infinity,alignment: .leading)
+                                .padding(.leading,10)
+                                .bold()
+                                .tint(.primary)
+                                .frame(maxWidth: .infinity)
+                            Spacer()
+                            Image(systemName: "arrowshape.right")
+                                .bold()
+                                .font(.title3)
+                                .tint(.graphBlue)
+                        }
+                    }
+                    DataChart(dataType: isPreview ? .test : .activeCalories, color: .graphBlue)
+                        .padding(.bottom,70)
+                    
                 }
-                DataChart(dataType: isPreview ? .test : .calories, color: .graphOrange)
-                    .padding(.bottom,70)
-                
-                */
                 
                 
                 

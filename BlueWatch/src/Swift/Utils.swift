@@ -37,7 +37,7 @@ enum Utils{
             return " bpm"
         case .steps:
             return " steps"
-        case .calories:
+        case .activeCalories, .restingCalories:
             return " kcal"
         case .battery:
             return "%"
@@ -69,7 +69,8 @@ enum DataType: String, Codable {
     case heartRate
     case battery
     case test
-    case calories
+    case activeCalories
+    case restingCalories
     case bluetoothBoundary
 }
 private struct IsPreviewKey: EnvironmentKey {
@@ -165,6 +166,26 @@ enum DataService {
             
             try? context.save()
         }
+    }
+    static func dataPointExists(for type: DataType) -> Bool {
+        let context = ModelContext(DataManager.sharedContainer)
+        let typeRawValue = type.rawValue
+        
+        // Predicate to match the type
+        let descriptor = FetchDescriptor<DataPoint>(
+            predicate: #Predicate<DataPoint> { $0.rawType == typeRawValue }
+        )
+        
+        // Optimize: limit to 1 and remove sorting for speed
+        var limitedDescriptor = descriptor
+        limitedDescriptor.fetchLimit = 1
+        
+        // Check if count is greater than 0
+        if let count = try? context.fetchCount(limitedDescriptor) {
+            return count > 0
+        }
+        
+        return false
     }
 }
 
