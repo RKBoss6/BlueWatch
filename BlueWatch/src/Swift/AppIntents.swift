@@ -10,38 +10,51 @@ import SwiftUI
 import AppIntents
 
 struct SendMessageIntent: AppIntent {
-    // The name displayed in the Shortcuts app
     static var title: LocalizedStringResource = "Send Message"
-    
-    // Optional description for context
-    static var description = IntentDescription("Sends a message to your connected watch")
-
-    // Controls if the intent forces the main app to open in the foreground
+        
+    static var description = IntentDescription("Sends a string to your connected watch")
     static var openAppWhenRun: Bool = false
-    @Parameter(title: "Message", default: "")
-    var message: String
-    static var parameterSummary: some ParameterSummary {
-        Summary("Send Message \(\.$message)")
-    }
-    // Required blank initializer
-    init() {}
 
+    @Parameter(
+        title: "Message",
+    )
+    var message: String
+
+    static var parameterSummary: some ParameterSummary {
+        Summary("Send \(\.$message) to my watch")
+    }
+
+    init() {}
     init(message: String) {
         self.message = message
     }
-    // The execution block
-    func perform() async throws -> some IntentResult {
-        // Execute background logic here (e.g., save to Database/CoreData)
-        BLEManager.instance.send( message )
-        
-        // Return a successful result status
-        return .result()
+
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        if(BLEManager.instance.isConnected){
+            BLEManager.instance.send(message)
+            return .result(dialog: "Successfully Sent")
+        }
+        return .result(dialog: "Watch Not Connected")
     }
 }
+struct IsConnectedIntent: AppIntent {
+    // The name displayed in the Shortcuts app
+    static var title: LocalizedStringResource = "Get Watch Connection"
+    
+    // Optional description for context
+    static var description = IntentDescription("Checks if watch connected, and returns the value",resultValueName: "Watch Connected?")
 
+    // Controls if the intent forces the main app to open in the foreground
+    static var openAppWhenRun: Bool = false
+    
+    func perform() async throws -> some IntentResult & ReturnsValue<Bool>  {
+        return .result(value:BLEManager.instance.isConnected)
+        
+    }
+} 
 struct SendWeatherIntent: AppIntent {
     // The name displayed in the Shortcuts app
-    static var title: LocalizedStringResource = "Push Weather"
+    static var title: LocalizedStringResource = "Send Weather"
     
     // Optional description for context
     static var description = IntentDescription("Sends the latest weather to your watch if within rate-limits")
@@ -50,15 +63,18 @@ struct SendWeatherIntent: AppIntent {
     static var openAppWhenRun: Bool = false
     
     func perform() async throws -> some IntentResult {
+        if(BLEManager.instance.isConnected){
+            await WeatherManager.shared.updateWeatherAndSend()
+            return .result(dialog: "Successfully Sent")
+        }
+        return .result(dialog: "Watch Not Connected")
         // Execute background logic here (e.g., save to Database/CoreData)
-        await WeatherManager.shared.updateWeatherAndSend()
         
-        return .result()
     }
 }
 struct SendLocationIntent: AppIntent {
     // The name displayed in the Shortcuts app
-    static var title: LocalizedStringResource = "Push Location"
+    static var title: LocalizedStringResource = "Send Location"
     
     // Optional description for context
     static var description = IntentDescription("Sends your location to your watch's 'mylocation.json'")
@@ -68,11 +84,17 @@ struct SendLocationIntent: AppIntent {
     
     func perform() async throws -> some IntentResult {
         // Execute background logic here (e.g., save to Database/CoreData)
-        await LocationManager.shared.sendLocation()
-        return .result()
+        if(BLEManager.instance.isConnected){
+            await LocationManager.shared.sendLocation()
+            return .result(dialog: "Successfully Sent")
+
+            
+        }
+        return .result(dialog: "Watch Not Connected")
+        
     }
 }
-
+/*
 struct ShortcutsProvider: AppShortcutsProvider {
     static var shortcutTileColor: ShortcutTileColor = .grayBlue
     @AppShortcutsBuilder
@@ -80,9 +102,11 @@ struct ShortcutsProvider: AppShortcutsProvider {
         AppShortcut(
             intent: SendMessageIntent(),
             phrases: [
-                "send message to my watch through \(.applicationName)",
+                "send text to my watch through \(.applicationName)",
+                "send text to my watch using \(.applicationName)",
+                "use \(.applicationName) to send text to my watch",
             ],
-            shortTitle: "Send Message",
+            shortTitle: "Send Text",
             systemImageName: "applewatch.radiowaves.left.and.right"
         )
         AppShortcut(
@@ -109,3 +133,4 @@ struct ShortcutsProvider: AppShortcutsProvider {
         )
     }
 }
+*/
