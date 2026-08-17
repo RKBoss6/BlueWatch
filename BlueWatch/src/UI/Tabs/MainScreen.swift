@@ -9,6 +9,7 @@ import SwiftUI
 
 
 struct WatchScreen: View {
+    @Environment(\.colorScheme) var colorScheme
     @Environment(\.isPreview) var isPreview
     @Environment(\.modelContext) private var modelContext
     var vm:ViewModel=ViewModel.instance
@@ -58,179 +59,200 @@ struct WatchScreen: View {
         return text
     }
     var body: some View {
-        ScrollView{
-            VStack(spacing: 20) {
-                
-                Image(vm.savedDevice=="Bangle.js 2" ? "BangleJS2" : "BangleJS1" )
-                    .resizable()
-                    .frame(width: 200,height: 200)
-                    .padding(.top,50)
-                HStack{
-                    Text(settings.deviceName.isEmpty==false ? settings.deviceName : vm.savedDevice)
-                        .font(.title)
-                        .fontWeight(.bold)
+        ZStack{
+            ScrollView{
+                LazyVStack(spacing: 20) {
                     Spacer()
-                    Image(systemName:getBattImg(battStr: ld.battery))
-                    Text(ld.battery+"%")
-                }
-                .padding()
-                
-                /*
-                 Text("Last message:")
-                 .font(.caption)
-                 
-                 Text(bleManager.lastMessage)
-                 .padding()
-                 .frame(maxWidth: .infinity)
-                 .background(Color.gray.opacity(0.1))
-                 .cornerRadius(8)
-                 */
-                HStack {
-                    Text(bleManager.status)
-                        .foregroundColor(bleManager.isConnected ? .green : .orange)
-                    Spacer()
-                    
-                    Button(getConnectButtonText()) {
-                        
-                        if(bleManager.isConnected){
-                            if(bleManager.handshakeSuccessful){
-                                bleManager.stop(destructive: true)
-                            }else{
-                                // Always force a fresh attempt. isHandshaking may
-                                // already be true from a stranded retry (see
-                                // startHandshake's doc comment) — that's precisely
-                                // the case this button needs to be able to fix.
-                                bleManager.startHandshake(force: true)
-                            }
-                        }else{
-                            bleManager.start()
-                            bleManager.connect()
-                        }
-                        
+                        .padding()
+                    Image(vm.savedDevice=="Bangle.js 2" ? "BangleJS2" : "BangleJS1" )
+                        .resizable()
+                        .frame(width: 200,height: 200)
+                        .padding(.top,50)
+                    HStack{
+                        Text(settings.deviceName.isEmpty==false ? settings.deviceName : vm.savedDevice)
+                            .font(.title)
+                            .fontWeight(.bold)
+                        Spacer()
+                        Image(systemName:getBattImg(battStr: ld.battery))
+                        Text(ld.battery+"%")
                     }
-                    .buttonStyle(.borderedProminent)
-                    .buttonStyle(.bordered)
+                    .padding()
                     
-                    
-                }
-                .padding(.leading)
-                .padding(.trailing)
-                .padding(.top,-10)
-                Divider()
-                Spacer()
-                HStack{
-                    
-                    Button{
-                        if(findingPhone){
-                            findPhoneAlarm.stop()
+                    /*
+                     Text("Last message:")
+                     .font(.caption)
+                     
+                     Text(bleManager.lastMessage)
+                     .padding()
+                     .frame(maxWidth: .infinity)
+                     .background(Color.gray.opacity(0.1))
+                     .cornerRadius(8)
+                     */
+                    HStack {
+                        Text(bleManager.status)
+                            .foregroundColor(bleManager.isConnected ? .green : .orange)
+                        Spacer()
+                        
+                        Button(getConnectButtonText()) {
                             
-                        }else{
-                            findPhoneAlarm.start()
+                            if(bleManager.isConnected){
+                                if(bleManager.handshakeSuccessful){
+                                    bleManager.stop(destructive: true)
+                                }else{
+                                    // Always force a fresh attempt. isHandshaking may
+                                    // already be true from a stranded retry (see
+                                    // startHandshake's doc comment) — that's precisely
+                                    // the case this button needs to be able to fix.
+                                    bleManager.startHandshake(force: true)
+                                }
+                            }else{
+                                bleManager.start()
+                                bleManager.connect()
+                            }
+                            
                         }
-                        findingPhone = !findingPhone
-
-                        
-                    }label:{
-                        Text(findingPhone ? "Stop" : "Find Phone")
-                            .frame(maxWidth: .infinity)
-                            .padding(10)
+                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.bordered)
                         
                         
                     }
-                    .disabled(!isPreview && !bleManager.isConnected)
-                    .tint(findingPhone ? .orange : .accent)
+                    .padding(.leading)
+                    .padding(.trailing)
+                    .padding(.top,-10)
+                    Divider()
+                    Spacer()
+                    HStack{
+                        
+                        Button{
+                            if(findingPhone){
+                                findPhoneAlarm.stop()
+                                
+                            }else{
+                                findPhoneAlarm.start()
+                            }
+                            findingPhone = !findingPhone
+                            
+                            
+                        }label:{
+                            Text(findingPhone ? "Stop" : "Find Phone")
+                                .frame(maxWidth: .infinity)
+                                .padding(10)
+                            
+                            
+                        }
+                        .disabled(!isPreview && !bleManager.isConnected)
+                        .tint(findingPhone ? .orange : .accent)
+                        
+                        .buttonStyle(.borderedProminent)
+                        Button{
+                            if(findingWatch){
+                                bleManager.send("Stop Find Watch")
+                                findingWatch=false
+                            }else{
+                                bleManager.send("Find Watch")
+                                findingWatch=true
+                            }
+                            
+                        }label:{
+                            Text(findingWatch ? "Stop Finding" : "Find Watch")
+                                .frame(maxWidth: .infinity)
+                                .padding(10)
+                            
+                        }
+                        .disabled(!isPreview && !bleManager.isConnected)
+                        
+                        .buttonStyle(.borderedProminent)
+                        .tint(findingWatch ? .orange : .accent)
+                    }
+                    HStack{
+                        
+                        Button{
+                            Task {
+                                await WeatherManager.shared.updateWeatherAndSend()
+                            }
+                        }label:{
+                            Text("Push Weather")
+                                .frame(maxWidth: .infinity)
+                                .padding(10)
+                            
+                        }
+                        .disabled(!isPreview && !bleManager.isConnected)
+                        .buttonStyle(.borderedProminent)
+                        Button{
+                            Task {
+                                await LocationManager.shared.sendLocation()
+                            }
+                        }label:{
+                            Text("Push Location")
+                                .frame(maxWidth: .infinity)
+                                .padding(10)
+                            
+                        }
+                        .disabled(!isPreview && !bleManager.isConnected)
+                        .buttonStyle(.borderedProminent)
+                    }
+                    Spacer()
+                    Divider()
                     
-                    .buttonStyle(.borderedProminent)
-                    Button{
-                        if(findingWatch){
-                            bleManager.send("Stop Find Watch")
-                            findingWatch=false
-                        }else{
-                            bleManager.send("Find Watch")
-                            findingWatch=true
-                        }
-                        
-                    }label:{
-                        Text(findingWatch ? "Stop Finding" : "Find Watch")
-                            .frame(maxWidth: .infinity)
-                            .padding(10)
-                        
-                    }
-                    .disabled(!isPreview && !bleManager.isConnected)
+                    Text("Metrics")
+                        .font(.title3)
+                        .bold()
+                        .frame(maxWidth: .infinity,alignment: .leading)
+                        .padding(.leading,10)
                     
-                    .buttonStyle(.borderedProminent)
-                    .tint(findingWatch ? .orange : .accent)
-                }
-                HStack{
+                    GraphThumbnail(data:.heartRate, color: .graphRed,thumbnailName: "Heart Rate", expandedName: "Heart Rate")
                     
-                    Button{
-                        Task {
-                            await WeatherManager.shared.updateWeatherAndSend()
-                        }
-                    }label:{
-                        Text("Push Weather")
-                            .frame(maxWidth: .infinity)
-                            .padding(10)
+                    Divider()
+                        .background(.primary)
+                    
+                    GraphThumbnail(data:.steps, color: .graphPurple,thumbnailName: "Steps", expandedName: "Steps")
+                    
+                    Divider()
+                        .background(.primary)
+                    GraphThumbnail(data:.battery, color: .graphGreen,thumbnailName: "Battery", expandedName: "Battery")
+                    if(true){
+                        Divider()
+                            .background(.primary)
+                        
+                        GraphThumbnail(data:.activeCalories, color: .graphOrange,thumbnailName: "Active Calories", expandedName: "Active Calories")
+                        
+                        Divider()
+                            .background(.primary)
+                        
+                        GraphThumbnail(data:.restingCalories, color: .graphBlue,thumbnailName: "Resting Calories", expandedName: "Resting (BMR) Calories")
                         
                     }
-                    .disabled(!isPreview && !bleManager.isConnected)
-                    .buttonStyle(.borderedProminent)
-                    Button{
-                        Task {
-                            await LocationManager.shared.sendLocation()
-                        }
-                    }label:{
-                        Text("Push Location")
-                            .frame(maxWidth: .infinity)
-                            .padding(10)
-                        
-                    }
-                    .disabled(!isPreview && !bleManager.isConnected)
-                    .buttonStyle(.borderedProminent)
+                    
+                    
+                    
                 }
                 Spacer()
-                Divider()
-                
-                Text("Metrics")
-                    .font(.title3)
-                    .bold()
-                    .frame(maxWidth: .infinity,alignment: .leading)
-                    .padding(.leading,10)
-                
-                GraphThumbnail(data:.heartRate, color: .graphRed,thumbnailName: "Heart Rate", expandedName: "Heart Rate")
-                
-                Divider()
-                    .background(.primary)
-                
-                GraphThumbnail(data:.steps, color: .graphPurple,thumbnailName: "Steps", expandedName: "Steps")
-                
-                Divider()
-                    .background(.primary)
-                GraphThumbnail(data:.battery, color: .graphGreen,thumbnailName: "Battery", expandedName: "Battery")
-                if(true){
-                    Divider()
-                        .background(.primary)
-                    
-                    GraphThumbnail(data:.activeCalories, color: .graphOrange,thumbnailName: "Active Calories", expandedName: "Active Calories")
-                    
-                    Divider()
-                        .background(.primary)
-                    
-                    GraphThumbnail(data:.restingCalories, color: .graphBlue,thumbnailName: "Resting Calories", expandedName: "Resting (BMR) Calories")
-                    
-                }
-                
-                
                 
             }
-            Spacer()
+            .scrollIndicators(.hidden) // Hides indicators for this ScrollView
+            .ignoresSafeArea(.all)
             
+            .padding(.leading)
+            .padding(.trailing)
+            .padding(.bottom)
+            
+            .appBackground()
+            VStack{
+                Rectangle()
+                    .fill(.ultraThickMaterial)
+                    .frame(height:100)
+                    .overlay(.white.opacity(colorScheme == .dark ? 0.15 : 0))
+                    .mask(LinearGradient(
+                        gradient: Gradient(colors: [.black, .clear]),
+                        startPoint: .top,
+                        endPoint: .bottom
+                        )
+                    )
+                Spacer()
+            }
+            .ignoresSafeArea()
         }
-        .scrollIndicators(.hidden) // Hides indicators for this ScrollView
-
-            
-        .padding()
-        .appBackground()
+        
     }
 }
 

@@ -13,6 +13,7 @@ struct GraphThumbnail: View {
     let color: Color
     let thumbnailName: String
     let expandedName: String
+    
     var body: some View {
         VStack{
             NavigationLink{
@@ -33,8 +34,18 @@ struct GraphThumbnail: View {
                         .tint(color)
                 }
             }
-            DataChart(dataType: isPreview ? .test : data, color: color)
-                .padding(.bottom,70)
+            ZStack{
+                
+                DataChart(dataType: isPreview ? .test : data, color: color)
+                if(!DataService.dataPointExists(for: data) && !isPreview){
+                    Text("No Data")
+                        .font(.title)
+                        .foregroundStyle(.secondary)
+                }
+                    
+            }
+            .padding(.bottom,60)
+
         }
     }
 }
