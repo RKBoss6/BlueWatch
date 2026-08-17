@@ -52,7 +52,7 @@ struct ContentView: View {
                             
                         }
                         
-                        Tab("Apps",systemImage:"appclip"){
+                        Tab("Apps",systemImage:"app.shadow"){
                             WebView().edgesIgnoringSafeArea(.bottom)
                             
                             

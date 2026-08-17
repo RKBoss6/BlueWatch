@@ -1,7 +1,30 @@
 {
-  "fill" : {
-    "automatic-gradient" : "display-p3:0.28392,0.57079,0.87677,1.00000"
-  },
+  "fill-specializations" : [
+    {
+      "value" : {
+        "automatic-gradient" : "display-p3:0.28392,0.57079,0.87677,1.00000"
+      }
+    },
+    {
+      "appearance" : "dark",
+      "value" : {
+        "linear-gradient" : [
+          "display-p3:0.06993,0.14162,0.21807,1.00000",
+          "display-p3:0.07388,0.09692,0.12010,1.00000"
+        ],
+        "orientation" : {
+          "start" : {
+            "x" : 0.5,
+            "y" : 0
+          },
+          "stop" : {
+            "x" : 0.5,
+            "y" : 0.7
+          }
+        }
+      }
+    }
+  ],
   "groups" : [
     {
       "blend-mode" : "screen",
