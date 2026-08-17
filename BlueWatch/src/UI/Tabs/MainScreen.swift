@@ -190,123 +190,33 @@ struct WatchScreen: View {
                 }
                 Spacer()
                 Divider()
+                
                 Text("Metrics")
                     .font(.title3)
                     .bold()
                     .frame(maxWidth: .infinity,alignment: .leading)
                     .padding(.leading,10)
-                NavigationLink{
-                    ExpandedMetricView(title: "Heart Rate", dataType: isPreview ? .test : .heartRate, color: .graphRed)
-                }label:{
-                    HStack{
-                        Text("Heart Rate")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity,alignment: .leading)
-                            .padding(.leading,10)
-                            .bold()
-                            .tint(.primary)
-                            .frame(maxWidth: .infinity)
-                        Spacer()
-                        Image(systemName: "arrowshape.right")
-                            .bold()
-                            .font(.title3)
-                            .tint(.graphRed)
-                    }
-                }
-                DataChart(dataType: isPreview ? .test : .heartRate, color: .graphRed)
+                
+                GraphThumbnail(data:.heartRate, color: .graphRed,thumbnailName: "Heart Rate", expandedName: "Heart Rate")
                 
                 Divider()
                     .background(.primary)
                 
-                NavigationLink{
-                    ExpandedMetricView(title: "Steps", dataType: isPreview ? .test : .steps, color: .graphPurple)
-                }label:{
-                    HStack{
-                        Text("Steps")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity,alignment: .leading)
-                            .padding(.leading,10)
-                            .bold()
-                            .tint(.primary)
-                            .frame(maxWidth: .infinity)
-                        Spacer()
-                        Image(systemName: "arrowshape.right")
-                            .bold()
-                            .font(.title3)
-                            .tint(.graphPurple)
-                    }
-                }
-                DataChart(dataType: isPreview ? .test : .steps, color: Color("GraphPurple"))
+                GraphThumbnail(data:.steps, color: .graphPurple,thumbnailName: "Steps", expandedName: "Steps")
+                
                 Divider()
                     .background(.primary)
-                NavigationLink{
-                    ExpandedMetricView(title: "Battery", dataType: isPreview ? .test : .battery, color: .graphGreen)
-                }label:{
-                    HStack{
-                        Text("Battery")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity,alignment: .leading)
-                            .padding(.leading,10)
-                            .bold()
-                            .tint(.primary)
-                            .frame(maxWidth: .infinity)
-                        Spacer()
-                        Image(systemName: "arrowshape.right")
-                            .bold()
-                            .font(.title3)
-                            .tint(.graphGreen)
-                    }
-                }
-                DataChart(dataType: isPreview ? .test : .battery, color: .graphGreen)
-                    .padding(.bottom,70)
+                GraphThumbnail(data:.battery, color: .graphGreen,thumbnailName: "Battery", expandedName: "Battery")
                 if(true){
                     Divider()
                         .background(.primary)
                     
-                    NavigationLink{
-                        ExpandedMetricView(title: "Active Calories", dataType: isPreview ? .test : .activeCalories, color: .graphOrange)
-                    }label:{
-                        HStack{
-                            Text("Active Calories")
-                                .font(.headline)
-                                .frame(maxWidth: .infinity,alignment: .leading)
-                                .padding(.leading,10)
-                                .bold()
-                                .tint(.primary)
-                                .frame(maxWidth: .infinity)
-                            Spacer()
-                            Image(systemName: "arrowshape.right")
-                                .bold()
-                                .font(.title3)
-                                .tint(.graphOrange)
-                        }
-                    }
-                    DataChart(dataType: isPreview ? .test : .activeCalories, color: .graphOrange)
-                        .padding(.bottom,70)
+                    GraphThumbnail(data:.activeCalories, color: .graphOrange,thumbnailName: "Active Calories", expandedName: "Active Calories")
                     
                     Divider()
                         .background(.primary)
                     
-                    NavigationLink{
-                        ExpandedMetricView(title: "Resting (BMR) Calories", dataType: isPreview ? .test : .activeCalories, color: .graphBlue)
-                    }label:{
-                        HStack{
-                            Text("Resting Calories")
-                                .font(.headline)
-                                .frame(maxWidth: .infinity,alignment: .leading)
-                                .padding(.leading,10)
-                                .bold()
-                                .tint(.primary)
-                                .frame(maxWidth: .infinity)
-                            Spacer()
-                            Image(systemName: "arrowshape.right")
-                                .bold()
-                                .font(.title3)
-                                .tint(.graphBlue)
-                        }
-                    }
-                    DataChart(dataType: isPreview ? .test : .activeCalories, color: .graphBlue)
-                        .padding(.bottom,70)
+                    GraphThumbnail(data:.restingCalories, color: .graphBlue,thumbnailName: "Resting Calories", expandedName: "Resting (BMR) Calories")
                     
                 }
                 
