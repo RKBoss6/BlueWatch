@@ -128,7 +128,9 @@ struct BlueWatchApp: App {
         
         let types: Set = [
             HKQuantityType.quantityType(forIdentifier: .heartRate)!,
-            HKQuantityType.quantityType(forIdentifier: .stepCount)!
+            HKQuantityType.quantityType(forIdentifier: .stepCount)!,
+            HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!,
+            HKQuantityType.quantityType(forIdentifier: .basalEnergyBurned)!
         ]
         
         healthStore.requestAuthorization(toShare: types, read: types) { success, error in
