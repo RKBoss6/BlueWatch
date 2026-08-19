@@ -2323,7 +2323,9 @@ extension BLEManager: CBCentralManagerDelegate {
                 : "Disconnected"
         )
 
-        LocalData.shared.battery = "--"
+        DispatchQueue.main.async{
+            LocalData.shared.battery = "--"
+        }
 
         DispatchQueue.main.async {
             LocationManager.shared.stopGPSForwarding()
