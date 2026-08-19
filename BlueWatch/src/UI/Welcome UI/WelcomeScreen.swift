@@ -106,5 +106,5 @@ struct ChooseDeviceScreen: View {
 
 #Preview {
     WelcomeScreen()
-        .environmentObject(BLEManager.instance)
+        .environmentObject(BLEManager.shared)
 }

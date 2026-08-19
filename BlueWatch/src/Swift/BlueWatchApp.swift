@@ -9,7 +9,7 @@ import UserNotifications
 @main
 struct BlueWatchApp: App {
     // Use the singleton we defined
-    @StateObject private var bleManager = BLEManager.instance
+    @StateObject private var bleManager = BLEManager.shared
 
     static func checkNotificationPermissions() async -> Bool {
         let settings = await UNUserNotificationCenter.current().notificationSettings()
@@ -39,7 +39,7 @@ struct BlueWatchApp: App {
     
     init() {
         // Initialize BLE as early as possible for state restoration
-        _ = BLEManager.instance
+        _ = BLEManager.shared
         
         // Register the background task immediately on launch
        // BGTaskScheduler.shared.register(forTaskWithIdentifier: BlueWatchApp.weatherTaskID, using: nil) { task in

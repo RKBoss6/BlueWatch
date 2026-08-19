@@ -5,10 +5,14 @@ import Charts
 struct LineChartView: View {
     let data: [ChartData]
     let color: Color
+    let interactive:Bool
     let isTimewise: Bool
     let unitSuffix: String
     let xDomain: ClosedRange<Date>?
-    
+    let height:Double
+    let timeAgoSeconds:Double
+    let showPoints:Bool
+    let hoursMarked:Int
     @State private var selectedX: Date? = nil
 
     // Helper to define the fixed 24-hour window
@@ -18,16 +22,21 @@ struct LineChartView: View {
         }
         
         let now = Date()
-        let dayAgo = now.addingTimeInterval(-86400)
+        let dayAgo = now.addingTimeInterval(-self.timeAgoSeconds)
         return dayAgo...now
     }
 
-    init(data: [ChartData], color: Color, isTimewise: Bool, unitSuffix: String, xDomain: ClosedRange<Date>? = nil) {
+    init(data: [ChartData], color: Color, isTimewise: Bool, unitSuffix: String,interactive:Bool, xDomain: ClosedRange<Date>? = nil, height:Double = 300, timeAgoSeconds:Double = 86400, showPoints:Bool=false, hoursMarked:Int = 6) {
         self.data = data
         self.color = color
+        self.timeAgoSeconds = timeAgoSeconds
         self.isTimewise = isTimewise
         self.unitSuffix = unitSuffix
+        self.interactive = interactive
         self.xDomain = xDomain
+        self.height = height
+        self.showPoints = showPoints
+        self.hoursMarked = hoursMarked
     }
 
     var body: some View {
@@ -39,14 +48,21 @@ struct LineChartView: View {
                 RuleMark(x: .value("End", timeRange.upperBound))
                     .foregroundStyle(.clear)
 
-                ForEach(data) { item in
-                    LineMark(
-                        x: .value("Time", item.x),
-                        y: .value("Value", item.y)
-                    )
-                    .foregroundStyle(color)
-                    .symbol(.circle)
-                    
+                ForEach(data.filter { timeRange.contains($0.x) }) { item in
+                    if(showPoints){
+                        LineMark(
+                            x: .value("Time", item.x),
+                            y: .value("Value", item.y)
+                        )
+                        .foregroundStyle(color)
+                        .symbol(.circle)
+                    }else{
+                        LineMark(
+                            x: .value("Time", item.x),
+                            y: .value("Value", item.y)
+                        )
+                        .foregroundStyle(color)
+                    }
                     AreaMark(
                         x: .value("Time", item.x),
                         y: .value("Value", item.y)
@@ -57,27 +73,28 @@ struct LineChartView: View {
                         endPoint: .bottom
                     ))
                 }
-
-                if let selectedX, let selectedPoint = data.min(by: { abs($0.x.timeIntervalSince(selectedX)) < abs($1.x.timeIntervalSince(selectedX)) }) {
-                    RuleMark(x: .value("Selected", selectedPoint.x))
-                        .foregroundStyle(.gray.opacity(0.5))
-                        .annotation(position: .top, overflowResolution: .init(x: .fit, y: .disabled)) {
-                            VStack {
-                                if isTimewise {
-                                    Text(selectedPoint.x.formatted(.dateTime.hour().minute()))
-                                        .font(.system(.caption, design: .rounded)).fontWeight(.semibold).foregroundStyle(.gray)
+                if(interactive){
+                    if let selectedX, let selectedPoint = data.min(by: { abs($0.x.timeIntervalSince(selectedX)) < abs($1.x.timeIntervalSince(selectedX)) }) {
+                        RuleMark(x: .value("Selected", selectedPoint.x))
+                            .foregroundStyle(.gray.opacity(0.5))
+                            .annotation(position: .top, overflowResolution: .init(x: .fit, y: .disabled)) {
+                                VStack {
+                                    if isTimewise {
+                                        Text(selectedPoint.x.formatted(.dateTime.hour().minute()))
+                                            .font(.system(.caption, design: .rounded)).fontWeight(.semibold).foregroundStyle(.gray)
+                                    }
+                                    Text("\(selectedPoint.y, specifier: "%.0f")\(unitSuffix.isEmpty ? "" : "" + unitSuffix)")
+                                        .font(.system(.subheadline, design: .rounded).bold())
                                 }
-                                Text("\(selectedPoint.y, specifier: "%.0f")\(unitSuffix.isEmpty ? "" : "" + unitSuffix)")
-                                    .font(.system(.subheadline, design: .rounded).bold())
+                                .padding(8)
+                                .background(RoundedRectangle(cornerRadius: 8).fill(Color(.systemBackground)).shadow(radius: 2))
                             }
-                            .padding(8)
-                            .background(RoundedRectangle(cornerRadius: 8).fill(Color(.systemBackground)).shadow(radius: 2))
-                        }
+                    }
                 }
             }
             .chartXAxis {
                 // 'stride' ensures we hit the top of the hour. 'count: 3' shows every 3 hours to avoid crowding.
-                AxisMarks(values: .stride(by: .hour, count: 4)) { value in
+                AxisMarks(values: .stride(by: .hour, count: Int(round(timeAgoSeconds/60/60 / Double(hoursMarked))))) { value in
                     AxisGridLine()
                     AxisTick()
                     // This will now show clean times like 12:00, 16:00, etc.
@@ -87,7 +104,7 @@ struct LineChartView: View {
             // Forces the chart to always show the full 24-hour window
             .chartXScale(domain: timeRange)
             .chartXSelection(value: $selectedX)
-            .frame(height: 300)
+            .frame(height: height)
         }
         .padding()
     }
@@ -107,15 +124,37 @@ struct DataChart: View {
     @Query private var filteredPoints: [DataPoint]
     let color: Color
     let suffix: String
+    let interactive: Bool
+    let height:Double
+    let timeAgoSeconds:Double
     let dataType: DataType
-
-    init(dataType: DataType, color: Color) {
+    let isThumbnail:Bool
+    let showMarkers:Bool
+    let hourlyMarkers:Int
+    //let timeIntervalSeconds:Double
+    init(dataType: DataType, color: Color, isThumbnail:Bool) {
         self.color = color
+        self.isThumbnail = isThumbnail
         self.suffix = Utils.unitSuffix(dataType: dataType)
         self.dataType = dataType
         
+        if(isThumbnail){
+            self.interactive = false
+            self.height = 160
+            self.showMarkers = false
+            self.timeAgoSeconds = 6*60*60
+            self.hourlyMarkers = 3
+        }else{
+            self.interactive = true
+            self.height = 500
+            self.showMarkers = true
+            self.timeAgoSeconds = 86400
+            self.hourlyMarkers = 6
+            
+        }
+        
         let typeRawValue = dataType.rawValue
-        let dayAgo = Date().addingTimeInterval(-86400)
+        let dayAgo = Date().addingTimeInterval(-self.timeAgoSeconds)
         
         // Define the predicate directly inside the query initialization
         let boundaryRawValue = DataType.bluetoothBoundary.rawValue
@@ -162,11 +201,11 @@ struct DataChart: View {
                     ChartData(x: now, y: 63)
                 ].sorted(by: { $0.x < $1.x })
             
-            LineChartView(data: mockPoints, color: color, isTimewise: true, unitSuffix: suffix)
+            LineChartView(data: mockPoints, color: color, isTimewise: true, unitSuffix: suffix, interactive: interactive, height:height, timeAgoSeconds: timeAgoSeconds, hoursMarked: hourlyMarkers)
         } else {
             // Data points must be mapped here in the body, NOT in init
             let chartData = filteredPoints.map { ChartData(x: $0.timestamp, y: $0.value) }
-            LineChartView(data: chartData, color: color, isTimewise: true, unitSuffix: suffix)
+            LineChartView(data: chartData, color: color, isTimewise: true, unitSuffix: suffix, interactive: interactive, height:height, timeAgoSeconds: timeAgoSeconds, hoursMarked: hourlyMarkers)
         }
     }
 }
@@ -175,5 +214,5 @@ struct DataChart: View {
 #Preview {
   
     
-    return DataChart(dataType: .test, color: Color("GraphRed")).appBackground()
+    DataChart(dataType: .test, color: Color("GraphRed"), isThumbnail: false).appBackground()
 }

@@ -26,7 +26,7 @@ class HealthManager {
         if let hr = data["hr"] as? Double {
             
             DataService.addDataPointInBackground(timestamp: time, value: hr, type: DataType.heartRate, alwaysSave: true)
-            if(Settings.instance.sendToHealthKit==true){
+            if(Settings.shared.sendToHealthKit==true){
                 let type = HKQuantityType.quantityType(forIdentifier: .heartRate)!
                 
                 let quantity = HKQuantity(unit: .count().unitDivided(by: .minute()), doubleValue: hr)
@@ -47,7 +47,7 @@ class HealthManager {
 
         if let stepsTotal = data["steps"] as? Double {
             DataService.addDataPointInBackground(timestamp: time, value: stepsTotal, type: DataType.steps,alwaysSave: true)
-            if(Settings.instance.sendToHealthKit==true){
+            if(Settings.shared.sendToHealthKit==true){
                 syncSteps(watchTotal: stepsTotal)
             }
         }
@@ -55,7 +55,7 @@ class HealthManager {
         if let activeCals = data["activeCalories"] as? Double {
             
             DataService.addDataPointInBackground(timestamp: time, value: activeCals, type: .activeCalories, alwaysSave: true)
-            if(Settings.instance.sendToHealthKit==true){
+            if(Settings.shared.sendToHealthKit==true){
                 syncActiveCalories(watchTotal: activeCals)
             }
         }
@@ -63,7 +63,7 @@ class HealthManager {
         if let bmrCalories = data["bmrCalories"] as? Double {
             
             DataService.addDataPointInBackground(timestamp: time, value: bmrCalories, type: .restingCalories, alwaysSave: true)
-            if(Settings.instance.sendToHealthKit==true){
+            if(Settings.shared.sendToHealthKit==true){
                 syncRestingCalories(watchTotal: bmrCalories)
             }
         }

@@ -17,7 +17,7 @@ struct DeviceCard: View {
     var body: some View {
         Button(action: {
             
-            ViewModel.instance.savedDevice=name
+            ViewModel.shared.savedDevice=name
           
             isPresented = true
         }) {

@@ -70,7 +70,7 @@ class FindPhoneAlarm: NSObject, AVAudioPlayerDelegate {
     /// Configures the audio subsystem to override silent switches and background suspension
     private func configureBackgroundAudioSession() {
         do {
-            let session = AVAudioSession.sharedInstance()
+            let session = AVAudioSession.sharedshared()
             try session.setCategory(.playback, options: [.mixWithOthers])
             try session.setActive(true)
         } catch {
@@ -104,7 +104,7 @@ class FindPhoneAlarm: NSObject, AVAudioPlayerDelegate {
         startMaxVibration()
         
         do {
-            let session = AVAudioSession.sharedInstance()
+            let session = AVAudioSession.sharedshared()
             try session.setCategory(.playback, mode: .default, options: [.duckOthers])
             try session.setActive(true)
 
@@ -144,7 +144,7 @@ class FindPhoneAlarm: NSObject, AVAudioPlayerDelegate {
     func stop() {
        
         guard isActive else { return }
-        if(Settings.instance.showFindPhoneNotification){
+        if(Settings.shared.showFindPhoneNotification){
             showNotification()
         }
         stopVibration()
@@ -152,11 +152,11 @@ class FindPhoneAlarm: NSObject, AVAudioPlayerDelegate {
         audioPlayer = nil
 
         // Deactivate so music/podcasts can resume
-        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        try? AVAudioSession.sharedshared().setActive(false, options: .notifyOthersOnDeactivation)
 
         endBackgroundTask()
         logger.log("[FindPhone] Alarm stopped")
-        BLEManager.instance.send("FindPhone Stopped")
+        BLEManager.shared.send("FindPhone Stopped")
     }
 
     // MARK: - AVAudioPlayerDelegate

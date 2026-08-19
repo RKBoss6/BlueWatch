@@ -30,8 +30,8 @@ struct SendMessageIntent: AppIntent {
     }
 
     func perform() async throws -> some IntentResult & ProvidesDialog {
-        if(BLEManager.instance.isConnected){
-            BLEManager.instance.send(message)
+        if(BLEManager.shared.isConnected){
+            BLEManager.shared.send(message)
             return .result(dialog: "Successfully Sent")
         }
         return .result(dialog: "Watch Not Connected")
@@ -48,7 +48,7 @@ struct IsConnectedIntent: AppIntent {
     static var openAppWhenRun: Bool = false
     
     func perform() async throws -> some IntentResult & ReturnsValue<Bool>  {
-        return .result(value:BLEManager.instance.isConnected)
+        return .result(value:BLEManager.shared.isConnected)
         
     }
 } 
@@ -63,7 +63,7 @@ struct SendWeatherIntent: AppIntent {
     static var openAppWhenRun: Bool = false
     
     func perform() async throws -> some IntentResult {
-        if(BLEManager.instance.isConnected){
+        if(BLEManager.shared.isConnected){
             await WeatherManager.shared.updateWeatherAndSend()
             return .result(dialog: "Successfully Sent")
         }
@@ -84,7 +84,7 @@ struct SendLocationIntent: AppIntent {
     
     func perform() async throws -> some IntentResult {
         // Execute background logic here (e.g., save to Database/CoreData)
-        if(BLEManager.instance.isConnected){
+        if(BLEManager.shared.isConnected){
             await LocationManager.shared.sendLocation()
             return .result(dialog: "Successfully Sent")
 

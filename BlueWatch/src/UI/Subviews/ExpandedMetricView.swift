@@ -65,7 +65,10 @@ struct ExpandedMetricView: View {
                 color: color,
                 isTimewise: true,
                 unitSuffix: Utils.unitSuffix(dataType: dataType),
-                xDomain: dayRange
+                interactive: true,
+                xDomain: dayRange,
+                height:500,
+                showPoints:true
             )
             Divider()
             Spacer()

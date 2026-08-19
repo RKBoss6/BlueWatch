@@ -14,7 +14,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     private var gpsTimer: Timer?
     private let gpsInterval: TimeInterval = 6   // seconds between Bangle.GPS events
     private var isForwardingGPS = false
-    private var settings = Settings.instance
+    private var settings = Settings.shared
     override init() {
         super.init()
         clManager.delegate = self
@@ -92,7 +92,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
             satellites: 8,
             hdop: round(hdop*10)/10,
             city: cityName)
-        BLEManager.instance.sendJSON(data: packet)
+        BLEManager.shared.sendJSON(data: packet)
               
         
     }

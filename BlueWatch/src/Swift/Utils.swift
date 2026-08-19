@@ -120,7 +120,7 @@ class DataManager {
             let context = ModelContext(container)
             
             do {
-                // Batch deletes all instances of DataPoint matching the schema
+                // Batch deletes all shareds of DataPoint matching the schema
                 try context.delete(model: DataPoint.self)
                 
                 // Persist the changes instantly
@@ -186,6 +186,24 @@ enum DataService {
         }
         
         return false
+    }
+    
+    static func getLatestPoint(for type: DataType) -> DataPoint? {
+        let context = ModelContext(DataManager.sharedContainer)
+        let typeRawValue = type.rawValue
+
+        var descriptor = FetchDescriptor<DataPoint>(
+            predicate: #Predicate<DataPoint> {
+                $0.rawType == typeRawValue
+            },
+            sortBy: [
+                SortDescriptor(\.timestamp, order: .reverse)
+            ]
+        )
+
+        descriptor.fetchLimit = 1
+
+        return try? context.fetch(descriptor).first
     }
 }
 

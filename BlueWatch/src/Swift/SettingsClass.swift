@@ -8,7 +8,7 @@
 import Foundation
 
 public class Settings:ObservableObject{
-    public static var instance:Settings = Settings()
+    public static var shared:Settings = Settings()
     
     private var webURLKey:String="webURL"
     @Published public var webURL:String{
@@ -115,7 +115,7 @@ public class Settings:ObservableObject{
             lowBattNotifyKey: false,
             sendToHealthKitKey: true,
             optimizedBtChunksKey: true,
-            deviceNameKey: ViewModel.instance.savedDevice,
+            deviceNameKey: ViewModel.shared.savedDevice,
             weatherRateLimitKey: 10
         ])
         // load
@@ -128,7 +128,7 @@ public class Settings:ObservableObject{
         lowBattNotify=LocalStorage.getBool(forKey: lowBattNotifyKey) ?? false
         sendToHealthKit=LocalStorage.getBool(forKey: sendToHealthKitKey) ?? true
         showFindPhoneNotification=LocalStorage.getBool(forKey: showFindPhoneNotificationKey) ?? true
-        deviceName=LocalStorage.getString(forKey: deviceNameKey) ?? ViewModel.instance.savedDevice
+        deviceName=LocalStorage.getString(forKey: deviceNameKey) ?? ViewModel.shared.savedDevice
         weatherRateLimit=Int(LocalStorage.getNumber(forKey: weatherRateLimitKey) ?? 10)
         locationRateLimit=Int(LocalStorage.getNumber(forKey: locationRateLimitKey) ?? 10)
         optimizedBtChunks=LocalStorage.getBool(forKey: optimizedBtChunksKey) ?? true

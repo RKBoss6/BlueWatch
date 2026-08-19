@@ -16,6 +16,7 @@ struct GraphThumbnail: View {
     
     var body: some View {
         VStack{
+            /*
             NavigationLink{
                 ExpandedMetricView(title: expandedName, dataType: isPreview ? .test : data, color: color)
             }label:{
@@ -34,9 +35,10 @@ struct GraphThumbnail: View {
                         .tint(color)
                 }
             }
+             */
             ZStack{
                 
-                DataChart(dataType: isPreview ? .test : data, color: color)
+                DataChart(dataType: isPreview ? .test : data, color: color, isThumbnail: true)
                 if(!DataService.dataPointExists(for: data) && !isPreview){
                     Text("No Data")
                         .font(.title)

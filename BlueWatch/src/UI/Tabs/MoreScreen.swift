@@ -9,9 +9,9 @@ import SwiftUI
 
 struct MoreScreen: View {
     @Environment(\.openURL) var openURL
-    @StateObject var settings: Settings = Settings.instance
+    @StateObject var settings: Settings = Settings.shared
     @State var temp:Bool=false
-    var vm:ViewModel=ViewModel.instance
+    var vm:ViewModel=ViewModel.shared
     var body: some View {
         VStack{
             HStack {

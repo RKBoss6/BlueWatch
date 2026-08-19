@@ -37,7 +37,7 @@ extension BluetoothViewModel: CBCentralManagerDelegate{
 }
 
 struct ContentView: View {
-    var vm:ViewModel = ViewModel.instance
+    var vm:ViewModel = ViewModel.shared
     var body: some View {
         NavigationStack{
             if vm.savedDevice == "" {
@@ -72,7 +72,7 @@ struct ContentView: View {
                         standardAppearance.shadowColor = UIColor(Color.blue)
                         UITabBar.appearance().standardAppearance = standardAppearance
                         // start connection
-                        BLEManager.instance.start()
+                        BLEManager.shared.start()
                         BlueWatchApp.requestHealthAuthorization()
                         
                     }
@@ -128,7 +128,7 @@ struct DevicesAvailableView:View{
 
 #Preview {
     ContentView()
-        .environmentObject(BLEManager.instance)
+        .environmentObject(BLEManager.shared)
 }
 
 

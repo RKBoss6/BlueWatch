@@ -11,7 +11,7 @@ class WeatherManager: ObservableObject {
 
     private let service  = WeatherService.shared
     private let geocoder = CLGeocoder()
-    private let settings = Settings.instance
+    private let settings = Settings.shared
     // MARK: - Permissions
 
     
@@ -64,7 +64,7 @@ class WeatherManager: ObservableObject {
                 loc:   cityName
             )
 
-            BLEManager.instance.sendJSON(data: packet)
+            BLEManager.shared.sendJSON(data: packet)
             
         } catch {
             logger.log("Weather Error: \(error)")

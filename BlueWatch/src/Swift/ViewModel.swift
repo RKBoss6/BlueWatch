@@ -9,7 +9,7 @@ import Foundation
 
 public class ViewModel: ObservableObject {
     @Published var webReloadTrigger = UUID()
-    public static var instance:ViewModel = ViewModel()
+    public static var shared:ViewModel = ViewModel()
     var savedDevice:String{
         set{
             LocalStorage.set(newValue, forKey: "savedDevice")

@@ -11,7 +11,7 @@ import UIKit
 
 final class BLEManager: NSObject, ObservableObject {
 
-    static let instance = BLEManager()
+    static let shared = BLEManager()
 
     // MARK: - Published UI state
 
@@ -1250,7 +1250,7 @@ final class BLEManager: NSObject, ObservableObject {
         }
 
         let chunkSize =
-            Settings.instance.optimizedBtChunks
+            Settings.shared.optimizedBtChunks
             ? 15
             : 40
 

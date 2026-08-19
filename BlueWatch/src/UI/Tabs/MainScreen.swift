@@ -12,8 +12,8 @@ struct WatchScreen: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.isPreview) var isPreview
     @Environment(\.modelContext) private var modelContext
-    var vm:ViewModel=ViewModel.instance
-    @ObservedObject var settings = Settings.instance
+    var vm:ViewModel=ViewModel.shared
+    @ObservedObject var settings = Settings.shared
     @Environment(\.scenePhase) var scenePhase
     private var CI = CommandInterpreter()
     @State private var findingPhone=false;
@@ -120,30 +120,8 @@ struct WatchScreen: View {
                     .padding(.trailing)
                     .padding(.top,-10)
                     Divider()
-                    Spacer()
                     HStack{
                         
-                        Button{
-                            if(findingPhone){
-                                findPhoneAlarm.stop()
-                                
-                            }else{
-                                findPhoneAlarm.start()
-                            }
-                            findingPhone = !findingPhone
-                            
-                            
-                        }label:{
-                            Text(findingPhone ? "Stop" : "Find Phone")
-                                .frame(maxWidth: .infinity)
-                                .padding(10)
-                            
-                            
-                        }
-                        .disabled(!isPreview && !bleManager.isConnected)
-                        .tint(findingPhone ? .orange : .accent)
-                        
-                        .buttonStyle(.borderedProminent)
                         Button{
                             if(findingWatch){
                                 bleManager.send("Stop Find Watch")
@@ -154,44 +132,38 @@ struct WatchScreen: View {
                             }
                             
                         }label:{
-                            Text(findingWatch ? "Stop Finding" : "Find Watch")
-                                .frame(maxWidth: .infinity)
-                                .padding(10)
+                            HStack{
+                                Image(systemName: "ipod.and.applewatch")
+                                Text(findingWatch ? "Stop Finding" : "Find Watch")
+                                    
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(10)
                             
                         }
                         .disabled(!isPreview && !bleManager.isConnected)
                         
                         .buttonStyle(.borderedProminent)
                         .tint(findingWatch ? .orange : .accent)
-                    }
-                    HStack{
                         
-                        Button{
-                            Task {
-                                await WeatherManager.shared.updateWeatherAndSend()
-                            }
-                        }label:{
-                            Text("Push Weather")
-                                .frame(maxWidth: .infinity)
-                                .padding(10)
-                            
-                        }
-                        .disabled(!isPreview && !bleManager.isConnected)
-                        .buttonStyle(.borderedProminent)
                         Button{
                             Task {
                                 await LocationManager.shared.sendLocation()
                             }
                         }label:{
-                            Text("Push Location")
-                                .frame(maxWidth: .infinity)
-                                .padding(10)
+                            HStack{
+                                Image(systemName: "location.fill")
+                                Text("Push Location")
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(10)
+                                
                             
                         }
                         .disabled(!isPreview && !bleManager.isConnected)
                         .buttonStyle(.borderedProminent)
                     }
-                    Spacer()
+                    
                     Divider()
                     
                     Text("Metrics")
@@ -200,41 +172,45 @@ struct WatchScreen: View {
                         .frame(maxWidth: .infinity,alignment: .leading)
                         .padding(.leading,10)
                     
-                    GraphThumbnail(data:.heartRate, color: .graphRed,thumbnailName: "Heart Rate", expandedName: "Heart Rate")
                     
-                    Divider()
-                        .background(.primary)
                     
-                    GraphThumbnail(data:.steps, color: .graphPurple,thumbnailName: "Steps", expandedName: "Steps")
+                    Grid{
+                        GridRow{
+                            MetricCard(dataType: .heartRate, color: .graphRed, thumbTitle: "Heart Rate", expandedTitle: "Heart Rate")
+                            
+                            MetricCard(dataType: .steps, color: .graphPurple, thumbTitle: "Steps", expandedTitle: "Steps")
+                        }
+                        .padding(.bottom,8)
+                        GridRow{
+                            MetricCard(dataType: .activeCalories, color: .graphOrange, thumbTitle: "Active Calories", expandedTitle: "Active Calories")
+                            MetricCard(dataType: .restingCalories, color: .graphBlue, thumbTitle: "Resting Calories", expandedTitle: "Resting (BMR) Calories")
+                        }
+                        .padding(.bottom,8)
+                        GridRow{
+                            MetricCard(dataType: .battery, color: .graphGreen, thumbTitle: "Battery", expandedTitle: "Watch Battery")
                     
-                    Divider()
-                        .background(.primary)
-                    GraphThumbnail(data:.battery, color: .graphGreen,thumbnailName: "Battery", expandedName: "Battery")
-                    if(true){
-                        Divider()
-                            .background(.primary)
-                        
-                        GraphThumbnail(data:.activeCalories, color: .graphOrange,thumbnailName: "Active Calories", expandedName: "Active Calories")
-                        
-                        Divider()
-                            .background(.primary)
-                        
-                        GraphThumbnail(data:.restingCalories, color: .graphBlue,thumbnailName: "Resting Calories", expandedName: "Resting (BMR) Calories")
-                        
+                        }
                     }
                     
+                    Spacer()
+                        .padding(35 )
                     
                     
+                    
+                    
+                    
+           
                 }
+                .padding(.leading)
+                .padding(.trailing)
+                .padding(.bottom)
                 Spacer()
                 
             }
             .scrollIndicators(.hidden) // Hides indicators for this ScrollView
             .ignoresSafeArea(.all)
             
-            .padding(.leading)
-            .padding(.trailing)
-            .padding(.bottom)
+            
             
             .appBackground()
             VStack{
@@ -258,5 +234,5 @@ struct WatchScreen: View {
 
 #Preview{
     WatchScreen()
-        .environmentObject(BLEManager.instance)
+        .environmentObject(BLEManager.shared)
 }

@@ -10,8 +10,8 @@ import SwiftUI
 
 struct WatchSettingsScreen: View {
     @Environment(\.colorScheme) var colorScheme
-    @StateObject var settings: Settings = Settings.instance
-    var vm:ViewModel=ViewModel.instance
+    @StateObject var settings: Settings = Settings.shared
+    var vm:ViewModel=ViewModel.shared
     @State private var showDeletePrompt = false
 
     var body: some View {

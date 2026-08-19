@@ -26,13 +26,13 @@ class CommandInterpreter {
         case "Pinging Connection...":
             ble?.send("iPhone Connected")
         case "Request Weather":
-            if(Settings.instance.pushWeather){
+            if(Settings.shared.pushWeather){
                 Task{
                     await WeatherManager.shared.updateWeatherAndSend()
                 }
             }
         case "Request Location":
-            if(Settings.instance.pushLocation){
+            if(Settings.shared.pushLocation){
                 Task {
                     await LocationManager.shared.sendLocation()
                 }
@@ -65,7 +65,7 @@ class CommandInterpreter {
                 logger.log("batt updated")
                 
             }
-            if(batt<80 && Settings.instance.lowBattNotify){
+            if(batt<80 && Settings.shared.lowBattNotify){
                 Utils.pushNotification(title: "Bangle.js", body: "Battery below 15%. Charge soon!", id: "LowBatt")
             }
         }

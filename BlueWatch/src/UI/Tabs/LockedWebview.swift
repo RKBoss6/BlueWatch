@@ -21,7 +21,7 @@ struct LockedWebView: UIViewRepresentable {
                       let method = body["method"] as? String,
                       let args   = body["args"]   as? [String: Any]
                 else { return }
-                BLEManager.instance.handleWebBluetoothMessage(id: id, method: method, args: args)
+                BLEManager.shared.handleWebBluetoothMessage(id: id, method: method, args: args)
                 return
             }
 
@@ -83,7 +83,7 @@ struct LockedWebView: UIViewRepresentable {
                 return function() {
                     var args = Array.prototype.slice.call(arguments);
                     var text = args.map(function(a) {
-                        if (a instanceof Error) return a.message + '\\n' + a.stack;
+                        if (a sharedof Error) return a.message + '\\n' + a.stack;
                         try { return typeof a === 'object' ? JSON.stringify(a) : String(a); }
                         catch(e) { return String(a); }
                     }).join(' ');
@@ -98,7 +98,7 @@ struct LockedWebView: UIViewRepresentable {
 
             // Catch unhandled promise rejections
             window.addEventListener('unhandledrejection', function(e) {
-                var msg = e.reason instanceof Error
+                var msg = e.reason sharedof Error
                     ? e.reason.message + '\\n' + e.reason.stack
                     : String(e.reason);
                 _handler.postMessage({ level: 'UNHANDLED_REJECTION', text: msg });
@@ -135,7 +135,7 @@ struct LockedWebView: UIViewRepresentable {
         webView.scrollView.alwaysBounceHorizontal = false
         webView.scrollView.isDirectionalLockEnabled = true
 
-        BLEManager.instance.webView = webView
+        BLEManager.shared.webView = webView
         webView.load(URLRequest(url: url))
         return webView
     }
@@ -148,15 +148,15 @@ struct LockedWebView: UIViewRepresentable {
 struct WebView: View {
 
     private var lockedURL: URL = {
-        let base = Settings.instance.webURL.isEmpty == false ? Settings.instance.webURL : "banglejs.com/apps"
+        let base = Settings.shared.webURL.isEmpty == false ? Settings.shared.webURL : "banglejs.com/apps"
         let candidate = URL(string: "https://" + base)
         if let url = candidate { return url }
         // If URL construction fails, assert in debug but still return a safe default in release
         assertionFailure("Invalid URL constructed from settings: \(base)")
         return URL(string: "https://banglejs.com/apps")!
     }()
-    @ObservedObject private var ble = BLEManager.instance
-    @ObservedObject private var vm = ViewModel.instance
+    @ObservedObject private var ble = BLEManager.shared
+    @ObservedObject private var vm = ViewModel.shared
     var body: some View {
         
         VStack() {
