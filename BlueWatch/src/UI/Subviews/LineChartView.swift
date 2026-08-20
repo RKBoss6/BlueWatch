@@ -142,7 +142,7 @@ struct DataChart: View {
             self.interactive = false
             self.height = 160
             self.showMarkers = false
-            self.timeAgoSeconds = 6*60*60
+            self.timeAgoSeconds = 12*60*60
             self.hourlyMarkers = 3
         }else{
             self.interactive = true

@@ -57,7 +57,7 @@ struct MetricCard: View {
                             .font(.title2)
                             .fontWeight(.bold)
 
-                        Text("Latest: \(latestPoint.timestamp.formatted(date: .omitted, time: .shortened))")
+                        Text("Updated \(latestPoint.timestamp.formatted(date: .omitted, time: .shortened))")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .padding(.bottom)
@@ -66,7 +66,7 @@ struct MetricCard: View {
                             .font(.largeTitle)
                             .fontWeight(.bold)
 
-                        Text("Latest: --")
+                        Text("Updated --")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .padding(.bottom)
