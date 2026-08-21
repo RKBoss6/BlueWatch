@@ -1,4 +1,8 @@
 {
+  "features" : [
+    "refractivity",
+    "specular-location"
+  ],
   "fill-specializations" : [
     {
       "value" : {
@@ -66,10 +70,16 @@
           0
         ]
       },
+      "refractivity" : {
+        "depth" : 0.67,
+        "enabled" : true,
+        "strength" : 0.38
+      },
       "shadow" : {
         "kind" : "neutral",
         "opacity" : 1
       },
+      "specular" : "outside",
       "translucency" : {
         "enabled" : true,
         "value" : 0.5
@@ -89,7 +99,7 @@
           "value" : "lighten"
         }
       ],
-      "blur-material" : null,
+      "blur-material" : 1,
       "hidden" : false,
       "layers" : [
         {
@@ -152,10 +162,16 @@
           0
         ]
       },
+      "refractivity" : {
+        "depth" : 0.3853515625,
+        "enabled" : true,
+        "strength" : 1
+      },
       "shadow" : {
         "kind" : "neutral",
-        "opacity" : 0.41
+        "opacity" : 0.51
       },
+      "specular" : "inside",
       "translucency" : {
         "enabled" : true,
         "value" : 0.5
