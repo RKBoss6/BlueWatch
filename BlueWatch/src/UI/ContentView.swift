@@ -10,7 +10,7 @@ import CoreBluetooth
 
 
 struct ContentView: View {
-    var vm:ViewModel = ViewModel.shared
+    @State private var vm: ViewModel = ViewModel.shared
     var body: some View {
         NavigationStack{
             if vm.savedDevice == "" {
