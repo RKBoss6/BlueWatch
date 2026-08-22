@@ -12,6 +12,7 @@ struct MoreScreen: View {
     @StateObject var settings: Settings = Settings.shared
     @State var temp:Bool=false
     var vm:ViewModel=ViewModel.shared
+    @State var languageSheetPresented:Bool = false;
     var body: some View {
         VStack{
             HStack {
@@ -57,6 +58,20 @@ struct MoreScreen: View {
                         } label:{
                             HStack{
                                 Text("Report an issue or suggest new features")
+                                    .frame(maxWidth:.infinity, alignment: .leading)
+                                    .tint(.primary)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .tint(.primary)
+                            }
+                        }
+                        Divider()
+                        Button {
+                            languageSheetPresented=true
+                            
+                        } label:{
+                            HStack{
+                                Text("New: Languages & Localizations")
                                     .frame(maxWidth:.infinity, alignment: .leading)
                                     .tint(.primary)
                                 Spacer()
@@ -129,6 +144,9 @@ struct MoreScreen: View {
                 .listRowBackground(Color.clear)
         }
         .appBackground()
+        .sheet(isPresented: $languageSheetPresented){
+            LanguageOnboarding()
+        }
     }
 }
 
