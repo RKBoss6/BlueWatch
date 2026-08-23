@@ -174,7 +174,7 @@ struct WatchScreen: View {
                     
                     
                     
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 150, maximum: 200))], spacing: 20) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 150, maximum: 200))], spacing: 10) {
                         if(Settings.shared.showHrThumb){
                             MetricCard(dataType: .heartRate, color: .graphRed, thumbTitle: "Heart Rate", expandedTitle: "Heart Rate")
                         }

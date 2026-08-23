@@ -16,7 +16,7 @@ struct LanguageOnboarding: View {
                 Image(systemName:"globe")
                 .font(.title)
 
-                Text("Languages")
+                Text("New: Languages")
                     .font(.largeTitle)
                     .fontWeight(.bold)
                     .padding()
