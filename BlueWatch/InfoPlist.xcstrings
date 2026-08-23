@@ -5,9 +5,27 @@
       "comment" : "Bundle display name",
       "extractionState" : "extracted_with_value",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BlueWatch"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
+            "value" : "BlueWatch"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BlueWatch"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
             "value" : "BlueWatch"
           }
         }
@@ -17,9 +35,27 @@
       "comment" : "Bundle name",
       "extractionState" : "extracted_with_value",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BlueWatch"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
+            "value" : "BlueWatch"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BlueWatch"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
             "value" : "BlueWatch"
           }
         }
@@ -29,10 +65,28 @@
       "comment" : "Privacy - Bluetooth Always Usage Description",
       "extractionState" : "extracted_with_value",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BlueWatch benötigt Bluetooth, um eine Verbindung zu Ihrer Uhr herzustellen und Daten zu senden und zu empfangen."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "BlueWatch needs Bluetooth to connect, send, and receive data from your watch."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BlueWatch necesita Bluetooth para conectarse, enviar y recibir datos de tu reloj."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BlueWatch a besoin du Bluetooth pour se connecter à votre montre, et envoyer et recevoir des données."
           }
         }
       }
@@ -41,10 +95,28 @@
       "comment" : "Privacy - Bluetooth Peripheral Usage Description",
       "extractionState" : "extracted_with_value",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BlueWatch benötigt Bluetooth, um eine Verbindung zu Ihrer Uhr herzustellen"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "BlueWatch needs Bluetooth to connect to your watch"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BlueWatch necesita Bluetooth para conectarse a tu reloj"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BlueWatch a besoin du Bluetooth pour se connecter à votre montre"
           }
         }
       }
@@ -53,10 +125,28 @@
       "comment" : "Privacy - Health Share Usage Description",
       "extractionState" : "extracted_with_value",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BlueWatch liest Gesundheitsdaten, um eine aktuelle Synchronisierung mit Apple Health von Ihrer Uhr sicherzustellen."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "BlueWatch reads health data to ensure up-to-date Apple health syncing from your watch."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BlueWatch lee datos de salud para garantizar una sincronización actualizada con Salud de Apple desde tu reloj."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BlueWatch lit les données de santé pour garantir une synchronisation à jour avec Santé d'Apple depuis votre montre."
           }
         }
       }
@@ -65,10 +155,28 @@
       "comment" : "Privacy - Health Update Usage Description",
       "extractionState" : "extracted_with_value",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BlueWatch benötigt Zugriff zum Aktualisieren von Apple Health, um Gesundheitsdaten von Ihrer Uhr an Health zu übertragen."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "BlueWatch needs access to update Apple Health so it can push health data from your watch to Health."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BlueWatch necesita acceso para actualizar Salud de Apple y así enviar los datos de salud de tu reloj a Salud."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BlueWatch a besoin d'accéder à Santé pour pouvoir y transmettre les données de santé de votre montre."
           }
         }
       }
@@ -77,10 +185,28 @@
       "comment" : "Privacy - Location Always and When In Use Usage Description",
       "extractionState" : "extracted_with_value",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BlueWatch benötigt den Standort, um das lokale Wetter und GPS-Daten für Ihre Uhr abzurufen."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "BlueWatch needs location to get local weather and GPS for your watch."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BlueWatch necesita la ubicación para obtener el clima local y el GPS de tu reloj."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BlueWatch a besoin de la localisation pour obtenir la météo locale et le GPS de votre montre."
           }
         }
       }
@@ -89,10 +215,28 @@
       "comment" : "Privacy - Location Always Usage Description",
       "extractionState" : "extracted_with_value",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BlueWatch benötigt regelmäßig im Hintergrund den Standort, um den Standort Ihres Geräts zu aktualisieren."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "BlueWatch needs location perodically in the background to update your device's location"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BlueWatch necesita la ubicación periódicamente en segundo plano para actualizar la ubicación de tu dispositivo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BlueWatch a besoin périodiquement de la localisation en arrière-plan pour mettre à jour la position de votre appareil"
           }
         }
       }
@@ -101,10 +245,28 @@
       "comment" : "Privacy - Location When In Use Usage Description",
       "extractionState" : "extracted_with_value",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BlueWatch benötigt den Standort, um das lokale Wetter abzurufen"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "BlueWatch needs location to get local weather"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BlueWatch necesita la ubicación para obtener el clima local"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BlueWatch a besoin de la localisation pour obtenir la météo locale"
           }
         }
       }
@@ -112,3 +274,4 @@
   },
   "version" : "1.3"
 }
+
