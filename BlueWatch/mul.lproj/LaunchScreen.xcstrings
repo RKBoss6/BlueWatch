@@ -1,0 +1,18 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "RxC-wo-hV2.text" : {
+      "comment" : "Class = \"UILabel\"; text = \"BlueWatch\"; ObjectID = \"RxC-wo-hV2\";",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "BlueWatch"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.3"
+}

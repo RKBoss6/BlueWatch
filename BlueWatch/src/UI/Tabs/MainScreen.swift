@@ -174,22 +174,24 @@ struct WatchScreen: View {
                     
                     
                     
-                    Grid{
-                        GridRow{
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 150, maximum: 200))], spacing: 20) {
+                        if(Settings.shared.showHrThumb){
                             MetricCard(dataType: .heartRate, color: .graphRed, thumbTitle: "Heart Rate", expandedTitle: "Heart Rate")
-                            
+                        }
+                        if(Settings.shared.showStepsThumb){
                             MetricCard(dataType: .steps, color: .graphPurple, thumbTitle: "Steps", expandedTitle: "Steps")
                         }
-                        .padding(.bottom,8)
-                        GridRow{
+                        if(Settings.shared.showActiveCalThumb){
                             MetricCard(dataType: .activeCalories, color: .graphOrange, thumbTitle: "Active Calories", expandedTitle: "Active Calories")
+                        }
+                        if(Settings.shared.showRestingCalThumb){
                             MetricCard(dataType: .restingCalories, color: .graphBlue, thumbTitle: "Resting Calories", expandedTitle: "Resting (BMR) Calories")
                         }
-                        .padding(.bottom,8)
-                        GridRow{
+                        if(Settings.shared.showBatteryThumb){
                             MetricCard(dataType: .battery, color: .graphGreen, thumbTitle: "Battery", expandedTitle: "Watch Battery")
-                    
                         }
+                    
+                        
                     }
                     
                     Spacer()

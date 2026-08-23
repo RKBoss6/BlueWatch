@@ -7,6 +7,80 @@
 
 import SwiftUI
 
+struct ThumbSettingsScreen: View {
+    @Environment(\.colorScheme) var colorScheme
+    @StateObject var settings: Settings = Settings.shared
+    var vm:ViewModel=ViewModel.shared
+    @State private var showDeletePrompt = false
+    
+    var body: some View {
+        Form{
+            
+            /*
+             Section("Bluetooth"){
+             VStack(spacing: 16) {
+             Toggle(isOn:$settings.autoConnect) {
+             Text("Automatically Connect")
+             }
+             }
+             .padding()
+             .liquidGlass(cornerRadius: 24)
+             .frame(width:.infinity,height: .infinity)
+             .ignoresSafeArea(.all)
+             .listRowInsets(EdgeInsets())
+             }
+             .listRowBackground(Color.clear)
+             */
+            
+            
+            Section{
+                VStack(spacing: 16) {
+                    Toggle(isOn:$settings.showHrThumb ) {
+                        Text("Show Heart Rate Metric")
+                        
+                    }
+                    .tint(.accentColor)
+                    Divider()
+                    Toggle(isOn:$settings.showStepsThumb ) {
+                        Text("Show Steps Metric")
+                        
+                    }
+                    .tint(.accentColor)
+                    Divider()
+
+                    Toggle(isOn:$settings.showActiveCalThumb ) {
+                        Text("Show Active Calories Metric")
+                        
+                    }
+                    .tint(.accentColor)
+                    Divider()
+
+                    Toggle(isOn:$settings.showRestingCalThumb ) {
+                        Text("Show Resting Calories Metric")
+                        
+                    }
+                    .tint(.accentColor)
+                    Divider()
+                    Toggle(isOn:$settings.showBatteryThumb ) {
+                        Text("Show Battery Metric")
+                        
+                    }
+                    .tint(.accentColor)
+                    
+                }
+                .padding()
+                .liquidGlass(cornerRadius: 24)
+                .ignoresSafeArea(.all)
+                .listRowInsets(EdgeInsets())
+            }
+            .listRowBackground(Color.clear)
+        }
+        .scrollContentBackground(.hidden)
+        .navigationTitle("Settings")
+        .navigationBarTitleDisplayMode(.inline)
+        .appBackground()
+    }
+}
 
 struct WatchSettingsScreen: View {
     @Environment(\.colorScheme) var colorScheme
@@ -50,6 +124,25 @@ struct WatchSettingsScreen: View {
                     .listRowInsets(EdgeInsets())
                 }
                 .listRowBackground(Color.clear)
+                Section{
+                    VStack(spacing: 16) {
+                        
+                        NavigationLink(destination: ThumbSettingsScreen() ){
+                            Text("Show & Hide Metrics")
+                        }
+                        
+                        
+                    }
+                    .padding()
+                    .liquidGlass(cornerRadius: 24)
+                    .ignoresSafeArea(.all)
+                    .listRowInsets(EdgeInsets())
+                    
+                } header:{
+                    Text("UI")
+                }
+                .listRowBackground(Color.clear)
+
                 Section{
                     VStack(spacing: 16) {
                         

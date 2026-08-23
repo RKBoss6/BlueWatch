@@ -99,6 +99,39 @@ public class Settings:ObservableObject{
             LocalStorage.set(locationRateLimit, forKey: locationRateLimitKey)
         }
     }
+    // settings for showing/hiding thumbnails
+    private var showBatteryThumbKey:String="showBatteryThumb"
+    @Published public var showBatteryThumb:Bool{
+        didSet{
+            LocalStorage.set(showBatteryThumb, forKey: showBatteryThumbKey)
+        }
+    }
+    private var showHrThumbKey:String="showHrThumb"
+    @Published public var showHrThumb:Bool{
+        didSet{
+            LocalStorage.set(showHrThumb, forKey: showHrThumbKey)
+        }
+    }
+    private var showRestingCalThumbKey:String="showRestingCalThumb"
+    @Published public var showRestingCalThumb:Bool{
+        didSet{
+            LocalStorage.set(showRestingCalThumb, forKey: showRestingCalThumbKey)
+        }
+    }
+    private var showActiveCalThumbKey:String="showActiveCalThumb"
+    @Published public var showActiveCalThumb:Bool{
+        didSet{
+            LocalStorage.set(showActiveCalThumb, forKey: showActiveCalThumbKey)
+        }
+    }
+    private var showStepsThumbKey:String="showStepsThumb"
+    @Published public var showStepsThumb:Bool{
+        didSet{
+            LocalStorage.set(showStepsThumb, forKey: showStepsThumbKey)
+        }
+    }
+    
+    
     
     
     
@@ -116,7 +149,13 @@ public class Settings:ObservableObject{
             sendToHealthKitKey: true,
             optimizedBtChunksKey: true,
             deviceNameKey: ViewModel.shared.savedDevice,
-            weatherRateLimitKey: 10
+            weatherRateLimitKey: 10,
+            showStepsThumbKey:true,
+            showActiveCalThumbKey:true,
+            showRestingCalThumbKey:true,
+            showHrThumbKey:true,
+            showBatteryThumbKey:true
+
         ])
         // load
         webURL=LocalStorage.getString(forKey: webURLKey) ?? "banglejs.com/apps"
@@ -132,5 +171,10 @@ public class Settings:ObservableObject{
         weatherRateLimit=Int(LocalStorage.getNumber(forKey: weatherRateLimitKey) ?? 10)
         locationRateLimit=Int(LocalStorage.getNumber(forKey: locationRateLimitKey) ?? 10)
         optimizedBtChunks=LocalStorage.getBool(forKey: optimizedBtChunksKey) ?? true
+        showHrThumb = LocalStorage.getBool(forKey: showHrThumbKey) ?? true
+        showBatteryThumb = LocalStorage.getBool(forKey: showBatteryThumbKey) ?? true
+        showStepsThumb = LocalStorage.getBool(forKey: showStepsThumbKey) ?? true
+        showActiveCalThumb = LocalStorage.getBool(forKey: showActiveCalThumbKey) ?? true
+        showRestingCalThumb = LocalStorage.getBool(forKey: showRestingCalThumbKey) ?? true
     }
 }
