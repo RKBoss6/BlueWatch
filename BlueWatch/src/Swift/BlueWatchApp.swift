@@ -8,6 +8,12 @@ import UserNotifications
 
 @main
 struct BlueWatchApp: App {
+    static let hkTypes: Set = [
+        HKQuantityType.quantityType(forIdentifier: .heartRate)!,
+        HKQuantityType.quantityType(forIdentifier: .stepCount)!,
+        HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!,
+        HKQuantityType.quantityType(forIdentifier: .basalEnergyBurned)!
+    ]
     // Use the singleton we defined
     @StateObject private var bleManager = BLEManager.shared
 
@@ -126,14 +132,9 @@ struct BlueWatchApp: App {
         let healthStore = HKHealthStore()
         guard HKHealthStore.isHealthDataAvailable() else { return }
         
-        let types: Set = [
-            HKQuantityType.quantityType(forIdentifier: .heartRate)!,
-            HKQuantityType.quantityType(forIdentifier: .stepCount)!,
-            HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!,
-            HKQuantityType.quantityType(forIdentifier: .basalEnergyBurned)!
-        ]
+        let types: Set = hkTypes
         
-        healthStore.requestAuthorization(toShare: types, read: types) { success, error in
+        healthStore.requestAuthorization(toShare: types, read: []) { success, error in
             if let error = error {
                 logger.log("❌ HealthKit authorization error: \(error)")
             } else {
@@ -151,4 +152,32 @@ struct BlueWatchApp: App {
             logger.log("Error requesting notification")
         }
     }
+
+    static func hasHealthKitPromptBeenShown() async -> Bool {
+        let healthStore = HKHealthStore()
+        
+        guard HKHealthStore.isHealthDataAvailable() else {
+            return false
+        }
+        
+        do {
+            // FIX: Use the correct async API name here
+            let status = try await healthStore.statusForAuthorizationRequest(toShare: hkTypes, read: [])
+            
+            switch status {
+            case .unnecessary:
+                return true
+            case .shouldRequest:
+                return false
+            case .unknown:
+                return false
+            @unknown default:
+                return false
+            }
+        } catch {
+            return false
+        }
+    }
+
+
 }

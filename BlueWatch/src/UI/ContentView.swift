@@ -11,6 +11,9 @@ import CoreBluetooth
 
 struct ContentView: View {
     @State var vm:ViewModel = ViewModel.shared
+    @AppStorage("shownVersionModal") private var versionModalLastShown = "1.0"
+    let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
+    @State var showWhatsNewSheet:Bool = false
     var body: some View {
         NavigationStack{
             if vm.savedDevice == "" {
@@ -46,7 +49,25 @@ struct ContentView: View {
                         UITabBar.appearance().standardAppearance = standardAppearance
                         // start connection
                         BLEManager.shared.start()
-                        BlueWatchApp.requestHealthAuthorization()
+                        Task{
+                            let hasPromptbeenShown:Bool = await BlueWatchApp.hasHealthKitPromptBeenShown()
+                            print("COMMAND: promptShown: \(hasPromptbeenShown)")
+                            if(hasPromptbeenShown){
+                                print("COMMAND: vershioMosal: \(versionModalLastShown)")
+                                print("COMMAND: appVers: \(appVersion)")
+
+
+                                if(versionModalLastShown != appVersion){
+                                    showWhatsNewSheet = true
+                                    versionModalLastShown = appVersion ?? "0";
+                                }
+                            }else{
+                                BlueWatchApp.requestHealthAuthorization()
+                                
+                            }
+                        }
+                        
+                        
                         
                     }
                     
@@ -54,7 +75,9 @@ struct ContentView: View {
             
         }
         .navigationBarBackButtonHidden(true)
-  
+        .sheet(isPresented: $showWhatsNewSheet){
+            LanguageOnboarding()
+        }
         
         
         
