@@ -6,11 +6,12 @@ import WebKit
 struct LockedWebView: UIViewRepresentable {
 
     let url: URL
-    
-    
+
     func makeCoordinator() -> Coordinator { Coordinator() }
 
     class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
+
+        weak var webView: WKWebView?
 
         func userContentController(_ ucc: WKUserContentController,
                                    didReceive message: WKScriptMessage) {
@@ -37,6 +38,10 @@ struct LockedWebView: UIViewRepresentable {
             }
         }
 
+        @objc func refreshWebView(_ sender: UIRefreshControl) {
+            webView?.reload()
+        }
+
         func webView(_ webView: WKWebView,
                      decidePolicyFor action: WKNavigationAction,
                      decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
@@ -49,27 +54,36 @@ struct LockedWebView: UIViewRepresentable {
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            webView.scrollView.refreshControl?.endRefreshing()
             logger.log("[LockedWebView] Page loaded: \(webView.url?.absoluteString ?? "?")")
         }
 
-        func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        func webView(_ webView: WKWebView,
+                     didFail navigation: WKNavigation!,
+                     withError error: Error) {
+            webView.scrollView.refreshControl?.endRefreshing()
             logger.log("[LockedWebView] Navigation error: \(error.localizedDescription)")
         }
 
-        func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+        func webView(_ webView: WKWebView,
+                     didFailProvisionalNavigation navigation: WKNavigation!,
+                     withError error: Error) {
+            webView.scrollView.refreshControl?.endRefreshing()
             logger.log("[LockedWebView] Provisional navigation error: \(error.localizedDescription)")
         }
     }
 
     func makeUIView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
-        let ucc    = WKUserContentController()
+        let ucc = WKUserContentController()
 
         // 1. Inject Web Bluetooth polyfill
         if let jsURL = Bundle.main.url(forResource: "WebBluetooth", withExtension: "js"),
-           let src   = try? String(contentsOf: jsURL, encoding: .utf8) {
+           let src = try? String(contentsOf: jsURL, encoding: .utf8) {
             ucc.addUserScript(WKUserScript(
-                source: src, injectionTime: .atDocumentStart, forMainFrameOnly: false
+                source: src,
+                injectionTime: .atDocumentStart,
+                forMainFrameOnly: false
             ))
         } else {
             assertionFailure("WebBluetooth.js not found — add to Copy Bundle Resources")
@@ -79,18 +93,29 @@ struct LockedWebView: UIViewRepresentable {
         let consoleBridgeJS = """
         (function() {
             var _handler = window.webkit.messageHandlers.consoleLog;
+
             function _wrap(level, orig) {
                 return function() {
                     var args = Array.prototype.slice.call(arguments);
                     var text = args.map(function(a) {
-                        if (a sharedof Error) return a.message + '\\n' + a.stack;
-                        try { return typeof a === 'object' ? JSON.stringify(a) : String(a); }
-                        catch(e) { return String(a); }
+                        if (a instanceof Error) return a.message + '\\n' + a.stack;
+                        try {
+                            return typeof a === 'object' ? JSON.stringify(a) : String(a);
+                        }
+                        catch(e) {
+                            return String(e);
+                        }
                     }).join(' ');
-                    _handler.postMessage({ level: level, text: text });
+
+                    _handler.postMessage({
+                        level: level,
+                        text: text
+                    });
+
                     orig.apply(console, arguments);
                 };
             }
+
             console.log   = _wrap('log',   console.log);
             console.warn  = _wrap('warn',  console.warn);
             console.error = _wrap('error', console.error);
@@ -98,26 +123,37 @@ struct LockedWebView: UIViewRepresentable {
 
             // Catch unhandled promise rejections
             window.addEventListener('unhandledrejection', function(e) {
-                var msg = e.reason sharedof Error
+                var msg = e.reason instanceof Error
                     ? e.reason.message + '\\n' + e.reason.stack
                     : String(e.reason);
-                _handler.postMessage({ level: 'UNHANDLED_REJECTION', text: msg });
+
+                _handler.postMessage({
+                    level: 'UNHANDLED_REJECTION',
+                    text: msg
+                });
             });
 
             // Catch uncaught errors
             window.addEventListener('error', function(e) {
-                _handler.postMessage({ level: 'UNCAUGHT_ERROR', text: e.message + ' at ' + e.filename + ':' + e.lineno });
+                _handler.postMessage({
+                    level: 'UNCAUGHT_ERROR',
+                    text: e.message + ' at ' + e.filename + ':' + e.lineno
+                });
             });
         })();
         """
+
         ucc.addUserScript(WKUserScript(
-            source: consoleBridgeJS, injectionTime: .atDocumentStart, forMainFrameOnly: false
+            source: consoleBridgeJS,
+            injectionTime: .atDocumentStart,
+            forMainFrameOnly: false
         ))
 
         // 3. CSS overflow fix
         ucc.addUserScript(WKUserScript(
             source: "var s=document.createElement('style');s.innerHTML='html,body{overflow-x:hidden!important}';document.documentElement.appendChild(s);",
-            injectionTime: .atDocumentStart, forMainFrameOnly: false
+            injectionTime: .atDocumentStart,
+            forMainFrameOnly: false
         ))
 
         // 4. Register message handlers
@@ -128,6 +164,8 @@ struct LockedWebView: UIViewRepresentable {
         config.allowsInlineMediaPlayback = true
 
         let webView = WKWebView(frame: .zero, configuration: config)
+        context.coordinator.webView = webView
+
         webView.navigationDelegate = context.coordinator
         webView.allowsBackForwardNavigationGestures = false
         webView.allowsLinkPreview = false
@@ -135,8 +173,18 @@ struct LockedWebView: UIViewRepresentable {
         webView.scrollView.alwaysBounceHorizontal = false
         webView.scrollView.isDirectionalLockEnabled = true
 
+        // 5. Native pull-to-refresh
+        let refreshControl = UIRefreshControl()
+        refreshControl.addTarget(
+            context.coordinator,
+            action: #selector(Coordinator.refreshWebView(_:)),
+            for: .valueChanged
+        )
+        webView.scrollView.refreshControl = refreshControl
+
         BLEManager.shared.webView = webView
         webView.load(URLRequest(url: url))
+
         return webView
     }
 
@@ -148,33 +196,34 @@ struct LockedWebView: UIViewRepresentable {
 struct WebView: View {
 
     private var lockedURL: URL = {
-        let base = Settings.shared.webURL.isEmpty == false ? Settings.shared.webURL : "banglejs.com/apps"
+        let base = Settings.shared.webURL.isEmpty == false
+            ? Settings.shared.webURL
+            : "banglejs.com/apps"
+
         let candidate = URL(string: "https://" + base)
-        if let url = candidate { return url }
-        // If URL construction fails, assert in debug but still return a safe default in release
+
+        if let url = candidate {
+            return url
+        }
+
         assertionFailure("Invalid URL constructed from settings: \(base)")
         return URL(string: "https://banglejs.com/apps")!
     }()
+
     @ObservedObject private var ble = BLEManager.shared
     @ObservedObject private var vm = ViewModel.shared
+
     var body: some View {
-        
         VStack() {
-//            Button{
-//                
-//            }label:{
-//                Image(systemName: "arrow.clockwise")
-//            }
+            //            Button{
+            //
+            //            }label:{
+            //                Image(systemName: "arrow.clockwise")
+            //            }
+
             LockedWebView(url: lockedURL)
                 .padding(.bottom,90)
-                
-            
-            
-                
-                
-            
         }
-        
         .statusBarHidden(true)
         .persistentSystemOverlays(.hidden)
         .appBackground()
@@ -184,4 +233,3 @@ struct WebView: View {
 #Preview {
     WebView()
 }
-
