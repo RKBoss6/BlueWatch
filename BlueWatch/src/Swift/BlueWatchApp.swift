@@ -57,6 +57,7 @@ struct BlueWatchApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(bleManager)
+                .tint(Color("AccentColor"))
         }
         .modelContainer(for: DataPoint.self)
         .onChange(of: scenePhase) { oldPhase, newPhase in
