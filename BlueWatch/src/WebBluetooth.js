@@ -35,7 +35,7 @@
   var _flowResumeTimer = null;
   var _flowPauseTimeout = 1000;
   var _chunkSize = 20;
-  var _maxChunkSize = 512;
+  var _maxChunkSize = 20;
   var _writeQueue = [];
   var _writeActive = false;
   function updateChunkSize(length) {
@@ -110,6 +110,8 @@
   var _charListeners = {};
   var _charObjects   = {};
   var _charBuffer    = {};
+  var _textDecoder   = new TextDecoder('utf-8');
+
   window.__bluetoothResetSession = function () {
     console.log('[WB] session reset — clearing listeners, objects, buffers');
     _charListeners = {};
@@ -128,6 +130,13 @@
     var bytes = new Uint8Array(byteArray);
     handleFlowControl(bytes);
     updateChunkSize(bytes.length);
+
+    // Decode and filter out any telemetry/commands containing "bwRX:"
+    var text = _textDecoder.decode(bytes);
+    if (text.indexOf('bwRX:') !== -1) {
+      return;
+    }
+
     var buf = bytes.buffer;
     var view = new DataView(buf);
     var char = _charObjects[charId];

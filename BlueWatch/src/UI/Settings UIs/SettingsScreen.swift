@@ -112,7 +112,7 @@ struct WatchSettingsScreen: View {
                 Section("Device"){
                     VStack(spacing: 16) {
                         HStack {
-                            Text("Device name:")
+                            Text("Device Name:")
                             TextField(ViewModel().savedDevice, text: $settings.deviceName)
                                 .autocorrectionDisabled()
                                 .textInputAutocapitalization(.never)
@@ -147,7 +147,7 @@ struct WatchSettingsScreen: View {
                     VStack(spacing: 16) {
                         
                         Toggle(isOn:$settings.optimizedBtChunks ) {
-                            Text("Optimize chunks")
+                            Text("Optimize Chunks")
                             
                         }
                         .tint(.accentColor)
@@ -169,7 +169,7 @@ struct WatchSettingsScreen: View {
                     VStack(spacing: 16) {
                         
                         Toggle(isOn:$settings.showFindPhoneNotification ) {
-                            Text("Show find phone notifications")
+                            Text("Show Find Phone Notifications")
                             
                         }
                         .tint(.accentColor)
@@ -189,7 +189,7 @@ struct WatchSettingsScreen: View {
                     VStack(spacing: 16) {
                         
                         Toggle(isOn:$settings.sendToHealthKit ) {
-                            Text("Push health data to Apple Health")
+                            Text("Push Health Data to Apple Health")
                             
                         }
                         .tint(.accentColor)
@@ -199,7 +199,7 @@ struct WatchSettingsScreen: View {
                         
     
                         Toggle(isOn:$settings.pushWeather ) {
-                            Text("Push weather updates")
+                            Text("Push Weather Updates")
                             
                         }
                         .tint(.accentColor)
@@ -211,7 +211,7 @@ struct WatchSettingsScreen: View {
                         Divider()
 
                         Toggle(isOn:$settings.pushLocation ) {
-                            Text("Push location updates")
+                            Text("Push Location Updates")
                             
                         }
                         .tint(.accentColor)
@@ -246,7 +246,7 @@ struct WatchSettingsScreen: View {
                         Button(role:.destructive) {
                             showDeletePrompt=true
                         } label: {
-                            Text("Delete saved data")
+                            Text("Delete Saved Data")
                         }
                         .alert("Are you sure?", isPresented: $showDeletePrompt) {
                                 Button("Delete", role: .destructive) {
@@ -258,7 +258,7 @@ struct WatchSettingsScreen: View {
                                 } message: {
                                     Text("This action permanently deletes the metrics shown in graphs from your device. Data saved to Health will not be deleted.")
                                 }
-                                .tint(.black)
+                                .tint(.primary)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical)
@@ -266,16 +266,22 @@ struct WatchSettingsScreen: View {
                     .liquidGlass()
                 }
                 .listRowBackground(Color.clear)
-                Section(header: Text("Web View"),
-                        footer: Text("Requires an app restart to display new URL in web view")
-                        ){
+                Section(header: Text("Web View")){
                     VStack(spacing: 16) {
                         HStack {
                                 Text("Web URL:")
                                 TextField("banglejs.com/apps", text: $settings.webURL)
                                     .autocorrectionDisabled()
                                     .textInputAutocapitalization(.never)
+                                  
                             }
+                        Divider()
+                    
+                            Toggle(isOn:$settings.pullToRefreshWebView) {
+                                Text("Pull to Refresh")
+                            }
+                            .tint(.accentColor)
+                        
                         /*
                             Divider()
                         
@@ -308,6 +314,12 @@ struct WatchSettingsScreen: View {
                 .listRowBackground(
                     Color.clear
                 )
+                .onChange(of: settings.webURL) { _, _ in
+                    WebRefreshManager.shared.forceRefresh()
+                }
+                .onChange(of: settings.pullToRefreshWebView) { _, _ in
+                    WebRefreshManager.shared.forceRefresh()
+                }
                 
                 
                 

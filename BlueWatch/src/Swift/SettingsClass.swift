@@ -86,6 +86,12 @@ public class Settings:ObservableObject{
             LocalStorage.set(lowBattNotify, forKey: lowBattNotifyKey)
         }
     }
+    private var pullToRefreshWebViewKey:String="pullToRefreshWebView"
+    @Published public var pullToRefreshWebView:Bool{
+        didSet{
+            LocalStorage.set(pullToRefreshWebView, forKey: pullToRefreshWebViewKey)
+        }
+    }
     
     private var weatherRateLimitKey:String="weatherRateLimit"
     @Published public var weatherRateLimit:Int{
@@ -154,7 +160,8 @@ public class Settings:ObservableObject{
             showActiveCalThumbKey:true,
             showRestingCalThumbKey:true,
             showHrThumbKey:true,
-            showBatteryThumbKey:true
+            showBatteryThumbKey:true,
+            pullToRefreshWebViewKey:true
 
         ])
         // load
@@ -176,5 +183,7 @@ public class Settings:ObservableObject{
         showStepsThumb = LocalStorage.getBool(forKey: showStepsThumbKey) ?? true
         showActiveCalThumb = LocalStorage.getBool(forKey: showActiveCalThumbKey) ?? true
         showRestingCalThumb = LocalStorage.getBool(forKey: showRestingCalThumbKey) ?? true
+        pullToRefreshWebView = LocalStorage.getBool(forKey: pullToRefreshWebViewKey) ?? true
+
     }
 }

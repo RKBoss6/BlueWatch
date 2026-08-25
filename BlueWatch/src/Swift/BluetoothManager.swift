@@ -1219,6 +1219,11 @@ final class BLEManager: NSObject, ObservableObject {
             return
         }
 
+        guard activeWebNotifications.isEmpty else {
+            logger.log("[BLE] Suppressing native send — WebBluetooth active")
+            pendingMessages.removeAll()
+            return
+        }
         sendBusy = true
 
         let message = pendingMessages.removeFirst()
@@ -1437,7 +1442,7 @@ final class BLEManager: NSObject, ObservableObject {
     }
 
     private func wbRequestDevice(id: Int) {
-
+        
         guard started else {
 
             wbReject(
@@ -1447,6 +1452,9 @@ final class BLEManager: NSObject, ObservableObject {
 
             return
         }
+        pendingMessages.removeAll()
+        pendingChunks.removeAll()
+        sendBusy = false
 
         activeWebNotifications.removeAll()
         wbCharacteristics.removeAll()
@@ -1758,55 +1766,30 @@ final class BLEManager: NSObject, ObservableObject {
         )
     }
 
-    private func wbWriteValue(
-        id: Int,
-        args: [String: Any]
-    ) {
-
-        guard let charId =
-                args["charId"] as? String,
-              let char =
-                wbCharacteristics[charId],
-              let values =
-                args["value"] as? [Int] else {
-
-            wbReject(
-                id: id,
-                error: "Bad write args"
-            )
-
+    // 2. In wbWriteValue:
+    private func wbWriteValue(id: Int, args: [String: Any]) {
+        guard let charId = args["charId"] as? String,
+              let char = wbCharacteristics[charId],
+              let values = args["value"] as? [Int],
+              let p = peripheral else {
+            wbReject(id: id, error: "Bad write args or disconnected")
             return
         }
 
-        let data =
-            Data(
-                values.map {
-                    UInt8(clamping: $0)
-                }
-            )
+        let data = Data(values.map { UInt8(clamping: $0) })
+        let writeType: CBCharacteristicWriteType = char.properties.contains(.writeWithoutResponse)
+            ? .withoutResponse
+            : .withResponse
 
-        if char.properties.contains(
-            .writeWithoutResponse
-        ) {
+        p.writeValue(data, for: char, type: writeType)
 
-            enqueueWrite(
-                callId: id,
-                data: data,
-                char: char
-            )
-
+        if writeType == .withoutResponse {
+            // Micro-throttle (8ms) gives Bangle.js time to process flash writes & issue XOFF
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.008) { [weak self] in
+                self?.wbResolve(id: id, result: [:])
+            }
         } else {
-
-            char.service?.peripheral?.writeValue(
-                data,
-                for: char,
-                type: .withResponse
-            )
-
-            wbResolve(
-                id: id,
-                result: [:]
-            )
+            wbResolve(id: id, result: [:])
         }
     }
 

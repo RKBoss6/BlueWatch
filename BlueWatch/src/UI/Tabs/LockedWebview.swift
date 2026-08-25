@@ -2,7 +2,18 @@
 
 import SwiftUI
 import WebKit
-
+@Observable
+class WebRefreshManager {
+    static let shared = WebRefreshManager()
+    private init() {
+        //nthing
+    }
+    var refreshID = UUID()
+    
+    func forceRefresh() {
+        refreshID = UUID()
+    }
+}
 struct LockedWebView: UIViewRepresentable {
 
     let url: URL
@@ -172,16 +183,16 @@ struct LockedWebView: UIViewRepresentable {
         webView.scrollView.showsHorizontalScrollIndicator = false
         webView.scrollView.alwaysBounceHorizontal = false
         webView.scrollView.isDirectionalLockEnabled = true
-
-        // 5. Native pull-to-refresh
-        let refreshControl = UIRefreshControl()
-        refreshControl.addTarget(
-            context.coordinator,
-            action: #selector(Coordinator.refreshWebView(_:)),
-            for: .valueChanged
-        )
-        webView.scrollView.refreshControl = refreshControl
-
+        if(Settings.shared.pullToRefreshWebView){
+            // 5. Native pull-to-refresh
+            let refreshControl = UIRefreshControl()
+            refreshControl.addTarget(
+                context.coordinator,
+                action: #selector(Coordinator.refreshWebView(_:)),
+                for: .valueChanged
+            )
+            webView.scrollView.refreshControl = refreshControl
+        }
         BLEManager.shared.webView = webView
         webView.load(URLRequest(url: url))
 
@@ -194,21 +205,16 @@ struct LockedWebView: UIViewRepresentable {
 // MARK: - ContentView
 
 struct WebView: View {
-
-    private var lockedURL: URL = {
-        let base = Settings.shared.webURL.isEmpty == false
-            ? Settings.shared.webURL
-            : "banglejs.com/apps"
-
+    @State private var refreshManager = WebRefreshManager.shared
+    private var lockedURL: URL {
+        let base = !Settings.shared.webURL.isEmpty ? Settings.shared.webURL : "banglejs.com/apps"
         let candidate = URL(string: "https://" + base)
-
         if let url = candidate {
             return url
         }
-
-        assertionFailure("Invalid URL constructed from settings: \(base)")
+        //assertionFailure("Invalid URL constructed from settings: \(base)")
         return URL(string: "https://banglejs.com/apps")!
-    }()
+    }
 
     @ObservedObject private var ble = BLEManager.shared
     @ObservedObject private var vm = ViewModel.shared
@@ -223,6 +229,7 @@ struct WebView: View {
 
             LockedWebView(url: lockedURL)
                 .padding(.bottom,90)
+                .id(refreshManager.refreshID)
         }
         .statusBarHidden(true)
         .persistentSystemOverlays(.hidden)
