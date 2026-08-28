@@ -28,8 +28,6 @@ BlueWatch is developed and maintained with the knowing consent and authorization
 ## Notes
 - BlueWatch rate-limits WeatherKit API calls to 8 minutes to avoid API call abuse. This means that if you request to push weather to your watch and it already has pushed it less than 10 minutes ago, it will ignore your request until you or the watch requests again after 8 minutes have elapsed.
 
-- Currently, the Find My Phone feature requires your phone to be unmuted, due to iOS limitations imposed on `AVAudioPlayer`
-
 
 Anyone can contribute and suggest changes! Just open an issue :)
 
