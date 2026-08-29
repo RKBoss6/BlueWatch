@@ -33,25 +33,25 @@
 		3676F0A52F8FE40B002C112D /* Exceptions for "BlueWatch" folder in "BlueWatchTests" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				InfoPlist.xcstrings,
-				src/Swift/SettingsClass.swift,
-				src/Swift/Utils.swift,
+				App/SettingsClass.swift,
+				App/Utils.swift,
+				Resources/InfoPlist.xcstrings,
 			);
 			target = 368901482D7206AD00AD492A /* BlueWatchTests */;
 		};
 		3676F0A62F8FE40B002C112D /* Exceptions for "BlueWatch" folder in "BlueWatchUITests" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				InfoPlist.xcstrings,
-				src/Swift/SettingsClass.swift,
-				src/Swift/Utils.swift,
+				App/SettingsClass.swift,
+				App/Utils.swift,
+				Resources/InfoPlist.xcstrings,
 			);
 			target = 368901522D7206AD00AD492A /* BlueWatchUITests */;
 		};
 		368902902D7B382200AD492A /* Exceptions for "BlueWatch" folder in "BlueWatch" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Info.plist,
+				Resources/Info.plist,
 			);
 			target = 368901382D7206AB00AD492A /* BlueWatch */;
 		};
@@ -444,7 +444,7 @@
 				DEVELOPMENT_TEAM = 423YJ362Z5;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = BlueWatch/Info.plist;
+				INFOPLIST_FILE = BlueWatch/Resources/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = BlueWatch;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "BlueWatch needs Bluetooth to connect, send, and receive data from your watch.";
@@ -492,7 +492,7 @@
 				DEVELOPMENT_TEAM = 423YJ362Z5;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = BlueWatch/Info.plist;
+				INFOPLIST_FILE = BlueWatch/Resources/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = BlueWatch;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "BlueWatch needs Bluetooth to connect, send, and receive data from your watch.";
