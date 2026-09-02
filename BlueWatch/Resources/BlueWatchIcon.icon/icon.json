@@ -2,15 +2,15 @@
   "fill-specializations" : [
     {
       "value" : {
-        "automatic-gradient" : "display-p3:0.28392,0.57079,0.87677,1.00000"
+        "automatic-gradient" : "display-p3:0.20413,0.48302,0.78115,1.00000"
       }
     },
     {
       "appearance" : "dark",
       "value" : {
         "linear-gradient" : [
-          "display-p3:0.06993,0.14162,0.21807,1.00000",
-          "display-p3:0.07388,0.09692,0.12010,1.00000"
+          "display-p3:0.05438,0.12982,0.25649,1.00000",
+          "display-p3:0.05926,0.07775,0.09634,1.00000"
         ],
         "orientation" : {
           "start" : {
@@ -95,6 +95,9 @@
         {
           "blend-mode-specializations" : [
             {
+              "value" : "normal"
+            },
+            {
               "appearance" : "dark",
               "value" : "normal"
             }
@@ -152,14 +155,50 @@
           0
         ]
       },
-      "shadow" : {
-        "kind" : "neutral",
-        "opacity" : 0.41
-      },
-      "translucency" : {
-        "enabled" : true,
-        "value" : 0.5
-      }
+      "shadow-specializations" : [
+        {
+          "value" : {
+            "kind" : "layer-color",
+            "opacity" : 0.07
+          }
+        },
+        {
+          "appearance" : "dark",
+          "value" : {
+            "kind" : "layer-color",
+            "opacity" : 0.24
+          }
+        },
+        {
+          "appearance" : "tinted",
+          "value" : {
+            "kind" : "neutral",
+            "opacity" : 1
+          }
+        }
+      ],
+      "translucency-specializations" : [
+        {
+          "value" : {
+            "enabled" : true,
+            "value" : 0.5
+          }
+        },
+        {
+          "appearance" : "dark",
+          "value" : {
+            "enabled" : true,
+            "value" : 0.78
+          }
+        },
+        {
+          "appearance" : "tinted",
+          "value" : {
+            "enabled" : true,
+            "value" : 0.74
+          }
+        }
+      ]
     }
   ],
   "supported-platforms" : {

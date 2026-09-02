@@ -28,6 +28,12 @@
             "state" : "translated",
             "value" : "BlueWatch"
           }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BlueWatch"
+          }
         }
       }
     },
@@ -54,6 +60,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BlueWatch"
+          }
+        },
+        "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "BlueWatch"
@@ -88,6 +100,12 @@
             "state" : "translated",
             "value" : "BlueWatch a besoin du Bluetooth pour se connecter à votre montre, et envoyer et recevoir des données."
           }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BlueWatch को आपकी घड़ी से कनेक्ट करने, डेटा भेजने और प्राप्त करने के लिए ब्लूटूथ की आवश्यकता है।"
+          }
         }
       }
     },
@@ -117,6 +135,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "BlueWatch a besoin du Bluetooth pour se connecter à votre montre"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BlueWatch को आपकी घड़ी से कनेक्ट करने के लिए ब्लूटूथ की आवश्यकता है"
           }
         }
       }
@@ -148,6 +172,12 @@
             "state" : "translated",
             "value" : "BlueWatch lit les données de santé pour garantir une synchronisation à jour avec Santé d'Apple depuis votre montre."
           }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BlueWatch आपकी घड़ी से Apple Health के सिंक को अपडेट रखने के लिए स्वास्थ्य डेटा पढ़ता है।"
+          }
         }
       }
     },
@@ -177,6 +207,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "BlueWatch a besoin d'accéder à Santé pour pouvoir y transmettre les données de santé de votre montre."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BlueWatch को Apple Health को अपडेट करने के लिए एक्सेस की आवश्यकता है ताकि वह आपकी घड़ी से स्वास्थ्य डेटा Health में भेज सके।"
           }
         }
       }
@@ -208,6 +244,12 @@
             "state" : "translated",
             "value" : "BlueWatch a besoin de la localisation pour obtenir la météo locale et le GPS de votre montre."
           }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BlueWatch को आपकी घड़ी के लिए स्थानीय मौसम और GPS प्राप्त करने के लिए लोकेशन की आवश्यकता है।"
+          }
         }
       }
     },
@@ -237,6 +279,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "BlueWatch a besoin périodiquement de la localisation en arrière-plan pour mettre à jour la position de votre appareil"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BlueWatch को आपके डिवाइस की लोकेशन अपडेट करने के लिए बैकग्राउंड में समय-समय पर लोकेशन की आवश्यकता होती है"
           }
         }
       }
@@ -268,10 +316,15 @@
             "state" : "translated",
             "value" : "BlueWatch a besoin de la localisation pour obtenir la météo locale"
           }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BlueWatch को स्थानीय मौसम प्राप्त करने के लिए लोकेशन की आवश्यकता है"
+          }
         }
       }
     }
   },
   "version" : "1.3"
 }
-

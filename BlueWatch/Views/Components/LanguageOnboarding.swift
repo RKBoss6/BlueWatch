@@ -16,19 +16,19 @@ struct LanguageOnboarding: View {
                 Image(systemName:"globe")
                 .font(.title)
 
-                Text("New: Languages")
+                Text("App Languages")
                     .font(.largeTitle)
                     .fontWeight(.bold)
                     .padding()
             }
             Spacer()
 
-            Text("Starting in BlueWatch v1.4.2, different Localizations are available, depending on system language.")
+            Text("BlueWatch can support different localizations and languages, depending on the system language set.")
                 .multilineTextAlignment(.center)
                 .padding(.bottom)
-            Text("The current languages supported are: ")                .multilineTextAlignment(.center)
+            Text("The current languages supported are: ").multilineTextAlignment(.center)
             
-            Text(verbatim: "English, Français, Español, and Deutsch")                .multilineTextAlignment(.center)
+            Text(verbatim: "English, Français, Español, Hindi (हिन्दी), and Deutsch")                .multilineTextAlignment(.center)
                 .bold()
                 .padding(.bottom)
             Text("Most translations are auto-generated, and errors may be present. If you'd like to fix errors/add new languages, look at the [BlueWatch Localization Info](https://github.com/RKBoss6/BlueWatch/blob/main/CONTRIBUTING.md#localizations), and open a PR to help improve the app!")
