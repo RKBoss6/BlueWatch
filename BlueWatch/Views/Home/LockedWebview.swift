@@ -9,7 +9,7 @@ class WebRefreshManager {
         //nthing
     }
     var refreshID = UUID()
-    
+    var currentThemeColor: Color = Color(uiColor: .systemBackground)
     func forceRefresh() {
         refreshID = UUID()
     }
@@ -17,13 +17,43 @@ class WebRefreshManager {
 struct LockedWebView: UIViewRepresentable {
 
     let url: URL
-
     func makeCoordinator() -> Coordinator { Coordinator() }
 
-    class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
+    class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler , UIScrollViewDelegate {
 
         weak var webView: WKWebView?
 
+        private var themeObservation: NSKeyValueObservation?
+        func scrollViewDidScroll(_ scrollView: UIScrollView) {
+            if scrollView.contentOffset.x != 0 {
+                    scrollView.contentOffset.x = 0
+                }
+            // Incorporate the bottom inset into the max scroll calculation
+            let maxScrollableOffset = scrollView.contentSize.height - scrollView.bounds.height + scrollView.contentInset.bottom
+            
+            // Hard-lock the elastic bounce at the new extended boundary
+            if scrollView.contentOffset.y > maxScrollableOffset {
+                if maxScrollableOffset > 0 {
+                    scrollView.contentOffset.y = maxScrollableOffset
+                } else {
+                    scrollView.contentOffset.y = 0
+                }
+            }
+        }
+
+        func setupThemeObservation(for webView: WKWebView) {
+            self.webView = webView
+            
+            // KVO listens to Apple's native .themeColor updates
+            themeObservation = webView.observe(\.themeColor, options: [.new]) { _, change in
+                DispatchQueue.main.async {
+                    if let uiColor = change.newValue as? UIColor {
+                        // Instantly push the parsed web meta color into SwiftUI state
+                        WebRefreshManager.shared.currentThemeColor = Color(uiColor: uiColor)
+                    }
+                }
+            }
+        }
         func userContentController(_ ucc: WKUserContentController,
                                    didReceive message: WKScriptMessage) {
             // BLE bridge messages
@@ -160,9 +190,26 @@ struct LockedWebView: UIViewRepresentable {
             forMainFrameOnly: false
         ))
 
-        // 3. CSS overflow fix
+        let performanceCSS = """
+        html, body {
+            overflow-x: hidden !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            -webkit-overflow-scrolling: touch !important;
+        }
+        body {
+            /* Adds extra empty space at the absolute bottom when fully scrolled */
+            padding-bottom: 1000px !important; 
+            box-sizing: border-box !important;
+        }
+        * {
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+        }
+        """
+        let jsSource = "var s=document.createElement('style');s.innerHTML='\(performanceCSS)';document.documentElement.appendChild(s);"
         ucc.addUserScript(WKUserScript(
-            source: "var s=document.createElement('style');s.innerHTML='html,body{overflow-x:hidden!important}';document.documentElement.appendChild(s);",
+            source: jsSource,
             injectionTime: .atDocumentStart,
             forMainFrameOnly: false
         ))
@@ -176,7 +223,7 @@ struct LockedWebView: UIViewRepresentable {
 
         let webView = WKWebView(frame: .zero, configuration: config)
         context.coordinator.webView = webView
-
+        context.coordinator.setupThemeObservation(for: webView)
         webView.navigationDelegate = context.coordinator
         webView.allowsBackForwardNavigationGestures = false
         webView.allowsLinkPreview = false
@@ -193,10 +240,16 @@ struct LockedWebView: UIViewRepresentable {
             )
             webView.scrollView.refreshControl = refreshControl
         }
+        webView.scrollView.delegate = context.coordinator
+        webView.scrollView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: 80, right: 0)
         BLEManager.shared.webView = webView
         webView.load(URLRequest(url: url))
-
+        webView.isOpaque = false
+        webView.backgroundColor = .clear
+        webView.scrollView.backgroundColor = .clear
+        
         return webView
+        
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {}
@@ -220,20 +273,27 @@ struct WebView: View {
     @ObservedObject private var vm = ViewModel.shared
 
     var body: some View {
-        VStack() {
-            //            Button{
-            //
-            //            }label:{
-            //                Image(systemName: "arrow.clockwise")
-            //            }
-
-            LockedWebView(url: lockedURL)
-                .padding(.bottom,90)
-                .id(refreshManager.refreshID)
+        ZStack{
+            VStack() {
+                Rectangle()
+                    .frame(width:.infinity, height:60)
+                    .foregroundStyle(refreshManager.currentThemeColor)
+                //            Button{
+                //
+                //            }label:{
+                //                Image(systemName: "arrow.clockwise")
+                //            }
+                    .padding(.bottom,-10)
+                LockedWebView(url: lockedURL)
+                    .id(refreshManager.refreshID)
+                    
+            }
+            .statusBarHidden(true)
+            .persistentSystemOverlays(.hidden)
+            .ignoresSafeArea(edges:.all)
+            
         }
-        .statusBarHidden(true)
-        .persistentSystemOverlays(.hidden)
-        .appBackground()
+        .background(refreshManager.currentThemeColor)
     }
 }
 
