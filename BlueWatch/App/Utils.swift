@@ -14,7 +14,7 @@ import SwiftUI
 enum Utils{
     static func pushNotification(title:String,body:String,id:String){
         Task{
-            await BlueWatchApp.requestNotificationAuthorization()
+            await AuthManager.shared.requestNotificationAuthorization()
         }
         let center=UNUserNotificationCenter.current()
         let content = UNMutableNotificationContent()

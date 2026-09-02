@@ -7,10 +7,12 @@
 
 import SwiftUI
 import _SwiftData_SwiftUI
+import StoreKit
 
 struct ExpandedMetricView: View {
     let title: String
     let dataType: DataType
+    @Environment(\.requestReview) var requestReview
     let color:Color
     @Query private var filteredPoints: [DataPoint]
     @State private var selectedDay = Date()
@@ -110,6 +112,10 @@ struct ExpandedMetricView: View {
             
         }.appBackground()
             .navigationTitle(title)
+            .onAppear{
+                AppMetricManager.shared.increaseExpandedMetricViewOpens()
+                AppMetricManager.shared.tryTriggerReview(requestReviewAction: requestReview)
+            }
     }
     
     private func moveDay(by value: Int) {

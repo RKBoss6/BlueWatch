@@ -18,7 +18,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     override init() {
         super.init()
         clManager.delegate = self
-        requestAuthorization()
+        //requestAuthorization()
     }
     
     func requestAuthorization(){

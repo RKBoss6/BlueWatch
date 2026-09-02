@@ -993,6 +993,7 @@ final class BLEManager: NSObject, ObservableObject {
 
     /*
      Called when the BlueWatch protocol actually responds.
+     This means the watch is actually connected and can see data
      */
     private func didCompleteHandshakeOnBLEQueue() {
 
@@ -1016,7 +1017,7 @@ final class BLEManager: NSObject, ObservableObject {
         )
 
         publishStatus("Connected")
-
+        AppMetricManager.shared.increaseConnectionCount()
         /*
          These happen after the BLE protocol is confirmed.
          */
@@ -2862,19 +2863,11 @@ extension BLEManager: CBPeripheralDelegate {
                 encoding: .utf8
             ) {
 
-            print(
-                "RAW RX FROM WATCH: '\(raw)'"
-            )
-
-            logger.log(
-                "[BLE RAW] charId=\(charId, privacy: .public) bytes=\(bytes.count, privacy: .public) text=\(raw.debugDescription, privacy: .public)"
-            )
+            
 
         } else {
 
-            logger.log(
-                "[BLE RAW] charId=\(charId, privacy: .public) bytes=\(bytes.count, privacy: .public) non-UTF8"
-            )
+            
         }
 
         /*
@@ -2951,18 +2944,14 @@ extension BLEManager: CBPeripheralDelegate {
                 continue
             }
 
-            logger.log(
-                "[Receive] got command: \(line, privacy: .public)"
-            )
+            
 
             guard let prefixRange =
                     line.range(
                         of: "bwRX:"
                     ) else {
 
-                logger.log(
-                    "[Receive] Ignoring non-BlueWatch line"
-                )
+                
 
                 continue
             }
@@ -2974,9 +2963,7 @@ extension BLEManager: CBPeripheralDelegate {
                     ]
                 )
 
-            logger.log(
-                "[Receive] payload: \(payload, privacy: .public)"
-            )
+           
 
             /*
              Handshake completion is handled on the BLE queue,
@@ -3014,9 +3001,7 @@ extension BLEManager: CBPeripheralDelegate {
                     with: payloadData
                 ) as? [String: Any] {
 
-                logger.log(
-                    "[Receive] registered as JSON: \(payload, privacy: .public)"
-                )
+                
 
                 DispatchQueue.main.async { [weak self] in
 
@@ -3031,9 +3016,7 @@ extension BLEManager: CBPeripheralDelegate {
 
             } else {
 
-                logger.log(
-                    "[Receive] registered as command: \(payload, privacy: .public)"
-                )
+                
 
                 DispatchQueue.main.async { [weak self] in
 

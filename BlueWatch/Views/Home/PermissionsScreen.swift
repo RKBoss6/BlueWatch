@@ -107,7 +107,9 @@ struct PermissionsScreen :View {
             Section{
                 VStack(spacing: 16) {
                     Button{
-                        BlueWatchApp.requestHealthAuthorization()
+                        Task{
+                            await AuthManager.shared.requestHealthAuthorization()
+                        }
 
                     }label:{
                         Text("Request Health Permissions")
@@ -115,7 +117,7 @@ struct PermissionsScreen :View {
                     Divider()
                     Button{
                         Task{
-                            await BlueWatchApp.requestNotificationAuthorization()
+                            await AuthManager.shared.requestNotificationAuthorization()
                         }
                     }label:{
                         Text("Request Notification Permissions")

@@ -8,7 +8,6 @@
 import SwiftUI
 
 struct WelcomeScreen: View {
-    
     @State private var titleText=""
     @State private var textInputted=""
     var body: some View {
@@ -29,7 +28,7 @@ struct WelcomeScreen: View {
                     .padding(.leading,15)
                     .padding(.trailing,15)
                 
-                FeatureCard(icon: "bell.badge", description: "Get notifications, and push them to your watch")
+                FeatureCard(icon: "bell.badge", description: "See notifications, and push them to your watch")
                     .padding(.leading,15)
                     .padding(.trailing,15)
                 FeatureCard(icon: "cloud.sun", description: "Push weather, location and more")
@@ -40,30 +39,17 @@ struct WelcomeScreen: View {
                     .padding(.trailing,15)
                 Spacer()
                 
-                if #available(iOS 26.0, *) {
-                    NavigationLink(destination: ChooseDeviceScreen()) {
-                        Text("Get Started")
-                            .frame(maxWidth: .infinity,maxHeight: 30)
-                        
-                    }
+                NavigationLink(destination: SetupView(type:.notifications,icon:"bell.fill",titleText: "Notifications", body1Text: "BlueWatch uses notifications to alert you during the find phone alarm when the setting is active.", body2Text:"You can always change this later in System Settings")) {
+                    Text("Get Started")
+                        .frame(maxWidth: .infinity,maxHeight: 30)
                     
-                    .buttonStyle(.glassProminent)
-                    
-                    
-                    .padding()
-                } else {
-                    NavigationLink(destination: ChooseDeviceScreen()) {
-                        Text("Get Started")
-                            .frame(maxWidth: .infinity,maxHeight: 30)
-                        
-                    }
-                    
-                    .buttonStyle(.borderedProminent)
-                    .shadow(color:Color.black.opacity(0.1), radius: 16,x: 0,y: 5)
-                    
-                    
-                    .padding()
                 }
+                
+                .buttonStyle(.borderedProminent)
+                
+                
+                .padding()
+              
                 
                 
                 

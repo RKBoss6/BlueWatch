@@ -8,12 +8,7 @@ import UserNotifications
 
 @main
 struct BlueWatchApp: App {
-    static let hkTypes: Set = [
-        HKQuantityType.quantityType(forIdentifier: .heartRate)!,
-        HKQuantityType.quantityType(forIdentifier: .stepCount)!,
-        HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!,
-        HKQuantityType.quantityType(forIdentifier: .basalEnergyBurned)!
-    ]
+    
     // Use the singleton we defined
     @StateObject private var bleManager = BLEManager.shared
 
@@ -129,30 +124,8 @@ struct BlueWatchApp: App {
         }
     }
     
-    static func requestHealthAuthorization() {
-        let healthStore = HKHealthStore()
-        guard HKHealthStore.isHealthDataAvailable() else { return }
-        
-        let types: Set = hkTypes
-        
-        healthStore.requestAuthorization(toShare: types, read: []) { success, error in
-            if let error = error {
-                logger.log("❌ HealthKit authorization error: \(error)")
-            } else {
-                logger.log("✅ HealthKit authorized")
-            }
-        }
-    }
+ 
     
-    static func requestNotificationAuthorization() async{
-        let center = UNUserNotificationCenter.current()
-        do{
-            try await center.requestAuthorization(options: [.alert, .sound, .badge])
-
-        }catch {
-            logger.log("Error requesting notification")
-        }
-    }
 
     static func hasHealthKitPromptBeenShown() async -> Bool {
         let healthStore = HKHealthStore()
@@ -163,7 +136,7 @@ struct BlueWatchApp: App {
         
         do {
             // FIX: Use the correct async API name here
-            let status = try await healthStore.statusForAuthorizationRequest(toShare: hkTypes, read: [])
+            let status = try await healthStore.statusForAuthorizationRequest(toShare: AuthManager.shared.hkTypes, read: [])
             
             switch status {
             case .unnecessary:

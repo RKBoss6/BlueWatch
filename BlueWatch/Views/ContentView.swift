@@ -7,19 +7,19 @@
 
 import SwiftUI
 import CoreBluetooth
-
+import StoreKit
 
 struct ContentView: View {
     @State var vm:ViewModel = ViewModel.shared
-    @AppStorage("shownVersionModal") private var versionModalLastShown = "1.0"
     let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
+    @AppStorage("shownVersionModal") private var versionModalLastShown = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
     @State var showWhatsNewSheet:Bool = false
     var body: some View {
         NavigationStack{
             if vm.savedDevice == "" {
                 WelcomeScreen()
             } else {
-                
+                    
                     TabView{
                         
                         Tab("My Watch",systemImage:"watch.analog"){
@@ -49,24 +49,16 @@ struct ContentView: View {
                         UITabBar.appearance().standardAppearance = standardAppearance
                         // start connection
                         BLEManager.shared.start()
-                        Task{
-                            let hasPromptbeenShown:Bool = await BlueWatchApp.hasHealthKitPromptBeenShown()
-                            print("COMMAND: promptShown: \(hasPromptbeenShown)")
-                            if(hasPromptbeenShown){
-                                print("COMMAND: vershioMosal: \(versionModalLastShown)")
-                                print("COMMAND: appVers: \(appVersion)")
-
-
-                                if(versionModalLastShown != appVersion){
-                                    showWhatsNewSheet = true
-                                    versionModalLastShown = appVersion ?? "0";
-                                }
-                            }else{
-                                BlueWatchApp.requestHealthAuthorization()
-                                
+                           
+                        if(versionModalLastShown != appVersion){
+                            if(appVersion == "1.4.2"){
+                                showWhatsNewSheet = true
+                                versionModalLastShown = appVersion ?? "0";
                             }
                         }
+                           
                         
+                       
                         
                         
                     }
