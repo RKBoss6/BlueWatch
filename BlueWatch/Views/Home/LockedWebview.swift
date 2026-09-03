@@ -15,14 +15,14 @@ class WebRefreshManager {
     }
 }
 struct LockedWebView: UIViewRepresentable {
-
+    let refreshManager:WebRefreshManager = .shared
     let url: URL
     func makeCoordinator() -> Coordinator { Coordinator() }
 
     class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler , UIScrollViewDelegate {
 
         weak var webView: WKWebView?
-
+        var topThemeView: UIView?
         private var themeObservation: NSKeyValueObservation?
         func scrollViewDidScroll(_ scrollView: UIScrollView) {
             if scrollView.contentOffset.x != 0 {
@@ -113,7 +113,10 @@ struct LockedWebView: UIViewRepresentable {
             logger.log("[LockedWebView] Provisional navigation error: \(error.localizedDescription)")
         }
     }
-
+    func updateUIView(_ uiView: WKWebView, context: Context) {
+        // Dynamically update the color when the observable property changes
+        context.coordinator.topThemeView?.backgroundColor = UIColor(refreshManager.currentThemeColor)
+    }
     func makeUIView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
         let ucc = WKUserContentController()
@@ -247,12 +250,28 @@ struct LockedWebView: UIViewRepresentable {
         webView.isOpaque = false
         webView.backgroundColor = .clear
         webView.scrollView.backgroundColor = .clear
-        
+        // 1. Create a background container view that matches the scroll view's size
+                let bgView = UIView(frame: webView.scrollView.bounds)
+                bgView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+                bgView.backgroundColor = .white // The default background color for the body/bottom bounce
+                
+        // 2. Create a top header slice for the pull-down area
+        let topThemeView = UIView()
+        topThemeView.frame = CGRect(x: 0, y: -1000, width: UIScreen.main.bounds.width, height: 1000)
+        topThemeView.autoresizingMask = [.flexibleWidth]
+        topThemeView.backgroundColor = UIColor(refreshManager.currentThemeColor)
+
+        // Save it to the coordinator so we can reach it later
+        context.coordinator.topThemeView = topThemeView
+
+        bgView.addSubview(topThemeView)
+                
+                // 4. Insert the container at index 0 behind the web view's internal components
+                webView.scrollView.insertSubview(bgView, at: 0)
         return webView
         
     }
 
-    func updateUIView(_ webView: WKWebView, context: Context) {}
 }
 
 // MARK: - ContentView
@@ -274,6 +293,12 @@ struct WebView: View {
 
     var body: some View {
         ZStack{
+            /*
+            Rectangle().frame(maxHeight:.infinity)
+               
+                .foregroundStyle(LinearGradient(colors: [refreshManager.currentThemeColor,refreshManager.currentThemeColor,.white,.white], startPoint: .top, endPoint: .bottom))
+                .ignoresSafeArea(edges:.all)
+             */
             VStack() {
                 Rectangle()
                     .frame(width:.infinity, height:60)
@@ -288,12 +313,14 @@ struct WebView: View {
                     .id(refreshManager.refreshID)
                     
             }
+            
             .statusBarHidden(true)
             .persistentSystemOverlays(.hidden)
             .ignoresSafeArea(edges:.all)
+            .padding(.top,-5)
             
         }
-        .background(refreshManager.currentThemeColor)
+        .background(.white)
     }
 }
 

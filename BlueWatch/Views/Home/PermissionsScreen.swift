@@ -9,7 +9,7 @@ import SwiftUI
 
 struct PermissionsScreen :View {
     @State var hasNotifications:Bool = false
-    
+    var authManager:AuthManager = AuthManager.shared
     func checkNotificationPermissions() async -> Bool {
         let settings = await UNUserNotificationCenter.current().notificationSettings()
         return settings.authorizationStatus == .authorized ||
@@ -94,7 +94,7 @@ struct PermissionsScreen :View {
                 
                 }
                 .padding()
-                .liquidGlass(cornerRadius: 24, backgroundColor: BlueWatchApp.hasLocationPermissions ? .green : .red)
+                .liquidGlass(cornerRadius: 24, backgroundColor: authManager.isLocationAuthorizedAlways ? .green : .red)
 
                 .ignoresSafeArea(.all)
                 .listRowInsets(EdgeInsets())
@@ -108,7 +108,7 @@ struct PermissionsScreen :View {
                 VStack(spacing: 16) {
                     Button{
                         Task{
-                            await AuthManager.shared.requestHealthAuthorization()
+                            await authManager.requestHealthAuthorization()
                         }
 
                     }label:{
@@ -117,7 +117,7 @@ struct PermissionsScreen :View {
                     Divider()
                     Button{
                         Task{
-                            await AuthManager.shared.requestNotificationAuthorization()
+                            await authManager.requestNotificationAuthorization()
                         }
                     }label:{
                         Text("Request Notification Permissions")

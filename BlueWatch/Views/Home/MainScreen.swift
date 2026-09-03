@@ -15,6 +15,7 @@ struct WatchScreen: View {
     var vm:ViewModel=ViewModel.shared
     @ObservedObject var settings = Settings.shared
     @Environment(\.scenePhase) var scenePhase
+    var authManager:AuthManager = AuthManager.shared
     private var CI = CommandInterpreter()
     @State private var findingPhone=false;
     @EnvironmentObject var bleManager: BLEManager
@@ -62,8 +63,21 @@ struct WatchScreen: View {
         ZStack{
             ScrollView{
                 LazyVStack(spacing: 20) {
+                    
                     Spacer()
                         .padding()
+                    if(!authManager.isLocationAuthorizedAlways){
+                        ZStack{
+                            RoundedRectangle(cornerRadius: 24)
+                                .foregroundStyle(.yellow)
+                                .opacity(0.15)
+                            Text("Location permissions are not set to 'always'. This may result in background location & weather not sending. You can change this in system settings.")
+                                .font(.footnote)
+                            .multilineTextAlignment(.center).padding()                    }
+                        .padding(.top)
+                        .padding(.bottom,-30)
+                        .padding(.horizontal)
+                    }
                     Image(vm.savedDevice=="Bangle.js 2" ? "BangleJS2" : "BangleJS1" )
                         .resizable()
                         .frame(width: 200,height: 200)

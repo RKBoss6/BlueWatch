@@ -1023,6 +1023,9 @@
         }
       }
     },
+    "Location permissions are not set to 'always'. This may result in background location & weather not sending. You can change this in system settings." : {
+
+    },
     "Location Rate Limit: %lld min" : {
       "localizations" : {
         "de" : {

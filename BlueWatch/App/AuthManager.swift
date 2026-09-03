@@ -11,8 +11,10 @@ import HealthKit
 import UserNotifications
 
 @MainActor
+@Observable
 class AuthManager: NSObject, @MainActor CLLocationManagerDelegate {
     private let locationManager = CLLocationManager()
+    var isLocationAuthorizedAlways: Bool = false
     private var continuation: CheckedContinuation<Bool, Never>?
     let hkTypes: Set = [
         HKQuantityType.quantityType(forIdentifier: .heartRate)!,
@@ -25,6 +27,10 @@ class AuthManager: NSObject, @MainActor CLLocationManagerDelegate {
     override init() {
         super.init()
         locationManager.delegate = self
+        isLocationAuthorizedAlways = (locationManager.authorizationStatus == .authorizedAlways)
+        print("[LOCATIONAUTH] bool = \(self.isLocationAuthorizedAlways)")
+
+
     }
     
     /// Requests authorization and returns true if granted, false otherwise
@@ -44,16 +50,24 @@ class AuthManager: NSObject, @MainActor CLLocationManagerDelegate {
     
     // Delegate callback handles the user choice
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        guard let continuation = continuation else { return }
-        
         let status = manager.authorizationStatus
-        // Skip the 'notDetermined' status which triggers on initial load
-        if status != .notDetermined {
+
+        print("[LOCATIONAUTH] Status = \(status.rawValue)")
+
+        // Always update the observable state.
+        isLocationAuthorizedAlways = (status == .authorizedAlways)
+
+        print("[LOCATIONAUTH] bool = \(self.isLocationAuthorizedAlways)")
+
+        // Only resume the continuation if we're currently waiting for a request.
+        if let continuation = continuation, status != .notDetermined {
             let isAuthorized = (status == .authorizedWhenInUse || status == .authorizedAlways)
+
             continuation.resume(returning: isAuthorized)
             self.continuation = nil
         }
     }
+
     
     func requestHealthAuthorization() async -> Bool {
         let healthStore = HKHealthStore()
