@@ -38,7 +38,7 @@ class AuthManager: NSObject, @MainActor CLLocationManagerDelegate {
         // 2. Wrap the delegate response in a continuation
         return await withCheckedContinuation { continuation in
             self.continuation = continuation
-            locationManager.requestWhenInUseAuthorization()
+            locationManager.requestAlwaysAuthorization()
         }
     }
     
