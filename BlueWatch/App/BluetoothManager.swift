@@ -1125,39 +1125,65 @@ final class BLEManager: NSObject, ObservableObject {
 
     // MARK: - Native send
 
+    // MARK: - Native send
+
     func sendJSON(data: Codable) {
-
+        
+        logger.log("[BLE] sendJSON() CALLED")
+        
         let encoder = JSONEncoder()
-
+        
         guard let jsonData = try? encoder.encode(data),
               let jsonString = String(
                 data: jsonData,
                 encoding: .utf8
               ) else {
-
-            logger.log(
-                "[BLE] Failed to encode JSON"
-            )
-
+            
+            logger.log("[BLE] sendJSON() FAILED — JSON encoding")
             return
         }
-
+        
+        logger.log(
+            "[BLE] sendJSON() encoded \(jsonString.count) characters"
+        )
+        
         send(jsonString)
+        
+        logger.log("[BLE] sendJSON() → send() returned")
     }
 
     func send(
         _ text: String,
         sendRaw: Bool = false
     ) {
-
+        
+        logger.log(
+            "[BLE] send() CALLED — length=\(text.count), raw=\(sendRaw)"
+        )
+        
         bleQueue.async { [weak self] in
-            guard let self else { return }
-
+            guard let self else {
+                logger.log("[BLE] send() FAILED — BLEManager deallocated")
+                return
+            }
+            
+            logger.log(
+                "[BLE] send() on BLE queue — connected=\(self.bleConnected), setup=\(self.setupComplete), notifications=\(self.notificationsReady), sendBusy=\(self.sendBusy), pendingMessages=\(self.pendingMessages.count), pendingChunks=\(self.pendingChunks.count), writeInProgress=\(self.writeInProgress)"
+            )
+            
             self.pendingMessages.append(
                 (text, sendRaw)
             )
-
+            
+            logger.log(
+                "[BLE] Message queued — pendingMessages=\(self.pendingMessages.count)"
+            )
+            
             self.drainSendQueue()
+            
+            logger.log(
+                "[BLE] drainSendQueue() returned — sendBusy=\(self.sendBusy), pendingMessages=\(self.pendingMessages.count), pendingChunks=\(self.pendingChunks.count), writeInProgress=\(self.writeInProgress)"
+            )
         }
     }
 
@@ -1165,35 +1191,54 @@ final class BLEManager: NSObject, ObservableObject {
         _ text: String,
         sendRaw: Bool = false
     ) {
-
+        
+        logger.log(
+            "[BLE] sendOnBLEQueue() — length=\(text.count), raw=\(sendRaw)"
+        )
+        
         pendingMessages.append(
             (text, sendRaw)
         )
-
+        
         drainSendQueue()
     }
 
     private func sendNextChunk() {
-
+        
+        logger.log(
+            "[BLE] sendNextChunk() — writeInProgress=\(self.writeInProgress), pendingChunks=\(self.pendingChunks.count)"
+        )
+        
         guard !writeInProgress,
               let p = peripheral,
               let c = currentWriteCharacteristic,
               !pendingChunks.isEmpty else {
-
+            
+            logger.log(
+                "[BLE] sendNextChunk() cannot send — peripheral=\(self.peripheral != nil), characteristic=\(self.currentWriteCharacteristic != nil), pendingChunks=\(self.pendingChunks.count), writeInProgress=\(self.self.writeInProgress)"
+            )
+            
             if pendingChunks.isEmpty {
-
                 sendBusy = false
-
+                
+                logger.log(
+                    "[BLE] No pending chunks — sendBusy=false, draining next message"
+                )
+                
                 drainSendQueue()
             }
-
+            
             return
         }
-
+        
         writeInProgress = true
-
+        
         let chunk = pendingChunks.removeFirst()
-
+        
+        logger.log(
+            "[BLE] Writing native chunk — bytes=\(chunk.count), remainingChunks=\(self.pendingChunks.count)"
+        )
+        
         p.writeValue(
             chunk,
             for: c,
@@ -1202,92 +1247,118 @@ final class BLEManager: NSObject, ObservableObject {
     }
 
     private func drainSendQueue() {
-
+        
+        logger.log(
+            "[BLE] drainSendQueue() ENTER — sendBusy=\(self.sendBusy), pendingMessages=\(self.pendingMessages.count), connected=\(self.bleConnected), setup=\(self.setupComplete), characteristic=\(self.writeCharacteristic != nil), webNotifications=\(self.activeWebNotifications.count)"
+        )
+        
         guard !sendBusy,
               !pendingMessages.isEmpty else {
+            
+            logger.log(
+                "[BLE] drainSendQueue() EXIT — already busy or no pending messages"
+            )
+            
             return
         }
-
+        
         guard started,
               bleConnected,
               let c = writeCharacteristic else {
-
-            /*
-             Don't silently retain messages from an old connection.
-             */
+            
+            logger.log(
+                "[BLE] drainSendQueue() DROPPED — started=\(self.started), connected=\(self.bleConnected), characteristic=\(self.writeCharacteristic != nil)"
+            )
+            
             pendingMessages.removeAll()
-
             return
         }
-
+        
         guard activeWebNotifications.isEmpty else {
-            logger.log("[BLE] Suppressing native send — WebBluetooth active")
+            
+            logger.log(
+                "[BLE] Suppressing native send — WebBluetooth active"
+            )
+            
             pendingMessages.removeAll()
             return
         }
+        
         sendBusy = true
-
+        
         let message = pendingMessages.removeFirst()
-
+        
         let text = message.0
         let sendRaw = message.1
-
+        
+        logger.log(
+            "[BLE] Starting native send — textLength=\(text.count), raw=\(sendRaw)"
+        )
+        
         let payload =
             (sendRaw ? "RAW: " : "") +
             text +
             "|"
-
+        
         let base64Payload =
             payload
                 .data(using: .utf8)?
                 .base64EncodedString() ?? ""
-
+        
         let jsCommand =
             "\u{10}require('bluewatch').receive(atob('\(base64Payload)'));\n"
-
+        
         guard let fullData =
                 jsCommand.data(using: .utf8) else {
-
+            
+            logger.log("[BLE] Native send FAILED — couldn't create Data")
+            
             sendBusy = false
-
             drainSendQueue()
-
             return
         }
-
+        
         let chunkSize =
             Settings.shared.optimizedBtChunks
             ? 15
             : 40
-
+        
         logger.log(
-            "ChunkSize \(chunkSize, privacy: .public)"
+            "[BLE] Native send payload=\(fullData.count) bytes, chunkSize=\(chunkSize)"
         )
-
+        
         pendingChunks.removeAll()
-
+        
         var offset = 0
-
+        
         while offset < fullData.count {
-
+            
             let length =
                 min(
                     chunkSize,
                     fullData.count - offset
                 )
-
+            
             pendingChunks.append(
                 fullData.subdata(
                     in: offset..<(offset + length)
                 )
             )
-
+            
             offset += length
         }
-
+        
+        logger.log(
+            "[BLE] Native send split into \(self.pendingChunks.count) chunks"
+        )
+        
         currentWriteCharacteristic = c
-
+        
         sendNextChunk()
+        
+        logger.log(
+            "[BLE] drainSendQueue() EXIT — sendBusy=\(self.sendBusy), pendingChunks=\(self.pendingChunks.count), writeInProgress=\(self.writeInProgress)"
+        )
     }
 
     // MARK: - Write queue for Web Bluetooth
@@ -1443,7 +1514,10 @@ final class BLEManager: NSObject, ObservableObject {
     }
 
     private func wbRequestDevice(id: Int) {
-        
+        logger.log(
+            "[WB] wbRequestDevice() — id=\(id), connected=\(self.bleConnected), setup=\(self.setupComplete), notifications=\(self.self.notificationsReady), activeWebNotifications=\(self.activeWebNotifications.count), pendingMessages=\(self.pendingMessages.count), pendingChunks=\(self.pendingChunks.count), sendBusy=\(self.sendBusy)"
+          )
+          
         guard started else {
 
             wbReject(

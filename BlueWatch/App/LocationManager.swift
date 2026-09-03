@@ -9,12 +9,14 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     private let clManager  = CLLocationManager()
     private let geocoder   = CLGeocoder()
 
-
     // ── GPS forwarding to Bangle.js ────────────────────────────────────────────
     private var gpsTimer: Timer?
     private let gpsInterval: TimeInterval = 6   // seconds between Bangle.GPS events
     private var isForwardingGPS = false
     private var settings = Settings.shared
+    private var cachedLocation: CLLocation?
+    private var locationRequestInProgress = false
+    private var locationRequestTimeoutTask: Task<Void, Never>?
     override init() {
         super.init()
         clManager.delegate = self
@@ -112,28 +114,33 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
 
     // MARK: - Location retrieval (used by WeatherManager too)
 
-    func getLocation(useCache:Bool) async -> CLLocation? {
-        var useCache = useCache
-        let lastDate = UserDefaults.standard.object(forKey: "lastLocationUpdate") as? Date
+    func getLocation(useCache: Bool) async -> CLLocation? {
+        await AuthManager.shared.requestLocationAuth()
+        if useCache,
+           let cachedLocation = cachedLocation,
+           let lastUpdate = UserDefaults.standard.object(forKey: "lastLocationUpdate") as? Date {
 
-        // If we have a last date and the elapsed time is less than the rate limit set, cancel request
-        if let last = lastDate, let diff = Utils.minutesBetweenDates(last, toDate: Date()), diff < Int(settings.locationRateLimit) {
-            logger.log("Skipping location update and using Cached location; only \(diff) minutes since last update.")
-            useCache=true;
-        }else{
-            
+            let age = Date().timeIntervalSince(lastUpdate)
+            let cacheLifetime = TimeInterval(settings.locationRateLimit * 60)
+
+            if age < cacheLifetime {
+                logger.log("Using cached location; age \(Int(age / 60)) minutes")
+                return cachedLocation
+            }
+
+            logger.log("Cached location expired; requesting fresh location")
+        } else if useCache {
+            logger.log("No valid cached location; requesting fresh location")
+        } else {
+            logger.log("Fresh location explicitly requested")
         }
-        
-        if let lastKnown = clManager.location,
-            useCache {
-            logger.log("Using cached location")
-            return lastKnown
-        }
+
         do {
-            let loc = try await requestCurrentLocation()
+            let location = try await requestCurrentLocation()
             logger.log("Got fresh location")
+            cachedLocation = location
             UserDefaults.standard.set(Date(), forKey: "lastLocationUpdate")
-            return loc
+            return location
         } catch {
             logger.log("Failed to get location: \(error)")
             return nil
@@ -143,25 +150,88 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     private var locationContinuations: [CheckedContinuation<CLLocation, Error>] = []
 
     private func requestCurrentLocation() async throws -> CLLocation {
-        return try await withCheckedThrowingContinuation { continuation in
+        try await withCheckedThrowingContinuation { continuation in
             locationContinuations.append(continuation)
+
+            if locationRequestInProgress {
+                logger.log("Location request already in progress; joining existing request")
+                return
+            }
+
+            locationRequestInProgress = true
+            logger.log("Starting Core Location request")
+
             clManager.requestLocation()
+
+            locationRequestTimeoutTask?.cancel()
+            locationRequestTimeoutTask = Task { @MainActor [weak self] in
+                try? await Task.sleep(for: .seconds(15))
+
+                guard !Task.isCancelled else { return }
+                guard let self, self.locationRequestInProgress else { return }
+
+                logger.log("Location request timed out")
+
+                self.locationRequestInProgress = false
+                self.locationRequestTimeoutTask = nil
+
+                let continuations = self.locationContinuations
+                self.locationContinuations.removeAll()
+
+                for continuation in continuations {
+                    continuation.resume(throwing: LocationError.timeout)
+                }
+            }
         }
     }
 
-    nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+    nonisolated func locationManager(
+        _ manager: CLLocationManager,
+        didUpdateLocations locations: [CLLocation]
+    ) {
+        guard let location = locations.last else {
+            logger.log("Core Location returned no locations")
+            return
+        }
+
         Task { @MainActor in
-            let pending = locationContinuations
-            locationContinuations.removeAll()
-            for c in pending { c.resume(returning: locations.last!) }
+            logger.log("Core Location returned location: \(location.coordinate.latitude), \(location.coordinate.longitude)")
+
+            self.cachedLocation = location
+            UserDefaults.standard.set(Date(), forKey: "lastLocationUpdate")
+
+            self.locationRequestTimeoutTask?.cancel()
+            self.locationRequestTimeoutTask = nil
+
+            self.locationRequestInProgress = false
+
+            let continuations = self.locationContinuations
+            self.locationContinuations.removeAll()
+
+            for continuation in continuations {
+                continuation.resume(returning: location)
+            }
         }
     }
 
-    nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+    nonisolated func locationManager(
+        _ manager: CLLocationManager,
+        didFailWithError error: Error
+    ) {
         Task { @MainActor in
-            let pending = locationContinuations
-            locationContinuations.removeAll()
-            for c in pending { c.resume(throwing: error) }
+            logger.log("Core Location failed: \(error)")
+
+            self.locationRequestTimeoutTask?.cancel()
+            self.locationRequestTimeoutTask = nil
+
+            self.locationRequestInProgress = false
+
+            let continuations = self.locationContinuations
+            self.locationContinuations.removeAll()
+
+            for continuation in continuations {
+                continuation.resume(throwing: error)
+            }
         }
     }
 
@@ -182,3 +252,6 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
    
 }
 
+private enum LocationError: Error {
+    case timeout
+}
