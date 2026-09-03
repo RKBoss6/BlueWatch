@@ -1608,6 +1608,9 @@
         }
       }
     },
+    "Push Weather" : {
+
+    },
     "Push Weather Updates" : {
       "localizations" : {
         "de" : {

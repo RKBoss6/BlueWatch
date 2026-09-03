@@ -36,7 +36,8 @@
 				App/AuthManager.swift,
 				App/SettingsClass.swift,
 				App/Utils.swift,
-				Resources/InfoPlist.xcstrings,
+				AppResources/Assets.xcassets,
+				AppResources/InfoPlist.xcstrings,
 			);
 			target = 368901482D7206AD00AD492A /* BlueWatchTests */;
 		};
@@ -46,14 +47,15 @@
 				App/AuthManager.swift,
 				App/SettingsClass.swift,
 				App/Utils.swift,
-				Resources/InfoPlist.xcstrings,
+				AppResources/Assets.xcassets,
+				AppResources/InfoPlist.xcstrings,
 			);
 			target = 368901522D7206AD00AD492A /* BlueWatchUITests */;
 		};
 		368902902D7B382200AD492A /* Exceptions for "BlueWatch" folder in "BlueWatch" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Resources/Info.plist,
+				AppResources/Info.plist,
 			);
 			target = 368901382D7206AB00AD492A /* BlueWatch */;
 		};
@@ -447,7 +449,7 @@
 				DEVELOPMENT_TEAM = 423YJ362Z5;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = BlueWatch/Resources/Info.plist;
+				INFOPLIST_FILE = BlueWatch/AppResources/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = BlueWatch;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "BlueWatch needs Bluetooth to connect, send, and receive data from your watch.";
@@ -495,7 +497,7 @@
 				DEVELOPMENT_TEAM = 423YJ362Z5;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = BlueWatch/Resources/Info.plist;
+				INFOPLIST_FILE = BlueWatch/AppResources/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = BlueWatch;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "BlueWatch needs Bluetooth to connect, send, and receive data from your watch.";
