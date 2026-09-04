@@ -70,8 +70,9 @@ struct WatchScreen: View {
                     if(!authManager.isLocationAuthorizedAlways){
                         ZStack{
                             RoundedRectangle(cornerRadius: 24)
-                                .foregroundStyle(.orange)
+                                .foregroundStyle(.graphRed)
                                 .opacity(0.15)
+                                .shadow(color: .black.opacity(0.8), radius:40, x: 0, y: 0)
                             Text("Location permissions are not set to 'always'. This may result in background location & weather not sending. You can change this in system settings.")
                                 .font(.footnote)
                             .multilineTextAlignment(.center).padding()                    }

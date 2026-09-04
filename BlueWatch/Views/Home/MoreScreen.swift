@@ -71,7 +71,7 @@ struct MoreScreen: View {
                             
                         } label:{
                             HStack{
-                                Text("New: Languages & Localizations")
+                                Text("Languages & Localizations")
                                     .frame(maxWidth:.infinity, alignment: .leading)
                                     .tint(.primary)
                                 Spacer()

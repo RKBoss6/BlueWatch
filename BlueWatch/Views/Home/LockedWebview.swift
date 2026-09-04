@@ -311,12 +311,13 @@ struct WebView: View {
                     .padding(.bottom,-10)
                 LockedWebView(url: lockedURL)
                     .id(refreshManager.refreshID)
+                    .padding(.bottom,100)
                     
             }
             
             .statusBarHidden(true)
             .persistentSystemOverlays(.hidden)
-            .ignoresSafeArea(edges:.all)
+            .ignoresSafeArea(edges:.top)
             .padding(.top,-5)
             
         }

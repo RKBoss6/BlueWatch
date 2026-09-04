@@ -113,6 +113,10 @@ struct ExpandedMetricView: View {
             
         }.appBackground()
             .navigationTitle(title)
+            .onAppear {
+                AppMetricManager.shared.hasBeenInExpandedMetricView=true
+                AppMetricManager.shared.increaseExpandedMetricViewOpens()
+            }
             
     }
     
