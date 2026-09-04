@@ -1,5 +1,5 @@
 import SwiftUI
-import _SwiftData_SwiftUI
+import SwiftData
 import Charts
 
 struct LineChartView: View {

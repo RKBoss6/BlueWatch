@@ -12,11 +12,7 @@ class AppMetricManager: ObservableObject {
     @AppStorage("successfulSyncCount") private var successfulConnections = 0
     @AppStorage("expandedMetricViewOpens") private var expandedMetricViewOpens = 0
     @AppStorage("lastVersionPrompted") private var lastVersionPrompted = ""
-    #if DEBUG
-    let isDebug:Bool =  true
-    #else
-    let isDebug:Bool =  false
-    #endif
+    var hasBeenInExpandedMetricView:Bool = false
     @AppStorage("dateLastRequested") private var dateLastRequested: Date = Date(timeIntervalSince1970: 0) // default to 1970 so its a long enough interval
     static var shared:AppMetricManager = AppMetricManager()
     func log(){
@@ -36,11 +32,14 @@ class AppMetricManager: ObservableObject {
     func tryTriggerReview(requestReviewAction: RequestReviewAction) {
         let currentVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
         let components = Calendar.current.dateComponents([.day], from: dateLastRequested, to: Date())
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            requestReviewAction()
-            self.dateLastRequested=Date()
-            self.lastVersionPrompted = currentVersion
+        if(hasBeenInExpandedMetricView){
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                requestReviewAction()
+                self.dateLastRequested=Date()
+                self.lastVersionPrompted = currentVersion
+            }
         }
+        hasBeenInExpandedMetricView=false
         // should have at least 60 successful connections, should be different version than last request, and must have opened metrics at least 35 times
         // shoudl be more than 30 days from last request
         if((successfulConnections >= 60 && lastVersionPrompted != currentVersion && expandedMetricViewOpens >= 35 && (components.day ?? 0) > 30 ) || true){

@@ -11,6 +11,7 @@ import SwiftUI
 struct WatchScreen: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.isPreview) var isPreview
+    @Environment(\.requestReview) var requestReview
     @Environment(\.modelContext) private var modelContext
     var vm:ViewModel=ViewModel.shared
     @ObservedObject var settings = Settings.shared
@@ -69,7 +70,7 @@ struct WatchScreen: View {
                     if(!authManager.isLocationAuthorizedAlways){
                         ZStack{
                             RoundedRectangle(cornerRadius: 24)
-                                .foregroundStyle(.yellow)
+                                .foregroundStyle(.orange)
                                 .opacity(0.15)
                             Text("Location permissions are not set to 'always'. This may result in background location & weather not sending. You can change this in system settings.")
                                 .font(.footnote)
@@ -297,6 +298,9 @@ struct WatchScreen: View {
                 Spacer()
             }
             .ignoresSafeArea()
+        }
+        .onAppear{
+            AppMetricManager.shared.tryTriggerReview(requestReviewAction:requestReview )
         }
         
     }

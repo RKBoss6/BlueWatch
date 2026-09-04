@@ -14,6 +14,7 @@ struct ContentView: View {
     let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
     @AppStorage("shownVersionModal") private var versionModalLastShown = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
     @State var showWhatsNewSheet:Bool = false
+    @Environment(\.requestReview) var requestReview;
     var body: some View {
         NavigationStack{
             if vm.savedDevice == "" {
@@ -69,6 +70,17 @@ struct ContentView: View {
         .navigationBarBackButtonHidden(true)
         .sheet(isPresented: $showWhatsNewSheet){
             LanguageOnboarding()
+        }
+        .onAppear{
+            Task { @MainActor in
+                    // Give the view half a second to fully settle and render
+                    try? await Task.sleep(for: .seconds(1))
+                    //requestReview()
+                }
+            /*
+            AppMetricManager.shared.increaseExpandedMetricViewOpens()
+            AppMetricManager.shared.tryTriggerReview(requestReviewAction: requestReview)
+             */
         }
         
         

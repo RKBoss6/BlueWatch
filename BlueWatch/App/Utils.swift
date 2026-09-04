@@ -8,7 +8,6 @@
 import Foundation
 import UserNotifications
 import SwiftData
-import _SwiftData_SwiftUI
 import OSLog
 import SwiftUI
 enum Utils{

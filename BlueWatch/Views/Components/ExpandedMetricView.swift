@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-import _SwiftData_SwiftUI
+import SwiftData
 import StoreKit
 
 struct ExpandedMetricView: View {
@@ -72,6 +72,7 @@ struct ExpandedMetricView: View {
                 height:500,
                 showPoints:true
             )
+            
             Divider()
             Spacer()
             HStack{
@@ -112,17 +113,7 @@ struct ExpandedMetricView: View {
             
         }.appBackground()
             .navigationTitle(title)
-            .onAppear{
-                Task { @MainActor in
-                        // Give the view half a second to fully settle and render
-                        try? await Task.sleep(for: .seconds(0.5))
-                        requestReview()
-                    }
-                /*
-                AppMetricManager.shared.increaseExpandedMetricViewOpens()
-                AppMetricManager.shared.tryTriggerReview(requestReviewAction: requestReview)
-                 */
-            }
+            
     }
     
     private func moveDay(by value: Int) {
