@@ -9,8 +9,8 @@
       "appearance" : "dark",
       "value" : {
         "linear-gradient" : [
-          "display-p3:0.05438,0.12982,0.25649,1.00000",
-          "display-p3:0.05926,0.07775,0.09634,1.00000"
+          "display-p3:0.03398,0.07803,0.15198,1.00000",
+          "display-p3:0.08346,0.08988,0.09634,1.00000"
         ],
         "orientation" : {
           "start" : {
@@ -58,7 +58,15 @@
           }
         }
       ],
-      "opacity" : 1,
+      "opacity-specializations" : [
+        {
+          "value" : 1
+        },
+        {
+          "appearance" : "tinted",
+          "value" : 0.69
+        }
+      ],
       "position" : {
         "scale" : 1,
         "translation-in-points" : [
@@ -70,10 +78,21 @@
         "kind" : "neutral",
         "opacity" : 1
       },
-      "translucency" : {
-        "enabled" : true,
-        "value" : 0.5
-      }
+      "translucency-specializations" : [
+        {
+          "value" : {
+            "enabled" : true,
+            "value" : 0.5
+          }
+        },
+        {
+          "appearance" : "tinted",
+          "value" : {
+            "enabled" : true,
+            "value" : 0.68
+          }
+        }
+      ]
     },
     {
       "blend-mode-specializations" : [
@@ -86,10 +105,22 @@
         },
         {
           "appearance" : "tinted",
-          "value" : "lighten"
+          "value" : "screen"
         }
       ],
-      "blur-material" : null,
+      "blur-material-specializations" : [
+        {
+          "value" : null
+        },
+        {
+          "appearance" : "dark",
+          "value" : 0.58
+        },
+        {
+          "appearance" : "tinted",
+          "value" : null
+        }
+      ],
       "hidden" : false,
       "layers" : [
         {
@@ -188,7 +219,7 @@
           "appearance" : "dark",
           "value" : {
             "enabled" : true,
-            "value" : 0.78
+            "value" : 0.62
           }
         },
         {
