@@ -43,7 +43,7 @@ class AppMetricManager: ObservableObject {
         // shoudl be more than 30 days from last request
         if((successfulConnections >= 60 && lastVersionPrompted != currentVersion && expandedMetricViewOpens >= 35 && (components.day ?? 0) > 30 ) || isDebug){
             if(hasBeenInExpandedMetricView){
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
                     requestReviewAction()
                     self.dateLastRequested=Date()
                     self.lastVersionPrompted = currentVersion
