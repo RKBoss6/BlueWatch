@@ -10,39 +10,46 @@ import SwiftUI
 struct MoreScreen: View {
     @Environment(\.openURL) var openURL
     @StateObject var settings: Settings = Settings.shared
-    @State var temp:Bool=false
-    var vm:ViewModel=ViewModel.shared
-    @State var languageSheetPresented:Bool = false;
+    @State var temp: Bool = false
+    var vm: ViewModel = ViewModel.shared
+    @State var languageSheetPresented: Bool = false
     var body: some View {
-        VStack{
+        VStack {
             HStack {
 
-                Text(settings.deviceName.isEmpty==false ? settings.deviceName : vm.savedDevice)
-                    .font(.title)
-                    .fontWeight(.bold)
-                
-               
+                Text(
+                    settings.deviceName.isEmpty == false
+                        ? settings.deviceName : vm.savedDevice
+                )
+                .font(.title)
+                .fontWeight(.bold)
+
             }.padding()
             Spacer()
-            
-            Image(vm.savedDevice=="Bangle.js 2" ? "BangleJS2" : "BangleJS1" )
+
+            Image(vm.savedDevice == "Bangle.js 2" ? "BangleJS2" : "BangleJS1")
                 .resizable()
-                .frame(width: 240,height: 240)
-            
+                .frame(width: 240, height: 240)
+
             Spacer()
-            VStack{
-                Section(){
+            VStack {
+                Section {
                     VStack(spacing: 16) {
-                        
+
                         Button {
-                            if let url = URL(string: "https://github.com/RKBoss6/BlueWatch") {
+                            if let url = URL(
+                                string: "https://github.com/RKBoss6/BlueWatch"
+                            ) {
                                 openURL(url)
                             }
-                            
-                        } label:{
-                            HStack{
+
+                        } label: {
+                            HStack {
                                 Text("BlueWatch is open source!")
-                                    .frame(maxWidth:.infinity, alignment: .leading)
+                                    .frame(
+                                        maxWidth: .infinity,
+                                        alignment: .leading
+                                    )
                                     .tint(.primary)
                                 Spacer()
                                 Image(systemName: "chevron.right")
@@ -51,14 +58,20 @@ struct MoreScreen: View {
                         }
                         Divider()
                         Button {
-                            if let url = URL(string: "https://github.com/RKBoss6/BlueWatch/issues/new") {
+                            if let url = URL(
+                                string:
+                                    "https://github.com/RKBoss6/BlueWatch/issues/new"
+                            ) {
                                 openURL(url)
                             }
-                            
-                        } label:{
-                            HStack{
+
+                        } label: {
+                            HStack {
                                 Text("Report an issue or suggest new features")
-                                    .frame(maxWidth:.infinity, alignment: .leading)
+                                    .frame(
+                                        maxWidth: .infinity,
+                                        alignment: .leading
+                                    )
                                     .tint(.primary)
                                 Spacer()
                                 Image(systemName: "chevron.right")
@@ -67,32 +80,34 @@ struct MoreScreen: View {
                         }
                         Divider()
                         Button {
-                            languageSheetPresented=true
-                            
-                        } label:{
-                            HStack{
+                            languageSheetPresented = true
+
+                        } label: {
+                            HStack {
                                 Text("Languages & Localizations")
-                                    .frame(maxWidth:.infinity, alignment: .leading)
+                                    .frame(
+                                        maxWidth: .infinity,
+                                        alignment: .leading
+                                    )
                                     .tint(.primary)
                                 Spacer()
                                 Image(systemName: "chevron.right")
                                     .tint(.primary)
                             }
                         }
-                        
-                        
-                        
-                        
+
                     }
                     .padding()
                     .liquidGlass(cornerRadius: 24)
-                    .frame(width:.infinity,height: .infinity)
+                    .frame(width: .infinity, height: .infinity)
                     .ignoresSafeArea(.all)
                     .listRowInsets(EdgeInsets())
                 }
-                
+
                 .listRowBackground(Color.clear)
-                #warning("Make sure you change the BlueWatch bangle.js version before upload!!!")
+                #warning(
+                    "Make sure you change the BlueWatch bangle.js version before upload!!!"
+                )
                 Section {
                     HStack {
                         Text("Needs Bangle.js BlueWatch version:")
@@ -100,7 +115,7 @@ struct MoreScreen: View {
                         Text("v0.04")
                             .bold()
                     }
-                    
+
                 }
                 .padding()
                 .liquidGlass(cornerRadius: 24)
@@ -109,8 +124,8 @@ struct MoreScreen: View {
                 .padding(.top, 10)
                 Section {
                     VStack(spacing: 16) {
-                        
-                        NavigationLink(destination: PermissionsScreen()){
+
+                        NavigationLink(destination: PermissionsScreen()) {
                             HStack {
                                 Image(systemName: "person.badge.key")
                                 Text("App Permissions")
@@ -131,7 +146,7 @@ struct MoreScreen: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         .foregroundStyle(.primary)
-                        
+
                     }
                     .padding()
                     .liquidGlass(cornerRadius: 24)
@@ -140,16 +155,15 @@ struct MoreScreen: View {
                 }
                 .padding(.top, 12)
             }.padding()
-                .padding(.bottom,20)
+                .padding(.bottom, 20)
                 .listRowBackground(Color.clear)
         }
         .appBackground()
-        .sheet(isPresented: $languageSheetPresented){
+        .sheet(isPresented: $languageSheetPresented) {
             LanguageOnboarding()
         }
     }
 }
-
 
 #Preview {
     MoreScreen()

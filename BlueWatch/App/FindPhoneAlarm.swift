@@ -1,25 +1,19 @@
 // FindPhoneAlarm.swift
 
 import AVFoundation
-import Foundation
-import UIKit
-import MediaPlayer
-import CoreHaptics
 import AudioToolbox
+import CoreHaptics
+import Foundation
+import MediaPlayer
+import UIKit
 
 class FindPhoneAlarm: NSObject, AVAudioPlayerDelegate {
     private var audioPlayer: AVAudioPlayer?
     private var backgroundTaskID: UIBackgroundTaskIdentifier = .invalid
 
-
     public var isActive: Bool {
         audioPlayer?.isPlaying ?? false
     }
-
-   
-
-
-    
 
     // Global references to manage execution states
     var backgroundTaskIdentifier: UIBackgroundTaskIdentifier = .invalid
@@ -29,7 +23,7 @@ class FindPhoneAlarm: NSObject, AVAudioPlayerDelegate {
     private let volumeView = MPVolumeView(frame: .zero)
     private var originalVolume: Float?
     private func setSystemVolume(_ volume: Float) {
-        
+
         let slider = volumeView.subviews.first { $0 is UISlider } as? UISlider
         slider?.setValue(max(0.0, min(volume, 1.0)), animated: false)
     }
@@ -37,14 +31,19 @@ class FindPhoneAlarm: NSObject, AVAudioPlayerDelegate {
         super.init()
         let session = AVAudioSession.sharedInstance()
         currentSystemVolume = session.outputVolume
-        
+
         NotificationCenter.default.addObserver(
-            forName: NSNotification.Name("AVAudioSessionSystemVolumeDidChangeNotification"),
+            forName: NSNotification.Name(
+                "AVAudioSessionSystemVolumeDidChangeNotification"
+            ),
             object: nil,
             queue: .main
         ) { [weak self] notification in
-            guard let self = self, !self.isActive, self.originalVolume == nil else { return }
-            if let volume = notification.userInfo?["AVAudioSessionVolumeParameter"] as? Float {
+            guard let self = self, !self.isActive, self.originalVolume == nil
+            else { return }
+            if let volume = notification.userInfo?[
+                "AVAudioSessionVolumeParameter"
+            ] as? Float {
                 self.currentSystemVolume = volume
             }
         }
@@ -52,20 +51,25 @@ class FindPhoneAlarm: NSObject, AVAudioPlayerDelegate {
     /// Starts the true 3-second continuous hardware buzz followed by a 1-second pause
     func startMaxVibration() {
         stopVibration()
-        
+
         // 1. Force the audio session to stay awake in the background
         configureBackgroundAudioSession()
-        
+
         // 2. Request a background execution assertion from iOS
-        backgroundTaskIdentifier = UIApplication.shared.beginBackgroundTask(withName: "MaxVibrationTask") {
+        backgroundTaskIdentifier = UIApplication.shared.beginBackgroundTask(
+            withName: "MaxVibrationTask"
+        ) {
             self.stopVibration()
         }
-        
+
         // 3. Immediately run the first cycle
         runThreeSecondBuzzCycle()
-        
+
         // 4. Repeat the entire master cycle every 4 seconds (3s buzz + 1s pause)
-        masterCycleTimer = Timer.scheduledTimer(withTimeInterval: 4.0, repeats: true) { _ in
+        masterCycleTimer = Timer.scheduledTimer(
+            withTimeInterval: 4.0,
+            repeats: true
+        ) { _ in
             self.runThreeSecondBuzzCycle()
         }
     }
@@ -74,13 +78,16 @@ class FindPhoneAlarm: NSObject, AVAudioPlayerDelegate {
     private func runThreeSecondBuzzCycle() {
         // Stop any lingering rapid-fire timers from previous cycles
         rapidFireTimer?.invalidate()
-        
+
         // Start rapid-firing max voltage commands every 50 milliseconds
-        rapidFireTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { _ in
+        rapidFireTimer = Timer.scheduledTimer(
+            withTimeInterval: 0.05,
+            repeats: true
+        ) { _ in
             // SystemSoundID 4095 is a raw hardware alert that forces a heavy haptic click
             AudioServicesPlaySystemSound(4095)
         }
-        
+
         // Automatically kill the rapid-fire timer after 3.0 seconds to create the 1-second pause
         DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
             self.rapidFireTimer?.invalidate()
@@ -103,20 +110,16 @@ class FindPhoneAlarm: NSObject, AVAudioPlayerDelegate {
     func stopVibration() {
         rapidFireTimer?.invalidate()
         rapidFireTimer = nil
-        
+
         masterCycleTimer?.invalidate()
         masterCycleTimer = nil
-        
+
         if backgroundTaskIdentifier != .invalid {
             UIApplication.shared.endBackgroundTask(backgroundTaskIdentifier)
             backgroundTaskIdentifier = .invalid
         }
     }
 
-
-
-
-    
     func start() {
         guard !isActive else { return }
 
@@ -129,11 +132,15 @@ class FindPhoneAlarm: NSObject, AVAudioPlayerDelegate {
 
         // 2. Start vibration and audio session configuration
         startMaxVibration()
-        
+
         do {
-            try session.setCategory(.playback, mode: .default, options: [.duckOthers])
+            try session.setCategory(
+                .playback,
+                mode: .default,
+                options: [.duckOthers]
+            )
             try session.setActive(true)
-            
+
             // 3. Maximize volume after capturing original volume
             setSystemVolume(1.0)
         } catch {
@@ -142,16 +149,23 @@ class FindPhoneAlarm: NSObject, AVAudioPlayerDelegate {
             return
         }
 
-        guard let url = Bundle.main.url(forResource: "findphone", withExtension: "wav") else {
-            logger.log("[FindPhone] Sound file 'findphone.wav' not found in bundle")
+        guard
+            let url = Bundle.main.url(
+                forResource: "findphone",
+                withExtension: "wav"
+            )
+        else {
+            logger.log(
+                "[FindPhone] Sound file 'findphone.wav' not found in bundle"
+            )
             endBackgroundTask()
             return
         }
 
         do {
             audioPlayer = try AVAudioPlayer(contentsOf: url)
-            audioPlayer?.delegate      = self
-            audioPlayer?.volume        = 1.0
+            audioPlayer?.delegate = self
+            audioPlayer?.volume = 1.0
             audioPlayer?.numberOfLoops = 3
             audioPlayer?.prepareToPlay()
 
@@ -170,11 +184,11 @@ class FindPhoneAlarm: NSObject, AVAudioPlayerDelegate {
 
     func stop() {
         guard isActive else { return }
-        
+
         if Settings.shared.showFindPhoneNotification {
             showNotification()
         }
-        
+
         stopVibration()
         audioPlayer?.stop()
         audioPlayer = nil
@@ -184,28 +198,40 @@ class FindPhoneAlarm: NSObject, AVAudioPlayerDelegate {
         setSystemVolume(targetRestoreVolume)
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+            try? AVAudioSession.sharedInstance().setActive(
+                false,
+                options: .notifyOthersOnDeactivation
+            )
             self.originalVolume = nil
             self.endBackgroundTask()
         }
-       
 
         logger.log("[FindPhone] Alarm stopped")
         BLEManager.shared.send("FindPhone Stopped")
     }
     // MARK: - AVAudioPlayerDelegate
 
-    func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+    func audioPlayerDidFinishPlaying(
+        _ player: AVAudioPlayer,
+        successfully flag: Bool
+    ) {
         stop()
     }
 
-    func audioPlayerDecodeErrorDidOccur(_ player: AVAudioPlayer, error: Error?) {
-        logger.log("[FindPhone] Decode error: \(error?.localizedDescription ?? "unknown")")
+    func audioPlayerDecodeErrorDidOccur(_ player: AVAudioPlayer, error: Error?)
+    {
+        logger.log(
+            "[FindPhone] Decode error: \(error?.localizedDescription ?? "unknown")"
+        )
         stop()
     }
 
-    func showNotification(){
-        Utils.pushNotification(title: "Find Phone", body: "Find phone triggered from watch." , id: "FindPhoneConfirm")
+    func showNotification() {
+        Utils.pushNotification(
+            title: "Find Phone",
+            body: "Find phone triggered from watch.",
+            id: "FindPhoneConfirm"
+        )
 
     }
     // MARK: - Private

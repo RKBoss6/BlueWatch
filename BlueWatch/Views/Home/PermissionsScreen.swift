@@ -7,139 +7,146 @@
 
 import SwiftUI
 
-struct PermissionsScreen :View {
-    @State var hasNotifications:Bool = false
-    var authManager:AuthManager = AuthManager.shared
+struct PermissionsScreen: View {
+    @State var hasNotifications: Bool = false
+    var authManager: AuthManager = AuthManager.shared
     func checkNotificationPermissions() async -> Bool {
-        let settings = await UNUserNotificationCenter.current().notificationSettings()
-        return settings.authorizationStatus == .authorized ||
-               settings.authorizationStatus == .provisional
+        let settings = await UNUserNotificationCenter.current()
+            .notificationSettings()
+        return settings.authorizationStatus == .authorized
+            || settings.authorizationStatus == .provisional
     }
-    
-    var body: some View{
-        VStack{
-            VStack{
+
+    var body: some View {
+        VStack {
+            VStack {
                 Text("BlueWatch needs the following permissions")
                     .padding()
                     .font(.title3)
                     .bold()
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
-                
-                HStack{
+
+                HStack {
                     Image(systemName: "heart.fill")
                     Spacer()
-                    Text("Health: Used to send and sync health data with Apple Health ")
-                        .fixedSize(horizontal: false, vertical: true)
+                    Text(
+                        "Health: Used to send and sync health data with Apple Health "
+                    )
+                    .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(.bottom)
-                HStack{
+                HStack {
                     Image(systemName: "bell.fill")
                     Spacer()
 
-                    Text("Notifications: Used to send phone notifications when find my phone alarm has been triggered")
-                        .fixedSize(horizontal: false, vertical: true)
+                    Text(
+                        "Notifications: Used to send phone notifications when find my phone alarm has been triggered"
+                    )
+                    .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(.bottom)
-                HStack{
+                HStack {
                     Image(systemName: "location.fill")
                     Spacer()
-                    Text("Location: Used to send location and weather, as well as act as a GPS for your watch.")
-                        .fixedSize(horizontal: false, vertical: true)
+                    Text(
+                        "Location: Used to send location and weather, as well as act as a GPS for your watch."
+                    )
+                    .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(.bottom)
             }.padding()
-            Section{
+            Section {
                 VStack(spacing: 16) {
-                        Text("Has Health Permissions")
-                            .frame(maxWidth:.infinity)
-                    
-                
+                    Text("Has Health Permissions")
+                        .frame(maxWidth: .infinity)
+
                 }
                 .padding()
-                .liquidGlass(cornerRadius: 24, backgroundColor: BlueWatchApp.hasHealthKitPermissions() ? .green : .red)
+                .liquidGlass(
+                    cornerRadius: 24,
+                    backgroundColor: BlueWatchApp.hasHealthKitPermissions()
+                        ? .green : .red
+                )
 
                 .ignoresSafeArea(.all)
                 .listRowInsets(EdgeInsets())
-                
-            
+
             }
             .listRowBackground(Color.clear)
             .padding(.leading)
             .padding(.trailing)
 
-            Section{
+            Section {
                 VStack(spacing: 16) {
-                        Text("Has Notification Permissions")
-                            .frame(maxWidth:.infinity)
-                    
-                
+                    Text("Has Notification Permissions")
+                        .frame(maxWidth: .infinity)
+
                 }
                 .padding()
-                .liquidGlass(cornerRadius: 24, backgroundColor: hasNotifications ? .green : .red)
+                .liquidGlass(
+                    cornerRadius: 24,
+                    backgroundColor: hasNotifications ? .green : .red
+                )
 
                 .ignoresSafeArea(.all)
                 .listRowInsets(EdgeInsets())
-                
-            
+
             }
             .listRowBackground(Color.clear)
             .padding(.leading)
             .padding(.trailing)
-            Section{
+            Section {
                 VStack(spacing: 16) {
-                        Text("Has Location Permissions")
-                            .frame(maxWidth:.infinity)
-                    
-                
+                    Text("Has Location Permissions")
+                        .frame(maxWidth: .infinity)
+
                 }
                 .padding()
-                .liquidGlass(cornerRadius: 24, backgroundColor: authManager.isLocationAuthorizedAlways ? .green : .red)
+                .liquidGlass(
+                    cornerRadius: 24,
+                    backgroundColor: authManager.isLocationAuthorizedAlways
+                        ? .green : .red
+                )
 
                 .ignoresSafeArea(.all)
                 .listRowInsets(EdgeInsets())
-                
-            
+
             }
             .listRowBackground(Color.clear)
             .padding(.leading)
             .padding(.trailing)
-            Section{
+            Section {
                 VStack(spacing: 16) {
-                    Button{
-                        Task{
+                    Button {
+                        Task {
                             await authManager.requestHealthAuthorization()
                         }
 
-                    }label:{
+                    } label: {
                         Text("Request Health Permissions")
                     }
                     Divider()
-                    Button{
-                        Task{
+                    Button {
+                        Task {
                             await authManager.requestNotificationAuthorization()
                         }
-                    }label:{
+                    } label: {
                         Text("Request Notification Permissions")
                     }
                     Divider()
-                    Button{
+                    Button {
                         LocationManager.shared.requestAuthorization()
-                    }label:{
+                    } label: {
                         Text("Request Location Permissions")
                     }
-                    
-                    
-                    
-                    
-                    
+
                 }
                 .padding()
                 .liquidGlass(cornerRadius: 24)
                 .ignoresSafeArea(.all)
                 .listRowInsets(EdgeInsets())
-                
-            
+
             }
             .listRowBackground(Color.clear)
             .padding()
@@ -150,9 +157,9 @@ struct PermissionsScreen :View {
         .appBackground()
         .navigationTitle("App Permissions")
     }
-        
+
 }
 
-#Preview{
+#Preview {
     PermissionsScreen()
 }

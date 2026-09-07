@@ -5,93 +5,85 @@
 //  Created by Kabir Onkar on 2/28/25.
 //
 
-import SwiftUI
 import CoreBluetooth
 import StoreKit
+import SwiftUI
 
 struct ContentView: View {
-    @State var vm:ViewModel = ViewModel.shared
-    let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
-    @AppStorage("shownVersionModal") private var versionModalLastShown = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
-    @State var showWhatsNewSheet:Bool = false
-    @Environment(\.requestReview) var requestReview;
+    @State var vm: ViewModel = ViewModel.shared
+    let appVersion =
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
+    @AppStorage("shownVersionModal") private var versionModalLastShown =
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
+        ?? "1.0"
+    @State var showWhatsNewSheet: Bool = false
+    @Environment(\.requestReview) var requestReview
     var body: some View {
-        NavigationStack{
+        NavigationStack {
             if vm.savedDevice == "" {
                 WelcomeScreen()
             } else {
-                    
-                    TabView{
-                        
-                        Tab("My Watch",systemImage:"watch.analog"){
-                            WatchScreen()
-                                .edgesIgnoringSafeArea(.bottom)
-                            
-                        }
-                        
-                        Tab("Apps",systemImage:"app.shadow"){
-                            WebView().edgesIgnoringSafeArea(.bottom)
-                            
-                            
-                        }
-                        
-                        Tab("More",systemImage:"ellipsis"){
-                            MoreScreen()
-                        }
-                        //.badge("1")
-                        
+
+                TabView {
+
+                    Tab("My Watch", systemImage: "watch.analog") {
+                        WatchScreen()
+                            .edgesIgnoringSafeArea(.bottom)
+
                     }
-                    .edgesIgnoringSafeArea(.bottom)
-                    
-                    .onAppear() {
-                        
-                        let standardAppearance = UITabBarAppearance()
-                        standardAppearance.shadowColor = UIColor(Color.blue)
-                        UITabBar.appearance().standardAppearance = standardAppearance
-                        // start connection
-                        BLEManager.shared.start()
-                           
-                        if(versionModalLastShown != appVersion){
-                            if(appVersion == "1.4.2"){
-                                showWhatsNewSheet = true
-                                versionModalLastShown = appVersion ?? "0";
-                            }
-                        }
-                           
-                        
-                       
-                        
-                        
+
+                    Tab("Apps", systemImage: "app.shadow") {
+                        WebView().edgesIgnoringSafeArea(.bottom)
+
                     }
-                    
+
+                    Tab("More", systemImage: "ellipsis") {
+                        MoreScreen()
+                    }
+                    //.badge("1")
+
                 }
-            
+                .edgesIgnoringSafeArea(.bottom)
+
+                .onAppear {
+
+                    let standardAppearance = UITabBarAppearance()
+                    standardAppearance.shadowColor = UIColor(Color.blue)
+                    UITabBar.appearance().standardAppearance =
+                        standardAppearance
+                    // start connection
+                    BLEManager.shared.start()
+
+                    if versionModalLastShown != appVersion {
+                        if appVersion == "1.4.2" {
+                            showWhatsNewSheet = true
+                            versionModalLastShown = appVersion ?? "0"
+                        }
+                    }
+
+                }
+
+            }
+
         }
         .navigationBarBackButtonHidden(true)
-        .sheet(isPresented: $showWhatsNewSheet){
+        .sheet(isPresented: $showWhatsNewSheet) {
             LanguageOnboarding()
         }
-        .onAppear{
+        .onAppear {
             Task { @MainActor in
-                    // Give the view half a second to fully settle and render
-                    try? await Task.sleep(for: .seconds(1))
-                    //requestReview()
-                }
+                // Give the view half a second to fully settle and render
+                try? await Task.sleep(for: .seconds(1))
+                //requestReview()
+            }
             /*
             AppMetricManager.shared.increaseExpandedMetricViewOpens()
             AppMetricManager.shared.tryTriggerReview(requestReviewAction: requestReview)
              */
         }
-        
-        
-        
+
     }
-    
-    
-   
-    
-    
-        
+
 }
 
 #Preview {
@@ -99,12 +91,11 @@ struct ContentView: View {
         .environmentObject(BLEManager.shared)
 }
 
-
 struct AppBackgroundStyle: ViewModifier {
     func body(content: Content) -> some View {
         content
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background( // give the List a background to show
+            .background(  // give the List a background to show
                 LinearGradient(
                     gradient: Gradient(colors: [Color.BG_1, Color.BG_2]),
                     startPoint: .top,
@@ -117,9 +108,9 @@ struct AppBackgroundStyle: ViewModifier {
 
 private struct TextColorModifier: ViewModifier {
     @Environment(\.colorScheme) private var colorScheme
-    
+
     func body(content: Content) -> some View {
-        if(colorScheme == .dark){
+        if colorScheme == .dark {
             content.foregroundStyle(Color(.text))
         }
     }

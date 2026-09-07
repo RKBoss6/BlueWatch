@@ -2,12 +2,12 @@
 //  BluetoothManager.swift
 //
 
-import Foundation
-import CoreBluetooth
-import SwiftUI
-import WebKit
 import BackgroundTasks
+import CoreBluetooth
+import Foundation
+import SwiftUI
 import UIKit
+import WebKit
 
 final class BLEManager: NSObject, ObservableObject {
 
@@ -134,13 +134,9 @@ final class BLEManager: NSObject, ObservableObject {
 
     private var pendingRequestDevice: Int?
 
-    private var pendingServices: [
-        String: (callId: Int, uuid: String)
-    ] = [:]
+    private var pendingServices: [String: (callId: Int, uuid: String)] = [:]
 
-    private var pendingChars: [
-        String: (callId: Int, uuid: String)
-    ] = [:]
+    private var pendingChars: [String: (callId: Int, uuid: String)] = [:]
 
     private var pendingReads: [String: Int] = [:]
     private var pendingNotify: [String: Int] = [:]
@@ -175,7 +171,7 @@ final class BLEManager: NSObject, ObservableObject {
                     "BlueWatchRestorationID",
 
                 CBCentralManagerOptionShowPowerAlertKey:
-                    true
+                    true,
             ]
         )
 
@@ -394,8 +390,9 @@ final class BLEManager: NSObject, ObservableObject {
     private func connectOnBLEQueue() {
 
         guard started,
-              shouldAttemptConnect,
-              central.state == .poweredOn else {
+            shouldAttemptConnect,
+            central.state == .poweredOn
+        else {
 
             logger.log(
                 "[BLE] connect ignored — not ready"
@@ -443,11 +440,12 @@ final class BLEManager: NSObject, ObservableObject {
         if let idString = UserDefaults.standard.string(
             forKey: "banglePeripheralID"
         ),
-           let uuid = UUID(uuidString: idString),
-           let savedPeripheral =
+            let uuid = UUID(uuidString: idString),
+            let savedPeripheral =
                 central.retrievePeripherals(
                     withIdentifiers: [uuid]
-                ).first {
+                ).first
+        {
 
             setupAndConnect(savedPeripheral)
             return
@@ -459,7 +457,8 @@ final class BLEManager: NSObject, ObservableObject {
         if let connectedPeripheral =
             central.retrieveConnectedPeripherals(
                 withServices: [serviceUUID]
-            ).first {
+            ).first
+        {
 
             setupAndConnect(connectedPeripheral)
             return
@@ -485,7 +484,8 @@ final class BLEManager: NSObject, ObservableObject {
     private func setupAndConnect(_ p: CBPeripheral) {
 
         guard started,
-              shouldAttemptConnect else {
+            shouldAttemptConnect
+        else {
             return
         }
 
@@ -494,7 +494,8 @@ final class BLEManager: NSObject, ObservableObject {
          don't start another connection attempt.
          */
         if peripheral === p,
-           bleConnected {
+            bleConnected
+        {
 
             logger.log(
                 "[BLE] setupAndConnect ignored — already connected"
@@ -530,7 +531,7 @@ final class BLEManager: NSObject, ObservableObject {
                 CBConnectPeripheralOptionNotifyOnConnectionKey: true,
                 CBConnectPeripheralOptionNotifyOnDisconnectionKey: true,
                 CBConnectPeripheralOptionNotifyOnNotificationKey: true,
-                CBConnectPeripheralOptionStartDelayKey: 0
+                CBConnectPeripheralOptionStartDelayKey: 0,
             ]
         )
     }
@@ -548,8 +549,9 @@ final class BLEManager: NSObject, ObservableObject {
     private func handlePendingRestorationOnPoweredOn() {
 
         guard started,
-              shouldAttemptConnect,
-              central.state == .poweredOn else {
+            shouldAttemptConnect,
+            central.state == .poweredOn
+        else {
 
             logger.log(
                 "[BLE] Cannot continue restoration — BLE not ready"
@@ -558,8 +560,10 @@ final class BLEManager: NSObject, ObservableObject {
             return
         }
 
-        guard let restored =
-                restoredPeripheralPendingSetup else {
+        guard
+            let restored =
+                restoredPeripheralPendingSetup
+        else {
 
             return
         }
@@ -712,10 +716,11 @@ final class BLEManager: NSObject, ObservableObject {
             guard let self else { return }
 
             guard self.started,
-                  self.shouldAttemptConnect,
-                  self.connectionGeneration == generation,
-                  self.peripheral === peripheral,
-                  !self.setupComplete else {
+                self.shouldAttemptConnect,
+                self.connectionGeneration == generation,
+                self.peripheral === peripheral,
+                !self.setupComplete
+            else {
                 return
             }
 
@@ -785,9 +790,10 @@ final class BLEManager: NSObject, ObservableObject {
             }
 
             guard self.started,
-                  self.bleConnected,
-                  self.setupComplete,
-                  self.notificationsReady else {
+                self.bleConnected,
+                self.setupComplete,
+                self.notificationsReady
+            else {
 
                 logger.log(
                     "[BLE] Cannot start handshake — BLE/setup not ready"
@@ -853,9 +859,10 @@ final class BLEManager: NSObject, ObservableObject {
             guard let self else { return }
 
             guard self.started,
-                  self.connectionGeneration == generation,
-                  self.handshakingState,
-                  !self.handshakeState else {
+                self.connectionGeneration == generation,
+                self.handshakingState,
+                !self.handshakeState
+            else {
                 return
             }
 
@@ -900,12 +907,13 @@ final class BLEManager: NSObject, ObservableObject {
     ) {
 
         guard started,
-              shouldAttemptConnect,
-              bleConnected,
-              setupComplete,
-              notificationsReady,
-              handshakingState,
-              connectionGeneration == generation else {
+            shouldAttemptConnect,
+            bleConnected,
+            setupComplete,
+            notificationsReady,
+            handshakingState,
+            connectionGeneration == generation
+        else {
 
             logger.log(
                 "[BLE] Handshake attempt discarded — stale state"
@@ -964,11 +972,12 @@ final class BLEManager: NSObject, ObservableObject {
             guard let self else { return }
 
             guard self.started,
-                  self.shouldAttemptConnect,
-                  self.handshakingState,
-                  !self.handshakeState,
-                  self.connectionGeneration == generation,
-                  self.bleConnected else {
+                self.shouldAttemptConnect,
+                self.handshakingState,
+                !self.handshakeState,
+                self.connectionGeneration == generation,
+                self.bleConnected
+            else {
 
                 logger.log(
                     "[BLE] Old handshake retry discarded"
@@ -998,8 +1007,9 @@ final class BLEManager: NSObject, ObservableObject {
     private func didCompleteHandshakeOnBLEQueue() {
 
         guard started,
-              bleConnected,
-              handshakingState else {
+            bleConnected,
+            handshakingState
+        else {
             return
         }
 
@@ -1043,7 +1053,8 @@ final class BLEManager: NSObject, ObservableObject {
     private func forceReconnectOnBLEQueue(reason: String) {
 
         guard started,
-              shouldAttemptConnect else {
+            shouldAttemptConnect
+        else {
             return
         }
 
@@ -1103,8 +1114,7 @@ final class BLEManager: NSObject, ObservableObject {
         /*
          If it is already disconnected, reconnect directly.
          */
-        if p.state != .connected &&
-            p.state != .connecting {
+        if p.state != .connected && p.state != .connecting {
 
             connectionInProgress = false
 
@@ -1113,8 +1123,9 @@ final class BLEManager: NSObject, ObservableObject {
             ) { [weak self] in
 
                 guard let self,
-                      self.started,
-                      self.shouldAttemptConnect else {
+                    self.started,
+                    self.shouldAttemptConnect
+                else {
                     return
                 }
 
@@ -1128,27 +1139,28 @@ final class BLEManager: NSObject, ObservableObject {
     // MARK: - Native send
 
     func sendJSON(data: Codable) {
-        
+
         logger.log("[BLE] sendJSON() CALLED")
-        
+
         let encoder = JSONEncoder()
-        
+
         guard let jsonData = try? encoder.encode(data),
-              let jsonString = String(
+            let jsonString = String(
                 data: jsonData,
                 encoding: .utf8
-              ) else {
-            
+            )
+        else {
+
             logger.log("[BLE] sendJSON() FAILED — JSON encoding")
             return
         }
-        
+
         logger.log(
             "[BLE] sendJSON() encoded \(jsonString.count) characters"
         )
-        
+
         send(jsonString)
-        
+
         logger.log("[BLE] sendJSON() → send() returned")
     }
 
@@ -1156,31 +1168,31 @@ final class BLEManager: NSObject, ObservableObject {
         _ text: String,
         sendRaw: Bool = false
     ) {
-        
+
         logger.log(
             "[BLE] send() CALLED — length=\(text.count), raw=\(sendRaw)"
         )
-        
+
         bleQueue.async { [weak self] in
             guard let self else {
                 logger.log("[BLE] send() FAILED — BLEManager deallocated")
                 return
             }
-            
+
             logger.log(
                 "[BLE] send() on BLE queue — connected=\(self.bleConnected), setup=\(self.setupComplete), notifications=\(self.notificationsReady), sendBusy=\(self.sendBusy), pendingMessages=\(self.pendingMessages.count), pendingChunks=\(self.pendingChunks.count), writeInProgress=\(self.writeInProgress)"
             )
-            
+
             self.pendingMessages.append(
                 (text, sendRaw)
             )
-            
+
             logger.log(
                 "[BLE] Message queued — pendingMessages=\(self.pendingMessages.count)"
             )
-            
+
             self.drainSendQueue()
-            
+
             logger.log(
                 "[BLE] drainSendQueue() returned — sendBusy=\(self.sendBusy), pendingMessages=\(self.pendingMessages.count), pendingChunks=\(self.pendingChunks.count), writeInProgress=\(self.writeInProgress)"
             )
@@ -1191,54 +1203,55 @@ final class BLEManager: NSObject, ObservableObject {
         _ text: String,
         sendRaw: Bool = false
     ) {
-        
+
         logger.log(
             "[BLE] sendOnBLEQueue() — length=\(text.count), raw=\(sendRaw)"
         )
-        
+
         pendingMessages.append(
             (text, sendRaw)
         )
-        
+
         drainSendQueue()
     }
 
     private func sendNextChunk() {
-        
+
         logger.log(
             "[BLE] sendNextChunk() — writeInProgress=\(self.writeInProgress), pendingChunks=\(self.pendingChunks.count)"
         )
-        
+
         guard !writeInProgress,
-              let p = peripheral,
-              let c = currentWriteCharacteristic,
-              !pendingChunks.isEmpty else {
-            
+            let p = peripheral,
+            let c = currentWriteCharacteristic,
+            !pendingChunks.isEmpty
+        else {
+
             logger.log(
                 "[BLE] sendNextChunk() cannot send — peripheral=\(self.peripheral != nil), characteristic=\(self.currentWriteCharacteristic != nil), pendingChunks=\(self.pendingChunks.count), writeInProgress=\(self.self.writeInProgress)"
             )
-            
+
             if pendingChunks.isEmpty {
                 sendBusy = false
-                
+
                 logger.log(
                     "[BLE] No pending chunks — sendBusy=false, draining next message"
                 )
-                
+
                 drainSendQueue()
             }
-            
+
             return
         }
-        
+
         writeInProgress = true
-        
+
         let chunk = pendingChunks.removeFirst()
-        
+
         logger.log(
             "[BLE] Writing native chunk — bytes=\(chunk.count), remainingChunks=\(self.pendingChunks.count)"
         )
-        
+
         p.writeValue(
             chunk,
             for: c,
@@ -1247,115 +1260,117 @@ final class BLEManager: NSObject, ObservableObject {
     }
 
     private func drainSendQueue() {
-        
+
         logger.log(
             "[BLE] drainSendQueue() ENTER — sendBusy=\(self.sendBusy), pendingMessages=\(self.pendingMessages.count), connected=\(self.bleConnected), setup=\(self.setupComplete), characteristic=\(self.writeCharacteristic != nil), webNotifications=\(self.activeWebNotifications.count)"
         )
-        
+
         guard !sendBusy,
-              !pendingMessages.isEmpty else {
-            
+            !pendingMessages.isEmpty
+        else {
+
             logger.log(
                 "[BLE] drainSendQueue() EXIT — already busy or no pending messages"
             )
-            
+
             return
         }
-        
+
         guard started,
-              bleConnected,
-              let c = writeCharacteristic else {
-            
+            bleConnected,
+            let c = writeCharacteristic
+        else {
+
             logger.log(
                 "[BLE] drainSendQueue() DROPPED — started=\(self.started), connected=\(self.bleConnected), characteristic=\(self.writeCharacteristic != nil)"
             )
-            
+
             pendingMessages.removeAll()
             return
         }
-        
+
         guard activeWebNotifications.isEmpty else {
-            
+
             logger.log(
                 "[BLE] Suppressing native send — WebBluetooth active"
             )
-            
+
             pendingMessages.removeAll()
             return
         }
-        
+
         sendBusy = true
-        
+
         let message = pendingMessages.removeFirst()
-        
+
         let text = message.0
         let sendRaw = message.1
-        
+
         logger.log(
             "[BLE] Starting native send — textLength=\(text.count), raw=\(sendRaw)"
         )
-        
+
         let payload =
-            (sendRaw ? "RAW: " : "") +
-            text +
-            "|"
-        
+            (sendRaw ? "RAW: " : "") + text + "|"
+
         let base64Payload =
             payload
-                .data(using: .utf8)?
-                .base64EncodedString() ?? ""
-        
+            .data(using: .utf8)?
+            .base64EncodedString() ?? ""
+
         let jsCommand =
             "\u{10}require('bluewatch').receive(atob('\(base64Payload)'));\n"
-        
-        guard let fullData =
-                jsCommand.data(using: .utf8) else {
-            
+
+        guard
+            let fullData =
+                jsCommand.data(using: .utf8)
+        else {
+
             logger.log("[BLE] Native send FAILED — couldn't create Data")
-            
+
             sendBusy = false
             drainSendQueue()
             return
         }
-        
+
         let chunkSize =
             Settings.shared.optimizedBtChunks
             ? 15
             : 40
-        
+
         logger.log(
             "[BLE] Native send payload=\(fullData.count) bytes, chunkSize=\(chunkSize)"
         )
-        
+
         pendingChunks.removeAll()
-        
+
         var offset = 0
-        
+
         while offset < fullData.count {
-            
+
             let length =
                 min(
                     chunkSize,
                     fullData.count - offset
                 )
-            
+
             pendingChunks.append(
                 fullData.subdata(
                     in: offset..<(offset + length)
                 )
             )
-            
+
             offset += length
         }
-        
+
         logger.log(
             "[BLE] Native send split into \(self.pendingChunks.count) chunks"
         )
-        
+
         currentWriteCharacteristic = c
-        
+
         sendNextChunk()
-        
+
         logger.log(
             "[BLE] drainSendQueue() EXIT — sendBusy=\(self.sendBusy), pendingChunks=\(self.pendingChunks.count), writeInProgress=\(self.writeInProgress)"
         )
@@ -1383,9 +1398,10 @@ final class BLEManager: NSObject, ObservableObject {
     private func drainWriteQueue() {
 
         guard started,
-              bleConnected,
-              !writeBusy,
-              let p = peripheral else {
+            bleConnected,
+            !writeBusy,
+            let p = peripheral
+        else {
             return
         }
 
@@ -1516,8 +1532,8 @@ final class BLEManager: NSObject, ObservableObject {
     private func wbRequestDevice(id: Int) {
         logger.log(
             "[WB] wbRequestDevice() — id=\(id), connected=\(self.bleConnected), setup=\(self.setupComplete), notifications=\(self.self.notificationsReady), activeWebNotifications=\(self.activeWebNotifications.count), pendingMessages=\(self.pendingMessages.count), pendingChunks=\(self.pendingChunks.count), sendBusy=\(self.sendBusy)"
-          )
-          
+        )
+
         guard started else {
 
             wbReject(
@@ -1541,9 +1557,10 @@ final class BLEManager: NSObject, ObservableObject {
         incomingBuffer = ""
 
         if let p = peripheral,
-           bleConnected,
-           setupComplete,
-           notificationsReady {
+            bleConnected,
+            setupComplete,
+            notificationsReady
+        {
 
             let deviceId =
                 p.identifier.uuidString
@@ -1569,7 +1586,7 @@ final class BLEManager: NSObject, ObservableObject {
                             id: id,
                             result: [
                                 "deviceId": deviceId,
-                                "name": name
+                                "name": name,
                             ]
                         )
                     }
@@ -1603,11 +1620,13 @@ final class BLEManager: NSObject, ObservableObject {
         args: [String: Any]
     ) {
 
-        guard let deviceId =
+        guard
+            let deviceId =
                 args["deviceId"] as? String,
-              let p = peripheral,
-              p.identifier.uuidString == deviceId,
-              bleConnected else {
+            let p = peripheral,
+            p.identifier.uuidString == deviceId,
+            bleConnected
+        else {
 
             wbReject(
                 id: id,
@@ -1643,13 +1662,15 @@ final class BLEManager: NSObject, ObservableObject {
         args: [String: Any]
     ) {
 
-        guard let deviceId =
+        guard
+            let deviceId =
                 args["deviceId"] as? String,
-              let requestedUUID =
+            let requestedUUID =
                 args["serviceUUID"] as? String,
-              let p = peripheral,
-              p.identifier.uuidString == deviceId,
-              bleConnected else {
+            let p = peripheral,
+            p.identifier.uuidString == deviceId,
+            bleConnected
+        else {
 
             wbReject(
                 id: id,
@@ -1667,7 +1688,8 @@ final class BLEManager: NSObject, ObservableObject {
                         requestedUUID
                     )
                     == .orderedSame
-            }) {
+            })
+        {
 
             let serviceId =
                 service.uuid.uuidString
@@ -1703,12 +1725,14 @@ final class BLEManager: NSObject, ObservableObject {
         args: [String: Any]
     ) {
 
-        guard let serviceId =
+        guard
+            let serviceId =
                 args["serviceId"] as? String,
-              let requestedUUID =
+            let requestedUUID =
                 args["charUUID"] as? String,
-              let service =
-                wbServices[serviceId] else {
+            let service =
+                wbServices[serviceId]
+        else {
 
             wbReject(
                 id: id,
@@ -1726,7 +1750,8 @@ final class BLEManager: NSObject, ObservableObject {
                         requestedUUID
                     )
                     == .orderedSame
-            }) {
+            })
+        {
 
             let charId =
                 char.uuid.uuidString
@@ -1741,7 +1766,7 @@ final class BLEManager: NSObject, ObservableObject {
                 id: id,
                 result: [
                     "charId": charId,
-                    "props": char.properties.rawValue
+                    "props": char.properties.rawValue,
                 ]
             )
 
@@ -1764,10 +1789,12 @@ final class BLEManager: NSObject, ObservableObject {
         args: [String: Any]
     ) {
 
-        guard let charId =
+        guard
+            let charId =
                 args["charId"] as? String,
-              let char =
-                wbCharacteristics[charId] else {
+            let char =
+                wbCharacteristics[charId]
+        else {
 
             wbReject(
                 id: id,
@@ -1803,7 +1830,8 @@ final class BLEManager: NSObject, ObservableObject {
     ) {
 
         if let charId =
-            args["charId"] as? String {
+            args["charId"] as? String
+        {
 
             activeWebNotifications.remove(
                 charId
@@ -1821,10 +1849,12 @@ final class BLEManager: NSObject, ObservableObject {
         args: [String: Any]
     ) {
 
-        guard let charId =
+        guard
+            let charId =
                 args["charId"] as? String,
-              let char =
-                wbCharacteristics[charId] else {
+            let char =
+                wbCharacteristics[charId]
+        else {
 
             wbReject(
                 id: id,
@@ -1844,15 +1874,17 @@ final class BLEManager: NSObject, ObservableObject {
     // 2. In wbWriteValue:
     private func wbWriteValue(id: Int, args: [String: Any]) {
         guard let charId = args["charId"] as? String,
-              let char = wbCharacteristics[charId],
-              let values = args["value"] as? [Int],
-              let p = peripheral else {
+            let char = wbCharacteristics[charId],
+            let values = args["value"] as? [Int],
+            let p = peripheral
+        else {
             wbReject(id: id, error: "Bad write args or disconnected")
             return
         }
 
         let data = Data(values.map { UInt8(clamping: $0) })
-        let writeType: CBCharacteristicWriteType = char.properties.contains(.writeWithoutResponse)
+        let writeType: CBCharacteristicWriteType =
+            char.properties.contains(.writeWithoutResponse)
             ? .withoutResponse
             : .withResponse
 
@@ -1860,7 +1892,8 @@ final class BLEManager: NSObject, ObservableObject {
 
         if writeType == .withoutResponse {
             // Micro-throttle (8ms) gives Bangle.js time to process flash writes & issue XOFF
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.008) { [weak self] in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.008) {
+                [weak self] in
                 self?.wbResolve(id: id, result: [:])
             }
         } else {
@@ -1875,15 +1908,17 @@ final class BLEManager: NSObject, ObservableObject {
         result: Any
     ) {
 
-        guard let json =
+        guard
+            let json =
                 try? JSONSerialization.data(
                     withJSONObject: result
                 ),
-              let str =
+            let str =
                 String(
                     data: json,
                     encoding: .utf8
-                ) else {
+                )
+        else {
 
             return
         }
@@ -1903,14 +1938,14 @@ final class BLEManager: NSObject, ObservableObject {
 
         let safe =
             error
-                .replacingOccurrences(
-                    of: "\\",
-                    with: "\\\\"
-                )
-                .replacingOccurrences(
-                    of: "\"",
-                    with: "'"
-                )
+            .replacingOccurrences(
+                of: "\\",
+                with: "\\\\"
+            )
+            .replacingOccurrences(
+                of: "\"",
+                with: "'"
+            )
 
         DispatchQueue.main.async { [weak self] in
 
@@ -1930,15 +1965,17 @@ final class BLEManager: NSObject, ObservableObject {
                 Int($0)
             }
 
-        guard let json =
+        guard
+            let json =
                 try? JSONSerialization.data(
                     withJSONObject: arr
                 ),
-              let str =
+            let str =
                 String(
                     data: json,
                     encoding: .utf8
-                ) else {
+                )
+        else {
 
             return
         }
@@ -1948,10 +1985,10 @@ final class BLEManager: NSObject, ObservableObject {
                 bytes.prefix(8).compactMap {
 
                     $0 >= 32 && $0 < 127
-                    ? Character(
-                        UnicodeScalar($0)
-                    )
-                    : nil
+                        ? Character(
+                            UnicodeScalar($0)
+                        )
+                        : nil
                 }
             )
 
@@ -1985,7 +2022,8 @@ extension BLEManager: CBCentralManagerDelegate {
             )
 
             guard started,
-                  shouldAttemptConnect else {
+                shouldAttemptConnect
+            else {
 
                 publishStatus("Ready")
                 return
@@ -2011,7 +2049,8 @@ extension BLEManager: CBCentralManagerDelegate {
             publishStatus("Ready")
 
             if !bleConnected,
-               !connectionInProgress {
+                !connectionInProgress
+            {
 
                 connectOnBLEQueue()
             }
@@ -2091,9 +2130,11 @@ extension BLEManager: CBCentralManagerDelegate {
          */
         if !started {
 
-            guard UserDefaults.standard.bool(
-                forKey: autoStartKey
-            ) else {
+            guard
+                UserDefaults.standard.bool(
+                    forKey: autoStartKey
+                )
+            else {
 
                 logger.log(
                     "[BLE] Restoration ignored — auto-start disabled"
@@ -2113,7 +2154,8 @@ extension BLEManager: CBCentralManagerDelegate {
                 ] as? [CBPeripheral],
 
             let restored =
-                peripherals.first else {
+                peripherals.first
+        else {
 
             logger.log(
                 "[BLE] No restored peripherals"
@@ -2173,7 +2215,8 @@ extension BLEManager: CBCentralManagerDelegate {
     ) {
 
         guard started,
-              shouldAttemptConnect else {
+            shouldAttemptConnect
+        else {
             return
         }
 
@@ -2190,7 +2233,8 @@ extension BLEManager: CBCentralManagerDelegate {
     ) {
 
         guard started,
-              shouldAttemptConnect else {
+            shouldAttemptConnect
+        else {
 
             central.cancelPeripheralConnection(
                 peripheral
@@ -2287,7 +2331,8 @@ extension BLEManager: CBCentralManagerDelegate {
         )
 
         guard started,
-              shouldAttemptConnect else {
+            shouldAttemptConnect
+        else {
             return
         }
 
@@ -2332,9 +2377,10 @@ extension BLEManager: CBCentralManagerDelegate {
         ) { [weak self] in
 
             guard let self,
-                  self.started,
-                  self.shouldAttemptConnect,
-                  !self.bleConnected else {
+                self.started,
+                self.shouldAttemptConnect,
+                !self.bleConnected
+            else {
                 return
             }
 
@@ -2361,8 +2407,7 @@ extension BLEManager: CBCentralManagerDelegate {
         )
 
         let shouldReconnect =
-            started &&
-            shouldAttemptConnect
+            started && shouldAttemptConnect
 
         invalidateConnectionState(
             reason: "Peripheral disconnected"
@@ -2381,7 +2426,7 @@ extension BLEManager: CBCentralManagerDelegate {
                 : "Disconnected"
         )
 
-        DispatchQueue.main.async{
+        DispatchQueue.main.async {
             LocalData.shared.battery = "--"
         }
 
@@ -2450,7 +2495,7 @@ extension BLEManager: CBCentralManagerDelegate {
                 CBConnectPeripheralOptionEnableAutoReconnect: true,
                 CBConnectPeripheralOptionNotifyOnConnectionKey: true,
                 CBConnectPeripheralOptionNotifyOnDisconnectionKey: true,
-                CBConnectPeripheralOptionNotifyOnNotificationKey: true
+                CBConnectPeripheralOptionNotifyOnNotificationKey: true,
             ]
         )
     }
@@ -2492,8 +2537,9 @@ extension BLEManager: CBPeripheralDelegate {
     ) {
 
         guard started,
-              bleConnected,
-              self.peripheral === peripheral else {
+            bleConnected,
+            self.peripheral === peripheral
+        else {
             return
         }
 
@@ -2526,7 +2572,8 @@ extension BLEManager: CBPeripheralDelegate {
         if let entry =
             pendingServices.removeValue(
                 forKey: deviceId
-            ) {
+            )
+        {
 
             if let service =
                 services.first(where: {
@@ -2536,7 +2583,8 @@ extension BLEManager: CBPeripheralDelegate {
                             entry.uuid
                         )
                         == .orderedSame
-                }) {
+                })
+            {
 
                 let serviceId =
                     service.uuid.uuidString
@@ -2614,8 +2662,9 @@ extension BLEManager: CBPeripheralDelegate {
     ) {
 
         guard started,
-              bleConnected,
-              self.peripheral === peripheral else {
+            bleConnected,
+            self.peripheral === peripheral
+        else {
             return
         }
 
@@ -2645,7 +2694,8 @@ extension BLEManager: CBPeripheralDelegate {
         if let entry =
             pendingChars.removeValue(
                 forKey: serviceId
-            ) {
+            )
+        {
 
             if let char =
                 service.characteristics?.first(where: {
@@ -2655,7 +2705,8 @@ extension BLEManager: CBPeripheralDelegate {
                             entry.uuid
                         )
                         == .orderedSame
-                }) {
+                })
+            {
 
                 let charId =
                     char.uuid.uuidString
@@ -2667,7 +2718,7 @@ extension BLEManager: CBPeripheralDelegate {
                     id: entry.callId,
                     result: [
                         "charId": charId,
-                        "props": char.properties.rawValue
+                        "props": char.properties.rawValue,
                     ]
                 )
 
@@ -2686,8 +2737,10 @@ extension BLEManager: CBPeripheralDelegate {
             return
         }
 
-        guard let characteristics =
-                service.characteristics else {
+        guard
+            let characteristics =
+                service.characteristics
+        else {
 
             forceReconnectOnBLEQueue(
                 reason: "UART characteristics missing"
@@ -2776,8 +2829,9 @@ extension BLEManager: CBPeripheralDelegate {
     ) {
 
         guard started,
-              bleConnected,
-              self.peripheral === peripheral else {
+            bleConnected,
+            self.peripheral === peripheral
+        else {
             return
         }
 
@@ -2794,7 +2848,8 @@ extension BLEManager: CBPeripheralDelegate {
         if let id =
             pendingNotify.removeValue(
                 forKey: charId
-            ) {
+            )
+        {
 
             if let error {
 
@@ -2877,7 +2932,7 @@ extension BLEManager: CBPeripheralDelegate {
                         peripheral.identifier.uuidString,
 
                     "name":
-                        peripheral.name ?? "Bangle.js"
+                        peripheral.name ?? "Bangle.js",
                 ]
             )
         }
@@ -2901,8 +2956,9 @@ extension BLEManager: CBPeripheralDelegate {
     ) {
 
         guard started,
-              bleConnected,
-              self.peripheral === peripheral else {
+            bleConnected,
+            self.peripheral === peripheral
+        else {
             return
         }
 
@@ -2915,8 +2971,10 @@ extension BLEManager: CBPeripheralDelegate {
             return
         }
 
-        guard let data =
-                characteristic.value else {
+        guard
+            let data =
+                characteristic.value
+        else {
 
             logger.log(
                 "[BLE] RX empty data packet"
@@ -2935,13 +2993,11 @@ extension BLEManager: CBPeripheralDelegate {
             String(
                 data: data,
                 encoding: .utf8
-            ) {
-
-            
+            )
+        {
 
         } else {
 
-            
         }
 
         /*
@@ -2952,7 +3008,8 @@ extension BLEManager: CBPeripheralDelegate {
             if let id =
                 pendingReads.removeValue(
                     forKey: charId
-                ) {
+                )
+            {
 
                 wbResolve(
                     id: id,
@@ -2972,11 +3029,13 @@ extension BLEManager: CBPeripheralDelegate {
             return
         }
 
-        guard let text =
+        guard
+            let text =
                 String(
                     data: data,
                     encoding: .utf8
-                ) else {
+                )
+        else {
             return
         }
 
@@ -2993,9 +3052,10 @@ extension BLEManager: CBPeripheralDelegate {
         )
 
         while let newlineRange =
-                incomingBuffer.range(
-                    of: "\n"
-                ) {
+            incomingBuffer.range(
+                of: "\n"
+            )
+        {
 
             let line =
                 String(
@@ -3018,14 +3078,12 @@ extension BLEManager: CBPeripheralDelegate {
                 continue
             }
 
-            
-
-            guard let prefixRange =
+            guard
+                let prefixRange =
                     line.range(
                         of: "bwRX:"
-                    ) else {
-
-                
+                    )
+            else {
 
                 continue
             }
@@ -3036,8 +3094,6 @@ extension BLEManager: CBPeripheralDelegate {
                         prefixRange.upperBound...
                     ]
                 )
-
-           
 
             /*
              Handshake completion is handled on the BLE queue,
@@ -3053,8 +3109,7 @@ extension BLEManager: CBPeripheralDelegate {
 
              while a reconnect was already occurring on the BLE queue.
              */
-            if !handshakeState &&
-                handshakingState {
+            if !handshakeState && handshakingState {
 
                 didCompleteHandshakeOnBLEQueue()
             }
@@ -3070,12 +3125,11 @@ extension BLEManager: CBPeripheralDelegate {
              */
             if let payloadData =
                 payload.data(using: .utf8),
-               let json =
-                try? JSONSerialization.jsonObject(
-                    with: payloadData
-                ) as? [String: Any] {
-
-                
+                let json =
+                    try? JSONSerialization.jsonObject(
+                        with: payloadData
+                    ) as? [String: Any]
+            {
 
                 DispatchQueue.main.async { [weak self] in
 
@@ -3089,8 +3143,6 @@ extension BLEManager: CBPeripheralDelegate {
                 }
 
             } else {
-
-                
 
                 DispatchQueue.main.async { [weak self] in
 
@@ -3153,8 +3205,9 @@ extension BLEManager: CBPeripheralDelegate {
     ) {
 
         guard started,
-              bleConnected,
-              self.peripheral === peripheral else {
+            bleConnected,
+            self.peripheral === peripheral
+        else {
             return
         }
 

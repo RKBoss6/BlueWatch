@@ -5,14 +5,15 @@
 //  Created by Kabir Onkar on 8/15/26.
 //
 
-import SwiftUI
-
 import AppIntents
+import SwiftUI
 
 struct SendMessageIntent: AppIntent {
     static var title: LocalizedStringResource = "Send Message"
-        
-    static var description = IntentDescription("Sends a string to your connected watch")
+
+    static var description = IntentDescription(
+        "Sends a string to your connected watch"
+    )
     static var openAppWhenRun: Bool = false
 
     @Parameter(
@@ -30,7 +31,7 @@ struct SendMessageIntent: AppIntent {
     }
 
     func perform() async throws -> some IntentResult & ProvidesDialog {
-        if(BLEManager.shared.isConnected){
+        if BLEManager.shared.isConnected {
             BLEManager.shared.send(message)
             return .result(dialog: "Successfully Sent")
         }
@@ -40,58 +41,68 @@ struct SendMessageIntent: AppIntent {
 struct IsConnectedIntent: AppIntent {
     // The name displayed in the Shortcuts app
     static var title: LocalizedStringResource = "Get Watch Connection"
-    
+
     // Optional description for context
-    static var description = IntentDescription("Checks if watch connected, and returns the value",resultValueName: "Watch Connected?")
+    static var description = IntentDescription(
+        "Checks if watch connected, and returns the value",
+        resultValueName: "Watch Connected?"
+    )
 
     // Controls if the intent forces the main app to open in the foreground
     static var openAppWhenRun: Bool = false
-    
-    func perform() async throws -> some IntentResult & ReturnsValue<Bool>  {
-        return .result(value:BLEManager.shared.isConnected)
-        
+
+    func perform() async throws -> some IntentResult & ReturnsValue<Bool> {
+        return .result(value: BLEManager.shared.isConnected)
+
     }
-} 
+}
 struct SendWeatherIntent: AppIntent {
     // The name displayed in the Shortcuts app
     static var title: LocalizedStringResource = "Send Weather"
-    
+
     // Optional description for context
-    static var description = IntentDescription("Sends the latest weather to your watch if within rate-limits")
+    static var description = IntentDescription(
+        "Sends the latest weather to your watch if within rate-limits"
+    )
 
     // Controls if the intent forces the main app to open in the foreground
     static var openAppWhenRun: Bool = false
-    
+
     func perform() async throws -> some IntentResult {
-        if(BLEManager.shared.isConnected){
-            await WeatherManager.shared.updateWeatherAndSend()
-            return .result(dialog: "Successfully Sent")
+        if BLEManager.shared.isConnected {
+            if WeatherManager.shared.rateLimitCleared() {
+                await WeatherManager.shared.updateWeatherAndSend()
+                return .result(dialog: "Successfully Sent")
+            } else {
+                return .result(dialog: "Ignored request due to rate limit")
+            }
         }
         return .result(dialog: "Watch Not Connected")
         // Execute background logic here (e.g., save to Database/CoreData)
-        
+
     }
 }
 struct SendLocationIntent: AppIntent {
     // The name displayed in the Shortcuts app
     static var title: LocalizedStringResource = "Send Location"
-    
+
     // Optional description for context
-    static var description = IntentDescription("Sends your location to your watch's 'mylocation.json'")
+    static var description = IntentDescription(
+        "Sends your location to your watch's 'mylocation.json'"
+    )
 
     // Controls if the intent forces the main app to open in the foreground
     static var openAppWhenRun: Bool = false
-    
+
     func perform() async throws -> some IntentResult {
         // Execute background logic here (e.g., save to Database/CoreData)
-        if(BLEManager.shared.isConnected){
+        if BLEManager.shared.isConnected {
             await LocationManager.shared.sendLocation()
             return .result(dialog: "Successfully Sent")
 
-            
         }
         return .result(dialog: "Watch Not Connected")
-        
+
     }
 }
 /*

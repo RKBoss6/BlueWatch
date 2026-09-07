@@ -9,13 +9,13 @@ import SwiftUI
 
 struct GraphThumbnail: View {
     @Environment(\.isPreview) var isPreview
-    let data:DataType
+    let data: DataType
     let color: Color
     let thumbnailName: String
     let expandedName: String
-    
+
     var body: some View {
-        VStack{
+        VStack {
             /*
             NavigationLink{
                 ExpandedMetricView(title: expandedName, dataType: isPreview ? .test : data, color: color)
@@ -36,30 +36,37 @@ struct GraphThumbnail: View {
                 }
             }
              */
-            ZStack{
-                
-                DataChart(dataType: isPreview ? .test : data, color: color, isThumbnail: true)
-                if(!DataService.dataPointExists(for: data) && !isPreview){
+            ZStack {
+
+                DataChart(
+                    dataType: isPreview ? .test : data,
+                    color: color,
+                    isThumbnail: true
+                )
+                if !DataService.dataPointExists(for: data) && !isPreview {
                     Text("No Data")
                         .font(.title)
                         .foregroundStyle(.secondary)
                 }
-                    
+
             }
-            .padding(.bottom,60)
+            .padding(.bottom, 60)
 
         }
     }
 }
 
 #Preview {
-    NavigationStack{
-        Grid{
-            GraphThumbnail(data:.activeCalories, color:.green, thumbnailName: "Calories", expandedName: "Active calories")
-            
-            
+    NavigationStack {
+        Grid {
+            GraphThumbnail(
+                data: .activeCalories,
+                color: .green,
+                thumbnailName: "Calories",
+                expandedName: "Active calories"
+            )
+
         }
         .appBackground()
     }
 }
-    

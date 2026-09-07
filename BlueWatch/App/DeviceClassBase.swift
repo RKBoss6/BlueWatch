@@ -7,11 +7,11 @@
 
 import Foundation
 
-public class DeviceBase{
-    func onConnectBt(){
-        
+public class DeviceBase {
+    func onConnectBt() {
+
     }
-    func sendData(){
-        
+    func sendData() {
+
     }
 }

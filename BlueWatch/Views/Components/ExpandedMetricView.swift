@@ -102,7 +102,7 @@ struct ExpandedMetricView: View {
             Button{
                 moveDay(by: calendar.dateComponents([.day], from: selectedDay, to: Date.now).day ?? 0)
             }label:{
-               Text("Today")
+                Text("Today")
             }
             .buttonStyle(.borderedProminent)
             .padding(10)
@@ -117,7 +117,7 @@ struct ExpandedMetricView: View {
                 AppMetricManager.shared.hasBeenInExpandedMetricView=true
                 AppMetricManager.shared.increaseExpandedMetricViewOpens()
             }
-            
+        
     }
     
     private func moveDay(by value: Int) {

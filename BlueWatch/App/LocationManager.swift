@@ -1,17 +1,18 @@
 // LocationManager.swift
 
-import Foundation
 import CoreLocation
+import Foundation
+
 @MainActor
 class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     static let shared = LocationManager()
 
-    private let clManager  = CLLocationManager()
-    private let geocoder   = CLGeocoder()
+    private let clManager = CLLocationManager()
+    private let geocoder = CLGeocoder()
 
     // ── GPS forwarding to Bangle.js ────────────────────────────────────────────
     private var gpsTimer: Timer?
-    private let gpsInterval: TimeInterval = 6   // seconds between Bangle.GPS events
+    private let gpsInterval: TimeInterval = 6  // seconds between Bangle.GPS events
     private var isForwardingGPS = false
     private var settings = Settings.shared
     private var cachedLocation: CLLocation?
@@ -22,8 +23,8 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         clManager.delegate = self
         //requestAuthorization()
     }
-    
-    func requestAuthorization(){
+
+    func requestAuthorization() {
         clManager.requestAlwaysAuthorization()
     }
     // MARK: - GPS forwarding
@@ -32,15 +33,20 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         guard !isForwardingGPS else { return }
         isForwardingGPS = true
         clManager.desiredAccuracy = kCLLocationAccuracyBest
-        clManager.distanceFilter  = kCLDistanceFilterNone
+        clManager.distanceFilter = kCLDistanceFilterNone
         clManager.startUpdatingLocation()
 
-        gpsTimer = Timer.scheduledTimer(withTimeInterval: gpsInterval, repeats: true) { [weak self] _ in
-            Task{
-               await self?.sendLocation()
+        gpsTimer = Timer.scheduledTimer(
+            withTimeInterval: gpsInterval,
+            repeats: true
+        ) { [weak self] _ in
+            Task {
+                await self?.sendLocation()
             }
         }
-        logger.log("[GPS] Started forwarding phone GPS to Bangle.js every \(Int(self.gpsInterval))s")
+        logger.log(
+            "[GPS] Started forwarding phone GPS to Bangle.js every \(Int(self.gpsInterval))s"
+        )
     }
 
     func stopGPSForwarding() {
@@ -57,13 +63,11 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         logger.log("[GPS] Stopped GPS forwarding")
     }
 
-   
-
     // MARK: - Location packet (your existing LocationUpdate)
 
     func sendLocation() async {
         logger.log("Doing Location Collection from Function")
-        
+
         let location: CLLocation?
         if isForwardingGPS {
             // Already have continuous updates running, just read the latest
@@ -71,32 +75,35 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         } else {
             location = await getLocation(useCache: false)
         }
-        
-        guard let location else { logger.log("Not there"); return }
-       
-    
+
+        guard let location else {
+            logger.log("Not there")
+            return
+        }
+
         logger.log("Got location")
         let placemarks = try? await geocoder.reverseGeocodeLocation(location)
-        let cityName  = placemarks?.first?.locality ?? "undefined"
-        let hasFix   = location.horizontalAccuracy > 0 && location.horizontalAccuracy < 100
-        let fix      = hasFix ? 1 : 0
-        let course   = location.course  >= 0 ? location.course  : 0
-        let speedKmh = location.speed   >= 0 ? location.speed * 3.6 : 0
-        let hdop     = max(0.5, min(99.9, location.horizontalAccuracy / 5.0))
+        let cityName = placemarks?.first?.locality ?? "undefined"
+        let hasFix =
+            location.horizontalAccuracy > 0 && location.horizontalAccuracy < 100
+        let fix = hasFix ? 1 : 0
+        let course = location.course >= 0 ? location.course : 0
+        let speedKmh = location.speed >= 0 ? location.speed * 3.6 : 0
+        let hdop = max(0.5, min(99.9, location.horizontalAccuracy / 5.0))
         let packet = LocationPacket(
             id: "GPS",
-            lat:location.coordinate.latitude ,
+            lat: location.coordinate.latitude,
             lon: location.coordinate.longitude,
-            alt: round(location.altitude*10)/10,
-            speed: round(speedKmh*10)/10,
-            course: round(course*10)/10,
+            alt: round(location.altitude * 10) / 10,
+            speed: round(speedKmh * 10) / 10,
+            course: round(course * 10) / 10,
             fix: fix,
             satellites: 8,
-            hdop: round(hdop*10)/10,
-            city: cityName)
+            hdop: round(hdop * 10) / 10,
+            city: cityName
+        )
         BLEManager.shared.sendJSON(data: packet)
-              
-        
+
     }
     // MARK: - Packet type
     struct LocationPacket: Codable {
@@ -117,14 +124,19 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     func getLocation(useCache: Bool) async -> CLLocation? {
         await AuthManager.shared.requestLocationAuth()
         if useCache,
-           let cachedLocation = cachedLocation,
-           let lastUpdate = UserDefaults.standard.object(forKey: "lastLocationUpdate") as? Date {
+            let cachedLocation = cachedLocation,
+            let lastUpdate = UserDefaults.standard.object(
+                forKey: "lastLocationUpdate"
+            ) as? Date
+        {
 
             let age = Date().timeIntervalSince(lastUpdate)
             let cacheLifetime = TimeInterval(settings.locationRateLimit * 60)
 
             if age < cacheLifetime {
-                logger.log("Using cached location; age \(Int(age / 60)) minutes")
+                logger.log(
+                    "Using cached location; age \(Int(age / 60)) minutes"
+                )
                 return cachedLocation
             }
 
@@ -147,14 +159,17 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         }
     }
 
-    private var locationContinuations: [CheckedContinuation<CLLocation, Error>] = []
+    private var locationContinuations:
+        [CheckedContinuation<CLLocation, Error>] = []
 
     private func requestCurrentLocation() async throws -> CLLocation {
         try await withCheckedThrowingContinuation { continuation in
             locationContinuations.append(continuation)
 
             if locationRequestInProgress {
-                logger.log("Location request already in progress; joining existing request")
+                logger.log(
+                    "Location request already in progress; joining existing request"
+                )
                 return
             }
 
@@ -195,7 +210,9 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         }
 
         Task { @MainActor in
-            logger.log("Core Location returned location: \(location.coordinate.latitude), \(location.coordinate.longitude)")
+            logger.log(
+                "Core Location returned location: \(location.coordinate.latitude), \(location.coordinate.longitude)"
+            )
 
             self.cachedLocation = location
             UserDefaults.standard.set(Date(), forKey: "lastLocationUpdate")
@@ -235,7 +252,9 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         }
     }
 
-    nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+    nonisolated func locationManagerDidChangeAuthorization(
+        _ manager: CLLocationManager
+    ) {
         switch manager.authorizationStatus {
         case .notDetermined:
             // Only request once, don't loop
@@ -249,7 +268,6 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         }
     }
 
-   
 }
 
 private enum LocationError: Error {

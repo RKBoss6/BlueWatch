@@ -16,7 +16,7 @@ class AppMetricManager: ObservableObject {
     @AppStorage("dateLastRequested") private var dateLastRequested: Date = Date(timeIntervalSince1970: 0) // default to 1970 so its a long enough interval
     static var shared:AppMetricManager = AppMetricManager()
     #if DEBUG
-    let isDebug = true
+    let isDebug = false
     #else
     let isDebug = false
     #endif

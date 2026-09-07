@@ -9,29 +9,29 @@ import SwiftUI
 
 struct FeatureCard: View {
     @Environment(\.colorScheme) var colorScheme
-    let icon:String
-    let description:String
+    let icon: String
+    let description: String
     var body: some View {
-        HStack{
+        HStack {
             Image(systemName: icon)
                 .font(.title)
                 .fontWeight(.semibold)
-                
+
             Text(description)
                 .font(.body)
                 .fontWeight(.semibold)
-                
+
             Spacer()
-            
+
         }
-        
+
         .padding()
-        .foregroundStyle(.white )
+        .foregroundStyle(.white)
         .background(RoundedRectangle(cornerRadius: 20).fill(.accent))
     }
 }
 
 #Preview {
-    FeatureCard(icon:"gear",description:"Change settings anywhere")
-        
+    FeatureCard(icon: "gear", description: "Change settings anywhere")
+
 }

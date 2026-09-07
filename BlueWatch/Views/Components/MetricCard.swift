@@ -5,16 +5,17 @@
 //  Created by Kabir Onkar on 8/18/26.
 //
 
-import SwiftUI
 import SwiftData
+import SwiftUI
+
 struct MetricCard: View {
     @Environment(\.isPreview) var isPreview
-    let dataType:DataType
-    let color:Color
-    let thumbTitle:String
-    let expandedTitle:String
-    @State var lastDataTimestampStr:String = "---"
-    @State var lastDataValueStr:String = "--"
+    let dataType: DataType
+    let color: Color
+    let thumbTitle: String
+    let expandedTitle: String
+    @State var lastDataTimestampStr: String = "---"
+    @State var lastDataValueStr: String = "--"
     @Query private var latestPoints: [DataPoint]
     init(
         dataType: DataType,
@@ -43,25 +44,36 @@ struct MetricCard: View {
         _latestPoints = Query(descriptor)
     }
     var body: some View {
-        NavigationLink(destination: ExpandedMetricView(title: expandedTitle, dataType: isPreview ? .test : dataType, color: color)){
-            ZStack{
+        NavigationLink(
+            destination: ExpandedMetricView(
+                title: expandedTitle,
+                dataType: isPreview ? .test : dataType,
+                color: color
+            )
+        ) {
+            ZStack {
                 Rectangle()
                     .foregroundStyle(.clear)
-                    .liquidGlass(cornerRadius:25)
+                    .liquidGlass(cornerRadius: 25)
                     .opacity(0.7)
-                VStack{
+                VStack {
                     Text(thumbTitle)
                         .font(.subheadline)
                     if let latestPoint = latestPoints.first {
-                        Text(latestPoint.value.formatted()+(dataType == .battery ? "%" : ""))
-                            .font(.title2)
-                            .fontWeight(.bold)
+                        Text(
+                            latestPoint.value.formatted()
+                                + (dataType == .battery ? "%" : "")
+                        )
+                        .font(.title2)
+                        .fontWeight(.bold)
 
-                        Text("Updated \(latestPoint.timestamp.formatted(date: .omitted, time: .shortened))")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .padding(.bottom)
-                    }else{
+                        Text(
+                            "Updated \(latestPoint.timestamp.formatted(date: .omitted, time: .shortened))"
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.bottom)
+                    } else {
                         Text("--")
                             .font(.largeTitle)
                             .fontWeight(.bold)
@@ -71,46 +83,65 @@ struct MetricCard: View {
                             .foregroundStyle(.secondary)
                             .padding(.bottom)
                     }
-                    
-                    DataChart(dataType: isPreview ? .test : dataType, color:color, isThumbnail: true)
-                        .padding(-20)
-                        .allowsHitTesting(false)
-                    
-                    
-                    
-                    
+
+                    DataChart(
+                        dataType: isPreview ? .test : dataType,
+                        color: color,
+                        isThumbnail: true
+                    )
+                    .padding(-20)
+                    .allowsHitTesting(false)
+
                 }
                 .padding()
-                
-                
+
             }
         }
         .foregroundStyle(.primary)
-       
+
     }
-        
+
 }
 
 #Preview {
-    NavigationStack{
-        ScrollView{
-            
-            Grid{
-                GridRow{
-                    MetricCard(dataType: .test, color: .graphRed, thumbTitle: "Heart Rate", expandedTitle: "Heart Rate")
-                    
-                    MetricCard(dataType: .test, color: .graphRed, thumbTitle: "Heart Rate", expandedTitle: "Heart Rate")
+    NavigationStack {
+        ScrollView {
+
+            Grid {
+                GridRow {
+                    MetricCard(
+                        dataType: .test,
+                        color: .graphRed,
+                        thumbTitle: "Heart Rate",
+                        expandedTitle: "Heart Rate"
+                    )
+
+                    MetricCard(
+                        dataType: .test,
+                        color: .graphRed,
+                        thumbTitle: "Heart Rate",
+                        expandedTitle: "Heart Rate"
+                    )
                 }
-                .padding(.bottom,8)
-                GridRow{
-                    MetricCard(dataType: .test, color: .graphRed, thumbTitle: "Heart Rate", expandedTitle: "Heart Rate")
-                    MetricCard(dataType: .test, color: .graphRed, thumbTitle: "Heart Rate", expandedTitle: "Heart Rate")
+                .padding(.bottom, 8)
+                GridRow {
+                    MetricCard(
+                        dataType: .test,
+                        color: .graphRed,
+                        thumbTitle: "Heart Rate",
+                        expandedTitle: "Heart Rate"
+                    )
+                    MetricCard(
+                        dataType: .test,
+                        color: .graphRed,
+                        thumbTitle: "Heart Rate",
+                        expandedTitle: "Heart Rate"
+                    )
                 }
             }
             .padding()
         }
         .appBackground()
     }
-        
-    
+
 }
