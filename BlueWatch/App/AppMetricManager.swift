@@ -16,7 +16,7 @@ class AppMetricManager: ObservableObject {
     @AppStorage("dateLastRequested") private var dateLastRequested: Date = Date(timeIntervalSince1970: 0) // default to 1970 so its a long enough interval
     static var shared:AppMetricManager = AppMetricManager()
     #if DEBUG
-    let isDebug = false
+    let isDebug = true
     #else
     let isDebug = false
     #endif
@@ -41,7 +41,7 @@ class AppMetricManager: ObservableObject {
         
         // should have at least 60 successful connections, should be different version than last request, and must have opened metrics at least 35 times
         // shoudl be more than 30 days from last request
-        if((successfulConnections >= 60 && lastVersionPrompted != currentVersion && expandedMetricViewOpens >= 35 && (components.day ?? 0) > 30 ) || isDebug){
+        if((successfulConnections >= 60 && lastVersionPrompted != currentVersion && expandedMetricViewOpens >= 35 && (components.day ?? 0) > 30 ) && !isDebug){
             if(hasBeenInExpandedMetricView){
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
                     requestReviewAction()
