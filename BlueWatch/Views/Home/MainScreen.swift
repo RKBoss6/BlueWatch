@@ -4,15 +4,55 @@
 //
 //  Created by Kabir Onkar on 3/4/25.
 //
-
 import SwiftUI
+import StoreKit
+import SwiftData
 
+
+struct MetricThumbView: View {
+    let id: ReorderableString
+    @ObservedObject private var settings = Settings.shared
+
+    var body: some View {
+        MetricCard(
+            dataType: .heartRate,
+            color: .graphRed,
+            thumbTitle: "Heart Rate",
+            expandedTitle: "Heart Rate"
+        )
+        /*
+        
+         */
+    }
+}
 struct WatchScreen: View {
+    private static let metricConfigs: [String: MetricCardConfig] = [
+        "heartRate":       .init(dataType: .heartRate,       color: .graphRed,    thumbTitle: "Heart Rate",       expandedTitle: "Heart Rate"),
+        "steps":           .init(dataType: .steps,           color: .graphPurple, thumbTitle: "Steps",            expandedTitle: "Steps"),
+        "activeCalories":  .init(dataType: .activeCalories,  color: .graphOrange, thumbTitle: "Active Calories",  expandedTitle: "Active Calories"),
+        "restingCalories": .init(dataType: .restingCalories, color: .graphBlue,   thumbTitle: "Resting Calories", expandedTitle: "Resting (BMR) Calories"),
+        "battery":         .init(dataType: .battery,         color: .graphGreen,  thumbTitle: "Battery",          expandedTitle: "Watch Battery"),
+    ]
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.isPreview) var isPreview
     @Environment(\.requestReview) var requestReview
     @Environment(\.modelContext) private var modelContext
     var vm: ViewModel = ViewModel.shared
+    @AppStorage("metricCardStringOrder") var metricCardStringOrder=ReorderableListContainer(  [ReorderableString("heartRate"), ReorderableString("steps"), ReorderableString("activeCalories"), ReorderableString("restingCalories"), ReorderableString("battery")])
+    @State private var visibleMetricItems: [ReorderableString] = []
+
+    private func recomputeVisibleMetrics() {
+        visibleMetricItems = metricCardStringOrder.items.filter { item in
+            switch item.value {
+            case "heartRate":       return settings.showHrThumb
+            case "steps":           return settings.showStepsThumb
+            case "activeCalories":  return settings.showActiveCalThumb
+            case "restingCalories": return settings.showRestingCalThumb
+            case "battery":         return settings.showBatteryThumb
+            default:                return false
+            }
+        }
+    }
     @ObservedObject var settings = Settings.shared
     @Environment(\.scenePhase) var scenePhase
     var authManager: AuthManager = AuthManager.shared
@@ -42,6 +82,7 @@ struct WatchScreen: View {
         }
         return img
     }
+   
     func getConnectButtonText() -> String {
         var text = ""
         if bleManager.isConnected {
@@ -272,56 +313,79 @@ struct WatchScreen: View {
                         .padding(.horizontal)
 
                         .padding(.leading, 10)
+                    if #available(iOS 27.0, *) {
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 150, maximum: 200))], spacing: 10) {
+                            
+                                ForEach(visibleMetricItems) { str in
+                                    let cfg = Self.metricConfigs[str.value]!
+                                    MetricCard(
+                                        dataType: cfg.dataType,
+                                        color: cfg.color,
+                                        thumbTitle: cfg.thumbTitle,
+                                        expandedTitle: cfg.expandedTitle
+                                    )
+                                }
+                                .reorderable()
+                            
+                        }
+                        .padding(.horizontal)
+                        .reorderContainer(for: ReorderableString.self) { difference in
+                            var updatedOrder = metricCardStringOrder
+                            updatedOrder.apply(difference: difference)
+                            metricCardStringOrder = updatedOrder
+                        }
+                    } else {
+                        // Fallback on earlier versions
+                        LazyVGrid(
+                           columns: [
+                               GridItem(.adaptive(minimum: 150, maximum: 200))
+                           ],
+                           spacing: 10
+                       ) {
+                           if Settings.shared.showHrThumb {
+                               MetricCard(
+                                   dataType: .heartRate,
+                                   color: .graphRed,
+                                   thumbTitle: "Heart Rate",
+                                   expandedTitle: "Heart Rate"
+                               )
+                           }
+                           if Settings.shared.showStepsThumb {
+                               MetricCard(
+                                   dataType: .steps,
+                                   color: .graphPurple,
+                                   thumbTitle: "Steps",
+                                   expandedTitle: "Steps"
+                               )
+                           }
+                           if Settings.shared.showActiveCalThumb {
+                               MetricCard(
+                                   dataType: .activeCalories,
+                                   color: .graphOrange,
+                                   thumbTitle: "Active Calories",
+                                   expandedTitle: "Active Calories"
+                               )
+                           }
+                           if Settings.shared.showRestingCalThumb {
+                               MetricCard(
+                                   dataType: .restingCalories,
+                                   color: .graphBlue,
+                                   thumbTitle: "Resting Calories",
+                                   expandedTitle: "Resting (BMR) Calories"
+                               )
+                           }
+                           if Settings.shared.showBatteryThumb {
+                               MetricCard(
+                                   dataType: .battery,
+                                   color: .graphGreen,
+                                   thumbTitle: "Battery",
+                                   expandedTitle: "Watch Battery"
+                               )
+                           }
 
-                    LazyVGrid(
-                        columns: [
-                            GridItem(.adaptive(minimum: 150, maximum: 200))
-                        ],
-                        spacing: 10
-                    ) {
-                        if Settings.shared.showHrThumb {
-                            MetricCard(
-                                dataType: .heartRate,
-                                color: .graphRed,
-                                thumbTitle: "Heart Rate",
-                                expandedTitle: "Heart Rate"
-                            )
-                        }
-                        if Settings.shared.showStepsThumb {
-                            MetricCard(
-                                dataType: .steps,
-                                color: .graphPurple,
-                                thumbTitle: "Steps",
-                                expandedTitle: "Steps"
-                            )
-                        }
-                        if Settings.shared.showActiveCalThumb {
-                            MetricCard(
-                                dataType: .activeCalories,
-                                color: .graphOrange,
-                                thumbTitle: "Active Calories",
-                                expandedTitle: "Active Calories"
-                            )
-                        }
-                        if Settings.shared.showRestingCalThumb {
-                            MetricCard(
-                                dataType: .restingCalories,
-                                color: .graphBlue,
-                                thumbTitle: "Resting Calories",
-                                expandedTitle: "Resting (BMR) Calories"
-                            )
-                        }
-                        if Settings.shared.showBatteryThumb {
-                            MetricCard(
-                                dataType: .battery,
-                                color: .graphGreen,
-                                thumbTitle: "Battery",
-                                expandedTitle: "Watch Battery"
-                            )
-                        }
-
+                       }
+                       .padding(.horizontal)
                     }
-                    .padding(.horizontal)
 
                     Spacer()
                         .padding(35)
@@ -352,6 +416,13 @@ struct WatchScreen: View {
             }
             .ignoresSafeArea()
         }
+        .onAppear { recomputeVisibleMetrics() }
+        .onChange(of: settings.showHrThumb) { recomputeVisibleMetrics() }
+        .onChange(of: settings.showStepsThumb) { recomputeVisibleMetrics() }
+        .onChange(of: settings.showActiveCalThumb) { recomputeVisibleMetrics() }
+        .onChange(of: settings.showRestingCalThumb) { recomputeVisibleMetrics() }
+        .onChange(of: settings.showBatteryThumb) { recomputeVisibleMetrics() }
+        .onChange(of: metricCardStringOrder.rawValue) { recomputeVisibleMetrics() }
         .onAppear {
             AppMetricManager.shared.tryTriggerReview(
                 requestReviewAction: requestReview
@@ -362,6 +433,8 @@ struct WatchScreen: View {
 }
 
 #Preview {
-    WatchScreen()
-        .environmentObject(BLEManager.shared)
+    NavigationStack{
+        WatchScreen()
+            .environmentObject(BLEManager.shared)
+    }
 }

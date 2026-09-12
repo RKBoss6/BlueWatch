@@ -1,16 +1,22 @@
 {
+  "features" : [
+    "refractivity"
+  ],
   "fill-specializations" : [
     {
       "value" : {
-        "automatic-gradient" : "display-p3:0.20413,0.48302,0.78115,1.00000"
+        "linear-gradient" : [
+          "display-p3:0.34590,0.58054,0.91308,1.00000",
+          "display-p3:0.24271,0.45342,0.92216,1.00000"
+        ]
       }
     },
     {
       "appearance" : "dark",
       "value" : {
         "linear-gradient" : [
-          "display-p3:0.03398,0.07803,0.15198,1.00000",
-          "display-p3:0.08346,0.08988,0.09634,1.00000"
+          "display-p3:0.00000,0.07139,0.19471,1.00000",
+          "display-p3:0.05362,0.07491,0.09634,1.00000"
         ],
         "orientation" : {
           "start" : {
@@ -58,6 +64,7 @@
           }
         }
       ],
+      "name" : "Group",
       "opacity-specializations" : [
         {
           "value" : 1
@@ -97,30 +104,14 @@
     {
       "blend-mode-specializations" : [
         {
-          "value" : "soft-light"
+          "value" : "multiply"
         },
         {
           "appearance" : "dark",
-          "value" : "lighten"
-        },
-        {
-          "appearance" : "tinted",
           "value" : "screen"
         }
       ],
-      "blur-material-specializations" : [
-        {
-          "value" : null
-        },
-        {
-          "appearance" : "dark",
-          "value" : 0.58
-        },
-        {
-          "appearance" : "tinted",
-          "value" : null
-        }
-      ],
+      "blur-material" : 0.94,
       "hidden" : false,
       "layers" : [
         {
@@ -136,13 +127,29 @@
           "fill-specializations" : [
             {
               "value" : {
-                "solid" : "display-p3:0.00000,0.00000,0.00000,1.00000"
+                "linear-gradient" : [
+                  "display-p3:0.55007,0.71947,0.87853,1.00000",
+                  "display-p3:0.00000,0.74585,0.85917,1.00000"
+                ],
+                "orientation" : {
+                  "start" : {
+                    "x" : 0.5,
+                    "y" : 0.03707558179517149
+                  },
+                  "stop" : {
+                    "x" : 0.5,
+                    "y" : 0.9490489916582826
+                  }
+                }
               }
             },
             {
               "appearance" : "dark",
               "value" : {
-                "solid" : "display-p3:0.00080,0.60685,0.96738,1.00000"
+                "linear-gradient" : [
+                  "display-p3:0.12402,0.58798,0.94186,1.00000",
+                  "display-p3:0.00000,0.48120,0.84824,1.00000"
+                ]
               }
             },
             {
@@ -157,6 +164,9 @@
           "name" : "Untitled design (4)",
           "opacity-specializations" : [
             {
+              "value" : 1
+            },
+            {
               "appearance" : "dark",
               "value" : 1
             }
@@ -170,6 +180,7 @@
           }
         }
       ],
+      "name" : "Group",
       "opacity-specializations" : [
         {
           "value" : 1
@@ -177,6 +188,10 @@
         {
           "appearance" : "dark",
           "value" : 1
+        },
+        {
+          "appearance" : "tinted",
+          "value" : 0.69
         }
       ],
       "position" : {
@@ -186,47 +201,46 @@
           0
         ]
       },
-      "shadow-specializations" : [
+      "refractivity-specializations" : [
         {
           "value" : {
-            "kind" : "layer-color",
-            "opacity" : 0.07
+            "depth" : 0,
+            "enabled" : false,
+            "strength" : 0.5
           }
         },
         {
           "appearance" : "dark",
           "value" : {
-            "kind" : "layer-color",
-            "opacity" : 0.24
-          }
-        },
-        {
-          "appearance" : "tinted",
-          "value" : {
-            "kind" : "neutral",
-            "opacity" : 1
+            "depth" : 0,
+            "enabled" : true,
+            "strength" : 0.258359375
           }
         }
       ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 2
+      },
       "translucency-specializations" : [
         {
           "value" : {
             "enabled" : true,
-            "value" : 0.5
+            "value" : 0
           }
         },
         {
           "appearance" : "dark",
           "value" : {
             "enabled" : true,
-            "value" : 0.62
+            "value" : 0
           }
         },
         {
           "appearance" : "tinted",
           "value" : {
             "enabled" : true,
-            "value" : 0.74
+            "value" : 0.68
           }
         }
       ]

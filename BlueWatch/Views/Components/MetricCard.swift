@@ -7,7 +7,12 @@
 
 import SwiftData
 import SwiftUI
-
+struct MetricCardConfig {
+    let dataType: DataType
+    let color: Color
+    let thumbTitle: String
+    let expandedTitle: String
+}
 struct MetricCard: View {
     @Environment(\.isPreview) var isPreview
     let dataType: DataType
