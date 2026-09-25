@@ -314,7 +314,7 @@ struct WatchScreen: View {
 
                         .padding(.leading, 10)
                     if #available(iOS 27.0, *) {
-                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 150, maximum: 200))], spacing: 10) {
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 150, maximum: 200))], spacing: 14) {
                             
                                 ForEach(visibleMetricItems) { str in
                                     let cfg = Self.metricConfigs[str.value]!
@@ -323,6 +323,10 @@ struct WatchScreen: View {
                                         color: cfg.color,
                                         thumbTitle: cfg.thumbTitle,
                                         expandedTitle: cfg.expandedTitle
+                                    )
+                                    .contentShape(
+                                        .dragPreview,
+                                        RoundedRectangle(cornerRadius: 24, style: .continuous)
                                     )
                                 }
                                 .reorderable()
@@ -340,7 +344,7 @@ struct WatchScreen: View {
                            columns: [
                                GridItem(.adaptive(minimum: 150, maximum: 200))
                            ],
-                           spacing: 10
+                           spacing: 14
                        ) {
                            if Settings.shared.showHrThumb {
                                MetricCard(
