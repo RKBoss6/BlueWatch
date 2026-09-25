@@ -12,6 +12,7 @@ import StoreKit
 struct ExpandedMetricView: View {
     let title: String
     let dataType: DataType
+    @ObservedObject var settings = Settings.shared
     @Environment(\.requestReview) var requestReview
     let color:Color
     @Query private var filteredPoints: [DataPoint]
@@ -62,19 +63,32 @@ struct ExpandedMetricView: View {
         VStack{
             
             Spacer()
-            LineChartView(
-                data: chartData,
-                color: color,
-                isTimewise: true,
-                unitSuffix: Utils.unitSuffix(dataType: dataType),
-                interactive: true,
-                xDomain: dayRange,
-                height:500,
-                showPoints:true
-            )
+            DataChart(dataType:dataType,color: color,isThumbnail: false, showAverage:settings.showGraphAverages,date:selectedDay)
+//            LineChartView(
+//                data: chartData,
+//                color: color,
+//                isTimewise: true,
+//                unitSuffix: Utils.unitSuffix(dataType: dataType),
+//                interactive: true,
+//                xDomain: dayRange,
+//                height:500,
+//                showPoints:true,
+//                showAverage:true
+//            )
             
             Divider()
-            Spacer()
+            HStack{
+                Spacer()
+                Text("Show average")
+                Spacer()
+                Spacer()
+                Toggle("",isOn: $settings.showGraphAverages).labelsHidden()
+                Spacer()
+
+            }
+            .padding()
+            Divider()
+                .padding(.bottom)
             HStack{
                 Spacer()
                 Button(action: {
@@ -109,7 +123,9 @@ struct ExpandedMetricView: View {
             .disabled(calendar.isDate(Date.now, inSameDayAs: selectedDay))
             .tint(color)
             .opacity(0.8)
-            Spacer()
+            
+            .padding()
+            
             
         }.appBackground()
             .navigationTitle(title)

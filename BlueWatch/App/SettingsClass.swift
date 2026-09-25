@@ -134,6 +134,7 @@ public class Settings: ObservableObject {
             )
         }
     }
+    
     private var showActiveCalThumbKey: String = "showActiveCalThumb"
     @Published public var showActiveCalThumb: Bool {
         didSet {
@@ -144,6 +145,15 @@ public class Settings: ObservableObject {
     @Published public var showStepsThumb: Bool {
         didSet {
             LocalStorage.set(showStepsThumb, forKey: showStepsThumbKey)
+        }
+    }
+    private var showGraphAveragesKey: String = "showGraphAverages"
+    @Published public var showGraphAverages: Bool {
+        didSet {
+            LocalStorage.set(
+                showGraphAverages,
+                forKey: showGraphAveragesKey
+            )
         }
     }
 
@@ -168,6 +178,8 @@ public class Settings: ObservableObject {
             showHrThumbKey: true,
             showBatteryThumbKey: true,
             pullToRefreshWebViewKey: true,
+            showGraphAveragesKey: true,
+
 
         ])
         // load
@@ -204,6 +216,9 @@ public class Settings: ObservableObject {
             LocalStorage.getBool(forKey: showRestingCalThumbKey) ?? true
         pullToRefreshWebView =
             LocalStorage.getBool(forKey: pullToRefreshWebViewKey) ?? true
+        showGraphAverages =
+            LocalStorage.getBool(forKey: showGraphAveragesKey) ?? true
+
 
     }
 }
