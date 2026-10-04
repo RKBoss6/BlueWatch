@@ -1033,12 +1033,11 @@ final class BLEManager: NSObject, ObservableObject {
          */
         DispatchQueue.main.async {
 
-            Task {
-
-                await LocationManager.shared.sendLocation()
-
-                await WeatherManager.shared.updateWeatherAndSend()
+            DataSendManager.sendCurrentLocation()
+            if(Settings.shared.updateTimeOnConnect){
+                DataSendManager.sendCurrentTime()
             }
+            DataSendManager.sendCurrentLocation()
         }
     }
 

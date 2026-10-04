@@ -66,7 +66,7 @@ class HealthManager {
                 alwaysSave: true
             )
             if Settings.shared.sendToHealthKit == true {
-                syncSteps(watchTotal: stepsTotal)
+                syncSteps(watchTotal: stepsTotal,time:time)
             }
         }
 
@@ -79,7 +79,7 @@ class HealthManager {
                 alwaysSave: true
             )
             if Settings.shared.sendToHealthKit == true {
-                syncActiveCalories(watchTotal: activeCals)
+                syncActiveCalories(watchTotal: activeCals,time:time)
             }
         }
 
@@ -92,13 +92,13 @@ class HealthManager {
                 alwaysSave: true
             )
             if Settings.shared.sendToHealthKit == true {
-                syncRestingCalories(watchTotal: bmrCalories)
+                syncRestingCalories(watchTotal: bmrCalories,time:time)
             }
         }
 
     }
 
-    private func syncSteps(watchTotal: Double) {
+    private func syncSteps(watchTotal: Double, time:Date) {
         let type = HKQuantityType.quantityType(forIdentifier: .stepCount)!
 
         let defaults = UserDefaults.standard
@@ -155,7 +155,7 @@ class HealthManager {
         }
     }
 
-    private func syncActiveCalories(watchTotal: Double) {
+    private func syncActiveCalories(watchTotal: Double, time:Date) {
         let type = HKQuantityType.quantityType(
             forIdentifier: .activeEnergyBurned
         )!
@@ -214,7 +214,7 @@ class HealthManager {
         }
     }
 
-    private func syncRestingCalories(watchTotal: Double) {
+    private func syncRestingCalories(watchTotal: Double, time:Date) {
         let type = HKQuantityType.quantityType(
             forIdentifier: .basalEnergyBurned
         )!

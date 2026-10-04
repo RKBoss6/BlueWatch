@@ -61,7 +61,7 @@ struct ExpandedMetricView: View {
     
     var body: some View {
         VStack{
-            
+            Spacer()
             Spacer()
             DataChart(dataType:dataType,color: color,isThumbnail: false, showAverage:settings.showGraphAverages,date:selectedDay)
 //            LineChartView(
@@ -76,19 +76,7 @@ struct ExpandedMetricView: View {
 //                showAverage:true
 //            )
             
-            Divider()
-            HStack{
-                Spacer()
-                Text("Show average")
-                Spacer()
-                Spacer()
-                Toggle("",isOn: $settings.showGraphAverages).labelsHidden()
-                Spacer()
 
-            }
-            .padding()
-            Divider()
-                .padding(.bottom)
             HStack{
                 Spacer()
                 Button(action: {
@@ -125,8 +113,7 @@ struct ExpandedMetricView: View {
             .opacity(0.8)
             
             .padding()
-            
-            
+            Spacer()
         }.appBackground()
             .navigationTitle(title)
             .onAppear {

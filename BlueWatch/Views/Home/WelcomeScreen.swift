@@ -56,22 +56,14 @@ struct WelcomeScreen: View {
                 Spacer()
 
                 NavigationLink(
-                    destination: SetupView(
-                        type: .notifications,
-                        icon: "bell.fill",
-                        titleText: "Notifications",
-                        body1Text:
-                            "BlueWatch uses notifications to alert you during the find phone alarm when the setting is active.",
-                        body2Text:
-                            "You can always change this later in System Settings"
-                    )
+                    destination: WelcomeRequirementsView()
                 ) {
                     Text("Get Started")
                         .frame(maxWidth: .infinity, maxHeight: 30)
 
                 }
 
-                .buttonStyle(.borderedProminent)
+                .liquidGlassButton()
 
                 .padding()
 
@@ -110,8 +102,59 @@ struct ChooseDeviceScreen: View {
 
     }
 }
+struct WelcomeRequirementsView: View {
+    var body: some View {
+        VStack{
+            Text("Required")
+                .font(.title)
+                .bold()
+                .padding(.bottom,40)
+                
+            Image(systemName: "macbook.and.applewatch")
+                .font(.system(size: 120))
+                .fontWeight(.light)
+                .padding(.vertical,30)
+            Text("In order for BlueWatch to communicate with your watch, the 'BlueWatch' app must be installed on your Bangle.js via the App Loader.")
+                .padding(.bottom)
+                .padding(.top,40)
+                .padding(.horizontal)
+                .fixedSize(horizontal: false, vertical: true)
 
-#Preview {
-    WelcomeScreen()
-        .environmentObject(BLEManager.shared)
+
+            Text("The iOS integration app must also be installed in order for you to see iPhone notifications on your watch.")
+                .padding(.horizontal,20)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer()
+         
+
+            NavigationLink(
+                destination: SetupView(
+                    type: .notifications,
+                    icon: "bell.and.waves.left.and.right",
+                    titleText: "Notifications",
+                    body1Text:
+                        "BlueWatch uses notifications to alert you during the find phone alarm when the setting is active.",
+                    body2Text:
+                        "You can always change this later in System Settings"
+                )
+            ) {
+                Text("It's installed, continue")
+                    .frame(maxWidth: .infinity, maxHeight: 30)
+
+            }
+
+            .liquidGlassButton()
+
+            .padding()
+        }
+        .appBackground()
+    }
 }
+#Preview {
+    NavigationStack{
+        WelcomeScreen()
+            .environmentObject(BLEManager.shared)
+    }
+}
+

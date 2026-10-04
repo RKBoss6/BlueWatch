@@ -195,114 +195,82 @@ struct WatchScreen: View {
 
                     .padding(.top, -10)
                     Divider()
-                    ZStack {
-                        ScrollView(.horizontal) {
-                            HStack {
-
-                                Button {
-                                    if findingWatch {
-                                        bleManager.send("Stop Find Watch")
-                                        findingWatch = false
-                                    } else {
-                                        bleManager.send("Find Watch")
-                                        findingWatch = true
-                                    }
-
-                                } label: {
-                                    HStack {
-                                        Image(systemName: "ipod.and.applewatch")
-                                        Text(
-                                            findingWatch
-                                                ? "Stop Finding" : "Find Watch"
-                                        )
-
-                                    }
-                                    .frame(maxWidth: .infinity)
-                                    .padding(10)
-
-                                }
-                                .disabled(!isPreview && !bleManager.isConnected)
-
-                                .buttonStyle(.borderedProminent)
-                                .tint(findingWatch ? .orange : .accent)
-                                .padding(.leading)
-
-                                Button {
-                                    Task {
-                                        await LocationManager.shared
-                                            .sendLocation()
-                                    }
-                                } label: {
-                                    HStack {
-                                        Image(systemName: "location.fill")
-                                        Text("Push Location")
-                                    }
-                                    .frame(maxWidth: .infinity)
-                                    .padding(10)
-
-                                }
-                                .disabled(!isPreview && !bleManager.isConnected)
-                                .buttonStyle(.borderedProminent)
-
-                                Button {
-                                    Task {
-                                        await WeatherManager.shared
-                                            .updateWeatherAndSend()
-                                    }
-                                } label: {
-                                    HStack {
-                                        Image(systemName: "cloud.sun.fill")
-                                        Text("Push Weather")
-                                    }
-                                    .frame(maxWidth: .infinity)
-                                    .padding(10)
-
-                                }
-                                .disabled(!isPreview && !bleManager.isConnected)
-                                .buttonStyle(.borderedProminent)
-                                .padding(.trailing)
-                            }
-                        }
-
+                    ScrollView(.horizontal) {
                         HStack {
-                            Rectangle()
-                                .fill(.ultraThickMaterial)
-                                .frame(width: 20)
-                                .overlay(
-                                    .white.opacity(
-                                        colorScheme == .dark ? 0.15 : 0
+                            Button {
+                                if findingWatch {
+                                    bleManager.send("Stop Find Watch")
+                                    findingWatch = false
+                                } else {
+                                    bleManager.send("Find Watch")
+                                    findingWatch = true
+                                }
+
+                            } label: {
+                                HStack {
+                                    Image(systemName: "ipod.and.applewatch")
+                                    Text(
+                                        findingWatch
+                                            ? "Stop Finding" : "Find Watch"
                                     )
-                                )
-                                .mask(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            .black, .clear,
-                                        ]),
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
-                            Spacer()
-                            Rectangle()
-                                .fill(.ultraThickMaterial)
-                                .frame(width: 20)
-                                .overlay(
-                                    .white.opacity(
-                                        colorScheme == .dark ? 0.15 : 0
-                                    )
-                                )
-                                .mask(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            .black, .clear,
-                                        ]),
-                                        startPoint: .trailing,
-                                        endPoint: .leading
-                                    )
-                                )
+
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(10)
+
+                            }
+                            .disabled(!isPreview && !bleManager.isConnected)
+
+                            .buttonStyle(.borderedProminent)
+                            .tint(findingWatch ? .orange : .accent)
+                            .padding(.leading)
+
+                            Button {
+                                Task {
+                                    await LocationManager.shared
+                                        .sendLocation()
+                                }
+                            } label: {
+                                HStack {
+                                    Image(systemName: "location.fill")
+                                    Text("Push Location")
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(10)
+
+                            }
+                            .disabled(!isPreview && !bleManager.isConnected)
+                            .buttonStyle(.borderedProminent)
+
+                            Button {
+                                Task {
+                                    await WeatherManager.shared
+                                        .updateWeatherAndSend()
+                                }
+                            } label: {
+                                HStack {
+                                    Image(systemName: "cloud.sun.fill")
+                                    Text("Push Weather")
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(10)
+
+                            }
+                            .disabled(!isPreview && !bleManager.isConnected)
+                            .buttonStyle(.borderedProminent)
+                            .padding(.trailing)
                         }
-                        .ignoresSafeArea(edges: .all)
                     }
+                    .scrollIndicators(.hidden)
+                    .mask(
+                        HStack(spacing: 0) {
+                            LinearGradient(colors: [.clear, .black], startPoint: .leading, endPoint: .trailing)
+                                .frame(width: 20)
+                            Rectangle().fill(.black)
+                            LinearGradient(colors: [.black, .clear], startPoint: .leading, endPoint: .trailing)
+                                .frame(width: 20)
+                        }
+                    )
                     .ignoresSafeArea(edges: .leading)
                     Divider()
 
@@ -328,6 +296,7 @@ struct WatchScreen: View {
                                         .dragPreview,
                                         RoundedRectangle(cornerRadius: 24, style: .continuous)
                                     )
+                                    .shadow(color:.black.opacity(0.1),radius: 10)
                                 }
                                 .reorderable()
                             

@@ -27,12 +27,12 @@ struct ThumbSettingsScreen: View {
              .liquidGlass(cornerRadius: 24)
              .frame(width:.infinity,height: .infinity)
              .ignoresSafeArea(.all)
-             .listRowInsets(EdgeInsets())
+             .listRowInsets(EdgeInsets(top: 0, leading: 1, bottom: 0, trailing: 1))
              }
              .listRowBackground(Color.clear)
              */
 
-            Section {
+            Section ("Visibility"){
                 VStack(spacing: 16) {
                     Toggle(isOn: $settings.showHrThumb) {
                         Text("Show Heart Rate Metric")
@@ -67,12 +67,23 @@ struct ThumbSettingsScreen: View {
                     .tint(.accentColor)
 
                 }
-                .padding()
-                .liquidGlass(cornerRadius: 24)
-                .ignoresSafeArea(.all)
-                .listRowInsets(EdgeInsets())
+                .liquidGlassFormItem()
+                
             }
             .listRowBackground(Color.clear)
+
+            Section ("Graphs"){
+                VStack(spacing: 16) {
+                    Toggle(isOn: $settings.showGraphAverages) {
+                        Text("Show Averages")
+
+                    }
+                    .tint(.accentColor)
+                }
+                .liquidGlassFormItem()
+            }
+            .listRowBackground(Color.clear)
+
         }
         .scrollContentBackground(.hidden)
         .navigationTitle("Settings")
@@ -102,7 +113,7 @@ struct WatchSettingsScreen: View {
                     .liquidGlass(cornerRadius: 24)
                     .frame(width:.infinity,height: .infinity)
                     .ignoresSafeArea(.all)
-                    .listRowInsets(EdgeInsets())
+                    .listRowInsets(EdgeInsets(top: 0, leading: 1, bottom: 0, trailing: 1))
                 }
                  .listRowBackground(Color.clear)
                  */
@@ -119,24 +130,18 @@ struct WatchSettingsScreen: View {
                             .textInputAutocapitalization(.never)
                         }
                     }
-                    .padding()
-                    .liquidGlass(cornerRadius: 24)
-                    .ignoresSafeArea(.all)
-                    .listRowInsets(EdgeInsets())
+                    .liquidGlassFormItem()
                 }
                 .listRowBackground(Color.clear)
                 Section {
                     VStack(spacing: 16) {
 
                         NavigationLink(destination: ThumbSettingsScreen()) {
-                            Text("Show & Hide Metrics")
+                            Text("Metrics")
                         }
 
                     }
-                    .padding()
-                    .liquidGlass(cornerRadius: 24)
-                    .ignoresSafeArea(.all)
-                    .listRowInsets(EdgeInsets())
+                    .liquidGlassFormItem()
 
                 } header: {
                     Text("UI")
@@ -153,13 +158,10 @@ struct WatchSettingsScreen: View {
                         .tint(.accentColor)
 
                     }
-                    .padding()
-                    .liquidGlass(cornerRadius: 24)
-                    .ignoresSafeArea(.all)
-                    .listRowInsets(EdgeInsets())
+                    .liquidGlassFormItem()
 
                 } header: {
-                    Text("Bluetooth")
+                    Text("Connection")
                 } footer: {
                     Text(
                         "Lowers chunk size from 40 to 15 bytes for more reliable Bluetooth transmissions. Highly recommended."
@@ -176,13 +178,10 @@ struct WatchSettingsScreen: View {
                         .tint(.accentColor)
 
                     }
-                    .padding()
-                    .liquidGlass(cornerRadius: 24)
-                    .ignoresSafeArea(.all)
-                    .listRowInsets(EdgeInsets())
+                    .liquidGlassFormItem()
                 } footer: {
                     Text(
-                        "Shows a confirmation notification when the find phone alarm is triggered"
+                        "Shows a security notification when the find phone alarm is triggered"
                     )
                 }
                 .listRowBackground(Color.clear)
@@ -195,7 +194,12 @@ struct WatchSettingsScreen: View {
 
                         }
                         .tint(.accentColor)
+                        Divider()
+                        Toggle(isOn: $settings.updateTimeOnConnect) {
+                            Text("Update Time on Connect")
 
+                        }
+                        .tint(.accentColor)
                         Divider()
 
                         Toggle(isOn: $settings.pushWeather) {
@@ -228,10 +232,7 @@ struct WatchSettingsScreen: View {
                         }
 
                     }
-                    .padding()
-                    .liquidGlass(cornerRadius: 24)
-                    .ignoresSafeArea(.all)
-                    .listRowInsets(EdgeInsets())
+                    .liquidGlassFormItem()
 
                 } header: {
                     Text("Data")
@@ -266,9 +267,7 @@ struct WatchSettingsScreen: View {
                         .tint(.primary)
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical)
-                    .listRowInsets(EdgeInsets())
-                    .liquidGlass()
+                    .liquidGlassFormItem()
                 }
                 .listRowBackground(Color.clear)
                 Section(header: Text("Web View")) {
@@ -311,11 +310,7 @@ struct WatchSettingsScreen: View {
                         .tint(.red)
                          */
                     }
-                    .padding()
-                    .liquidGlass(cornerRadius: 24)
-                    .frame(width: .infinity, height: .infinity)
-                    .ignoresSafeArea(.all)
-                    .listRowInsets(EdgeInsets())
+                    .liquidGlassFormItem()
 
                 }
                 .listRowBackground(
@@ -338,7 +333,7 @@ struct WatchSettingsScreen: View {
                 //                    .padding()
                 //                    .liquidGlass(cornerRadius: 24)
                 //                    .frame(width:.infinity,height: .infinity)
-                //                    .listRowInsets(EdgeInsets())
+                //                    .listRowInsets(EdgeInsets(top: 0, leading: 1, bottom: 0, trailing: 1))
                 //
                 //                }
                 //                .listRowBackground(Color.clear)
