@@ -103,13 +103,13 @@ struct ChooseDeviceScreen: View {
     }
 }
 struct WelcomeRequirementsView: View {
+    @Environment(\.colorScheme) var colorScheme
     var body: some View {
         VStack{
             Text("Required")
                 .font(.title)
                 .bold()
                 .padding(.bottom,40)
-                
             Image(systemName: "macbook.and.applewatch")
                 .font(.system(size: 120))
                 .fontWeight(.light)

@@ -18,7 +18,7 @@ enum SetupScreenType {
 struct SetupView: View {
     let type: SetupScreenType
     @State private var navigateToNextScreen = false
-
+    @Environment(\.colorScheme) var colorScheme
     func getNextScreen() -> some View {
         // screen order is Notifications, Health, Location
         Group {
@@ -80,11 +80,20 @@ struct SetupView: View {
             Spacer()
 
             if(type == .health){
-                Image(icon)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 180, height: 180)
-                    .padding(.vertical,60)
+                if(colorScheme == .dark){
+                    Image(icon)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 180, height: 180)
+                        .padding(.vertical,60)
+                        .colorInvert()
+                }else{
+                    Image(icon)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 180, height: 180)
+                        .padding(.vertical,60)
+                }
 
             }else{
                 Image(systemName: icon)
