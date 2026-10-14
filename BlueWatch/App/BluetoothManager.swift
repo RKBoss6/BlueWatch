@@ -1154,10 +1154,10 @@ final class BLEManager: NSObject, ObservableObject {
             return
         }
 
+        
         logger.log(
-            "[BLE] sendJSON() encoded \(jsonString.count) characters"
+            "[BLE] sendJSON() encoded: \(jsonString)"
         )
-
         send(jsonString)
 
         logger.log("[BLE] sendJSON() → send() returned")

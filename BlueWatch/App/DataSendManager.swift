@@ -11,13 +11,16 @@ import Foundation
 class DataSendManager{
     
     static func sendCurrentTime(){
-        let watchTimePacket:WatchTimePacket = WatchTimePacket(
-            id: "Time",
-            tz: Double(TimeZone.current.secondsFromGMT()) / 3600.0,
-            time:Date().timeIntervalSince1970
-        )
-        let ble = BLEManager.shared
-        ble.sendJSON(data: watchTimePacket)
+        DispatchQueue.main.async{
+            logger.log("Sending Time")
+            let watchTimePacket:WatchTimePacket = WatchTimePacket(
+                id: "Time",
+                tz: Double(TimeZone.current.secondsFromGMT()) / 3600.0,
+                time:Date().timeIntervalSince1970
+            )
+            let ble = BLEManager.shared
+            ble.sendJSON(data: watchTimePacket)
+        }
     }
     
     static func sendCurrentWeather(){

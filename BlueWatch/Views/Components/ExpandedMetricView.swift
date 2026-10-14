@@ -107,13 +107,16 @@ struct ExpandedMetricView: View {
                 Text("Today")
             }
             .buttonStyle(.borderedProminent)
-            .padding(10)
             .disabled(calendar.isDate(Date.now, inSameDayAs: selectedDay))
             .tint(color)
             .opacity(0.8)
             
             .padding()
-            Spacer()
+            Text("Do not rely on this data for any medical purposes or diagnoses. Data is not validated and may not be accurate.")
+                .padding()
+                .font(.caption)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.secondary)
         }.appBackground()
             .navigationTitle(title)
             .onAppear {

@@ -140,15 +140,9 @@ struct SetupView: View {
 
             .liquidGlassButton()
 
-            .padding()
+            .padding(.horizontal)
 
-            Button {
-                navigateToNextScreen = true
-            } label: {
-                Text("Skip")
-                    .frame(maxWidth: .infinity, maxHeight: 30)
-
-            }
+           
         }.navigationTitle(String("App Permissions"))
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(isPresented: $navigateToNextScreen) {

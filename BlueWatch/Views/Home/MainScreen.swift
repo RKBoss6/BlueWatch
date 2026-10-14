@@ -133,7 +133,7 @@ struct WatchScreen: View {
                             ? "BangleJS2" : "BangleJS1"
                     )
                     .resizable()
-                    .frame(width: 200, height: 200)
+                    .frame(width: 225, height: 225)
                     .padding(.top, 50)
                     HStack {
                         Text(
