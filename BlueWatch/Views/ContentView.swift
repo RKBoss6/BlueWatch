@@ -70,17 +70,7 @@ struct ContentView: View {
         .sheet(isPresented: $showWhatsNewSheet) {
             LanguageOnboarding()
         }
-        .onAppear {
-            Task { @MainActor in
-                // Give the view half a second to fully settle and render
-                try? await Task.sleep(for: .seconds(1))
-                //requestReview()
-            }
-            /*
-            AppMetricManager.shared.increaseExpandedMetricViewOpens()
-            AppMetricManager.shared.tryTriggerReview(requestReviewAction: requestReview)
-             */
-        }
+       
 
     }
 

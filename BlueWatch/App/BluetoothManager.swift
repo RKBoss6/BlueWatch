@@ -1033,12 +1033,11 @@ final class BLEManager: NSObject, ObservableObject {
          */
         DispatchQueue.main.async {
 
-            Task {
-
-                await LocationManager.shared.sendLocation()
-
-                await WeatherManager.shared.updateWeatherAndSend()
+            DataSendManager.sendCurrentLocation()
+            if(Settings.shared.updateTimeOnConnect){
+                DataSendManager.sendCurrentTime()
             }
+            DataSendManager.sendCurrentLocation()
         }
     }
 
@@ -1155,10 +1154,10 @@ final class BLEManager: NSObject, ObservableObject {
             return
         }
 
+        
         logger.log(
-            "[BLE] sendJSON() encoded \(jsonString.count) characters"
+            "[BLE] sendJSON() encoded: \(jsonString)"
         )
-
         send(jsonString)
 
         logger.log("[BLE] sendJSON() → send() returned")

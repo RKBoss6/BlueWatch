@@ -134,6 +134,7 @@ public class Settings: ObservableObject {
             )
         }
     }
+    
     private var showActiveCalThumbKey: String = "showActiveCalThumb"
     @Published public var showActiveCalThumb: Bool {
         didSet {
@@ -144,6 +145,21 @@ public class Settings: ObservableObject {
     @Published public var showStepsThumb: Bool {
         didSet {
             LocalStorage.set(showStepsThumb, forKey: showStepsThumbKey)
+        }
+    }
+    private var showGraphAveragesKey: String = "showGraphAverages"
+    @Published public var showGraphAverages: Bool {
+        didSet {
+            LocalStorage.set(
+                showGraphAverages,
+                forKey: showGraphAveragesKey
+            )
+        }
+    }
+    private var updateTimeOnConnectKey: String = "updateTimeOnConnect"
+    @Published public var updateTimeOnConnect: Bool {
+        didSet {
+            LocalStorage.set(updateTimeOnConnect, forKey: updateTimeOnConnectKey)
         }
     }
 
@@ -168,11 +184,12 @@ public class Settings: ObservableObject {
             showHrThumbKey: true,
             showBatteryThumbKey: true,
             pullToRefreshWebViewKey: true,
+            showGraphAveragesKey: true,
+            updateTimeOnConnectKey:true
 
         ])
         // load
-        webURL =
-            LocalStorage.getString(forKey: webURLKey) ?? "banglejs.com/apps"
+        webURL = LocalStorage.getString(forKey: webURLKey) ?? ""
         enableHScroll = LocalStorage.getBool(forKey: enableHScrollKey) ?? false
         enableVScroll = LocalStorage.getBool(forKey: enableVScrollKey) ?? true
         autoConnect = LocalStorage.getBool(forKey: autoConnectKey) ?? true
@@ -204,6 +221,10 @@ public class Settings: ObservableObject {
             LocalStorage.getBool(forKey: showRestingCalThumbKey) ?? true
         pullToRefreshWebView =
             LocalStorage.getBool(forKey: pullToRefreshWebViewKey) ?? true
+        showGraphAverages =
+            LocalStorage.getBool(forKey: showGraphAveragesKey) ?? true
+
+        updateTimeOnConnect = LocalStorage.getBool(forKey: updateTimeOnConnectKey) ?? true
 
     }
 }

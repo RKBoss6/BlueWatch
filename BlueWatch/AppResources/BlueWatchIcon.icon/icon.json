@@ -116,7 +116,15 @@
           "value" : "lighten"
         }
       ],
-      "blur-material" : 0.94,
+      "blur-material-specializations" : [
+        {
+          "value" : 0.94
+        },
+        {
+          "appearance" : "tinted",
+          "value" : 0.93
+        }
+      ],
       "hidden" : false,
       "layers" : [
         {
@@ -221,13 +229,40 @@
             "enabled" : true,
             "strength" : 0.258359375
           }
+        },
+        {
+          "appearance" : "tinted",
+          "value" : {
+            "depth" : 0,
+            "enabled" : false,
+            "strength" : 0.8190234375
+          }
         }
       ],
-      "shadow" : {
-        "kind" : "neutral",
-        "opacity" : 0.73
-      },
-      "specular" : "inside",
+      "shadow-specializations" : [
+        {
+          "value" : {
+            "kind" : "neutral",
+            "opacity" : 0.73
+          }
+        },
+        {
+          "appearance" : "tinted",
+          "value" : {
+            "kind" : "neutral",
+            "opacity" : 0.82
+          }
+        }
+      ],
+      "specular-specializations" : [
+        {
+          "value" : "inside"
+        },
+        {
+          "appearance" : "dark",
+          "value" : "inside"
+        }
+      ],
       "translucency-specializations" : [
         {
           "value" : {
@@ -239,14 +274,14 @@
           "appearance" : "dark",
           "value" : {
             "enabled" : true,
-            "value" : 0
+            "value" : 0.39
           }
         },
         {
           "appearance" : "tinted",
           "value" : {
             "enabled" : true,
-            "value" : 0.68
+            "value" : 0.36
           }
         }
       ]

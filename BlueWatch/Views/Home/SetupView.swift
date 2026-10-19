@@ -18,7 +18,7 @@ enum SetupScreenType {
 struct SetupView: View {
     let type: SetupScreenType
     @State private var navigateToNextScreen = false
-
+    @Environment(\.colorScheme) var colorScheme
     func getNextScreen() -> some View {
         // screen order is Notifications, Health, Location
         Group {
@@ -40,7 +40,7 @@ struct SetupView: View {
                 return AnyView(
                     SetupView(
                         type: .health,
-                        icon: "heart.fill",
+                        icon: "AppleHealthIcon",
                         titleText: "Health",
                         body1Text:
                             "BlueWatch can sync health data with Apple Health for a more comprehensive overview of your metrics.",
@@ -53,7 +53,7 @@ struct SetupView: View {
                 return AnyView(
                     SetupView(
                         type: .location,
-                        icon: "location.fill",
+                        icon: "location",
                         titleText: "Location",
                         body1Text:
                             "BlueWatch uses location to send periodic location updates to your watch, act as a watch GPS, and update weather on your watch.",
@@ -73,27 +73,42 @@ struct SetupView: View {
     let body2Text: LocalizedStringKey
     var body: some View {
         VStack {
+            Text(titleText)
+                .font(.title)
+                .fontWeight(.bold)
+                .padding(.top)
+            Spacer()
 
-            HStack {
+            if(type == .health){
+                if(colorScheme == .dark){
+                    Image(icon)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 180, height: 180)
+                        .padding(.vertical,60)
+                        .colorInvert()
+                }else{
+                    Image(icon)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 180, height: 180)
+                        .padding(.vertical,60)
+                }
+
+            }else{
                 Image(systemName: icon)
-                    .font(.title)
-
-                Text(titleText)
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                /*
-                Image(systemName:icon)
-                        .font(.title)
-                        .opacity(0)
-                 */
+                    .font(.system(size: 100))
+                    .padding(.vertical,60)
             }
             Text(body1Text)
                 .padding()
-                .font(.title3)
                 .fontWeight(.medium)
+                .multilineTextAlignment(.center)
             Text(body2Text)
                 .padding()
                 .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+
 
             Spacer()
 
@@ -123,19 +138,12 @@ struct SetupView: View {
 
             }
 
-            .buttonStyle(.borderedProminent)
-            .shadow(color: Color.black.opacity(0.1), radius: 16, x: 0, y: 5)
+            .liquidGlassButton()
 
-            .padding()
+            .padding(.horizontal)
 
-            Button {
-                navigateToNextScreen = true
-            } label: {
-                Text("Skip")
-                    .frame(maxWidth: .infinity, maxHeight: 30)
-
-            }
-        }.navigationTitle(String(""))
+           
+        }.navigationTitle(String("App Permissions"))
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(isPresented: $navigateToNextScreen) {
                 getNextScreen()
@@ -149,7 +157,7 @@ struct SetupView: View {
     NavigationStack {
         SetupView(
             type: .health,
-            icon: "heart.fill",
+            icon: "AppleHealthIcon",
             titleText: "Health",
             body1Text:
                 "BlueWatch can sync health data with Apple Health for a more comprehensive overview of your metrics.",

@@ -13,16 +13,26 @@ struct LiquidGlassModifier: ViewModifier {
     var backgroundColor: Color
     func body(content: Content) -> some View {
         if #available(iOS 26.0, *) {
-            content
-                .glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
-                .overlay(
-                    backgroundColor.opacity(colorScheme == .dark ? 0.2 : 0.3),
-                    in: .rect(cornerRadius: cornerRadius)
-                )
+            let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
 
+            return AnyView(
+                content
+                    .glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
+                    .background(
+                        backgroundColor.opacity(colorScheme == .dark ? 0.2 : 0.3),
+                        in: shape
+                    )
+                    .clipShape(shape)
+                    .overlay(
+                        shape
+                            .strokeBorder(.secondary.opacity(colorScheme == .dark ? 0.1:0.2), lineWidth: 1)
+                    )
+            )
         } else {
-            content
-                .background(in: .rect(cornerRadius: cornerRadius))
+            return AnyView(
+                content
+                    .background(in: .rect(cornerRadius: cornerRadius))
+            )
         }
     }
 }
@@ -40,7 +50,48 @@ extension View {
         )
     }
 }
+struct LiquidGlassFormModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        return AnyView(
+            content
+                .padding()
+                .liquidGlass(cornerRadius: 24)
+                .ignoresSafeArea(.all)
+                .listRowInsets(EdgeInsets(top: 0, leading: 1, bottom: 0, trailing: 1))
+        )
+    }
+}
 
+extension View {
+    func liquidGlassButton() -> some View {
+        self.modifier(
+            LiquidGlassButtonModifier()
+        )
+    }
+}
+struct LiquidGlassButtonModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            return AnyView(
+                content
+                    .buttonStyle(.glassProminent)
+            )
+        } else {
+            return AnyView(
+                content
+                    .buttonStyle(.borderedProminent)
+            )
+        }
+    }
+}
+
+extension View {
+    func liquidGlassFormItem() -> some View{
+        self.modifier(
+            LiquidGlassFormModifier()
+        )
+    }
+}
 extension Array: @retroactive RawRepresentable where Element: Codable {
     public init?(rawValue: String) {
         guard let data = rawValue.data(using: .utf8),

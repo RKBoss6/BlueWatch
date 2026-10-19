@@ -27,40 +27,31 @@ class CommandInterpreter {
 
         case "StopFindPhone":
             findPhoneAlarm.stop()
+        case "Request Time":
+            DataSendManager.sendCurrentTime()
 
         case "Pinging Connection...":
             logger.log("[CommandInterpreter] Responding to connection ping")
             ble?.send("iPhone Connected")
 
         case "Request Weather":
-            logger.log("[WEATHER] Request Weather received")
-
             if Settings.shared.pushWeather {
-                logger.log(
-                    "[WEATHER] pushWeather enabled — starting weather task"
-                )
+                DataSendManager.sendCurrentWeather()
 
-                Task {
-                    logger.log("[WEATHER] Starting updateWeatherAndSend()")
-                    await WeatherManager.shared.updateWeatherAndSend()
-                    logger.log("[WEATHER] updateWeatherAndSend() returned")
-                }
             } else {
                 logger.log("[WEATHER] pushWeather DISABLED — ignoring request")
             }
 
         case "Request Location":
             if Settings.shared.pushLocation {
-                Task {
-                    await LocationManager.shared.sendLocation()
-                }
+                DataSendManager.sendCurrentLocation()
             }
 
         default:
             break
         }
     }
-
+    
     func handleJSON(_ j: [String: Any]) {
         logger.log("Got json")
 
@@ -102,4 +93,27 @@ class CommandInterpreter {
             }
         }
     }
+}
+
+/*
+ Taken from espruinoAppLoaderCore
+ setTime : () => {
+     /* connect FIRST, then work out the time - otherwise
+     we end up with a delay dependent on how long it took
+     to open the device chooser. */
+     return Comms.write(" \x08").then(() => { // send space+backspace (eg no-op)
+       let d = new Date();
+       let tz = d.getTimezoneOffset()/-60
+       let cmd = '\x10setTime('+(d.getTime()/1000)+');';
+       // in 1v93 we have timezones too
+       cmd += 'E.setTimeZone('+tz+');';
+       cmd += "(s=>s&&(s.timezone="+tz+",require('Storage').write('setting.json',s)))(require('Storage').readJSON('setting.json',1))\n";
+       return Comms.write(cmd);
+     });
+   },
+ */
+struct WatchTimePacket: Codable {
+    let id: String
+    let tz:Double
+    let time:Double
 }

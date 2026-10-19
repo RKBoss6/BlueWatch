@@ -237,33 +237,12 @@ struct LockedWebView: UIViewRepresentable {
             )
         )
 
-        let performanceCSS = """
-            html, body {
-                overflow-x: hidden !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                -webkit-overflow-scrolling: touch !important;
-            }
-            body {
-                /* Adds extra empty space at the absolute bottom when fully scrolled */
-                padding-bottom: 1000px !important; 
-                box-sizing: border-box !important;
-            }
-            * {
-                -webkit-backface-visibility: hidden;
-                backface-visibility: hidden;
-            }
-            """
-        let jsSource =
-            "var s=document.createElement('style');s.innerHTML='\(performanceCSS)';document.documentElement.appendChild(s);"
-        ucc.addUserScript(
-            WKUserScript(
-                source: jsSource,
-                injectionTime: .atDocumentStart,
-                forMainFrameOnly: false
-            )
-        )
-
+        
+        ucc.addUserScript(WKUserScript(source: """
+        var s = document.createElement('style');
+        s.textContent = '.tile .tile-content br{line-height:normal !important;padding:0 !important}';
+        document.documentElement.appendChild(s);
+        """, injectionTime: .atDocumentStart, forMainFrameOnly: true))
         // 4. Register message handlers
         ucc.add(context.coordinator, name: "bluetooth")
         ucc.add(context.coordinator, name: "consoleLog")
@@ -291,12 +270,6 @@ struct LockedWebView: UIViewRepresentable {
             webView.scrollView.refreshControl = refreshControl
         }
         webView.scrollView.delegate = context.coordinator
-        webView.scrollView.contentInset = UIEdgeInsets(
-            top: 0,
-            left: 0,
-            bottom: 80,
-            right: 0
-        )
         BLEManager.shared.webView = webView
         webView.load(URLRequest(url: url))
         webView.isOpaque = false

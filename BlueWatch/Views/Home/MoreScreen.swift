@@ -112,7 +112,7 @@ struct MoreScreen: View {
                     HStack {
                         Text("Needs Bangle.js BlueWatch version:")
                         Spacer()
-                        Text("v0.04")
+                        Text("v0.05")
                             .bold()
                     }
 

@@ -12,6 +12,7 @@ import StoreKit
 struct ExpandedMetricView: View {
     let title: String
     let dataType: DataType
+    @ObservedObject var settings = Settings.shared
     @Environment(\.requestReview) var requestReview
     let color:Color
     @Query private var filteredPoints: [DataPoint]
@@ -60,21 +61,22 @@ struct ExpandedMetricView: View {
     
     var body: some View {
         VStack{
-            
             Spacer()
-            LineChartView(
-                data: chartData,
-                color: color,
-                isTimewise: true,
-                unitSuffix: Utils.unitSuffix(dataType: dataType),
-                interactive: true,
-                xDomain: dayRange,
-                height:500,
-                showPoints:true
-            )
-            
-            Divider()
             Spacer()
+            DataChart(dataType:dataType,color: color,isThumbnail: false, showAverage:settings.showGraphAverages,date:selectedDay)
+//            LineChartView(
+//                data: chartData,
+//                color: color,
+//                isTimewise: true,
+//                unitSuffix: Utils.unitSuffix(dataType: dataType),
+//                interactive: true,
+//                xDomain: dayRange,
+//                height:500,
+//                showPoints:true,
+//                showAverage:true
+//            )
+            
+
             HStack{
                 Spacer()
                 Button(action: {
@@ -105,12 +107,16 @@ struct ExpandedMetricView: View {
                 Text("Today")
             }
             .buttonStyle(.borderedProminent)
-            .padding(10)
             .disabled(calendar.isDate(Date.now, inSameDayAs: selectedDay))
             .tint(color)
             .opacity(0.8)
-            Spacer()
             
+            .padding()
+            Text("Do not rely on this data for any medical purposes or diagnoses. Data is not validated and may not be accurate.")
+                .padding()
+                .font(.caption)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.secondary)
         }.appBackground()
             .navigationTitle(title)
             .onAppear {
