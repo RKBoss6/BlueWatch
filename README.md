@@ -1,5 +1,5 @@
 # BlueWatch
-<img width="200" height="200" alt="Bangle.js 2" src="https://github.com/user-attachments/assets/2dbaf726-80dc-48e0-901f-c8d2041a25c6" />
+<img width="200" alt="Bangle.js 2" src="https://github.com/user-attachments/assets/2dbaf726-80dc-48e0-901f-c8d2041a25c6" />
 
 An open-source iOS app for watches like Bangle.js.
 
