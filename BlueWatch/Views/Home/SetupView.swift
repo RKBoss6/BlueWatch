@@ -19,6 +19,7 @@ struct SetupView: View {
     let type: SetupScreenType
     @State private var navigateToNextScreen = false
     @Environment(\.colorScheme) var colorScheme
+    @Environment(\.isPreview) var isPreview
     func getNextScreen() -> some View {
         // screen order is Notifications, Health, Location
         Group {
@@ -141,7 +142,15 @@ struct SetupView: View {
             .liquidGlassButton()
 
             .padding(.horizontal)
-
+            if(isPreview){
+                Button {
+                    navigateToNextScreen = true
+                } label: {
+                    Text("Skip")
+                        .frame(maxWidth: .infinity, maxHeight: 30)
+                    
+                }
+            }
            
         }.navigationTitle(String("App Permissions"))
             .navigationBarTitleDisplayMode(.inline)

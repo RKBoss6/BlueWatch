@@ -58,7 +58,8 @@ class CommandInterpreter {
         switch j["type"] as? String {
         case "health":
             HealthManager.shared.handleHealthData(j)
-
+        case "hrv":
+            HealthManager.shared.handleHrvData(j)
         case "systemInfo":
             logger.log("Got system json")
             handleSystemInfo(j)

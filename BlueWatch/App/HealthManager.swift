@@ -15,7 +15,25 @@ class HealthManager {
     private let lastWatchStepsKey = "LastWatchSteps"
     private let lastWatchActiveCaloriesKey = "LastActiveCalories"
     private let lastWatchRestingCaloriesKey = "LastRestingCalories"
-
+    
+    func handleHrvData(_ data: [String: Any]){
+        var time: Date
+        if let t = data["time"] as? Double {
+            time = Date(timeIntervalSince1970: t / 1000)
+        } else {
+            time = Date()
+        }
+        if let hrv = data["hrv"] as? Double {
+            DataService.addDataPointInBackground(
+                timestamp: time,
+                value: hrv,
+                type: .hrv,
+                alwaysSave: true
+            )
+        }
+        
+        
+    }
     func handleHealthData(_ data: [String: Any]) {
         var time: Date
         if let t = data["start"] as? Double {

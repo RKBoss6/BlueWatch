@@ -45,6 +45,8 @@ enum Utils {
             return " kcal"
         case .battery:
             return "%"
+        case .hrv:
+            return "ms"
         case .test, .bluetoothBoundary:
             return " test units"
         }
@@ -72,6 +74,7 @@ let logger = Logger(subsystem: "com.RK.BlueWatch", category: "Debugging")
 enum DataType: String, Codable {
     case steps
     case heartRate
+    case hrv
     case battery
     case test
     case activeCalories

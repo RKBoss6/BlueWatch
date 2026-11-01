@@ -148,10 +148,10 @@ class FindPhoneAlarm: NSObject, AVAudioPlayerDelegate {
             endBackgroundTask()
             return
         }
-
+        let soundFile:String = "CustomFindPhone"
         guard
             let url = Bundle.main.url(
-                forResource: "findphone",
+                forResource: soundFile,
                 withExtension: "wav"
             )
         else {
@@ -165,7 +165,7 @@ class FindPhoneAlarm: NSObject, AVAudioPlayerDelegate {
         do {
             audioPlayer = try AVAudioPlayer(contentsOf: url)
             audioPlayer?.delegate = self
-            audioPlayer?.volume = 1.0
+            audioPlayer?.volume = 1.1
             audioPlayer?.numberOfLoops = 3
             audioPlayer?.prepareToPlay()
 
