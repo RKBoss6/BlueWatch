@@ -11,7 +11,7 @@ struct BlueWatchApp: App {
     
     // Use the singleton we defined
     @StateObject private var bleManager = BLEManager.shared
-
+    var timeMonitor: TimeChangeMonitor?
     static func checkNotificationPermissions() async -> Bool {
         let settings = await UNUserNotificationCenter.current().notificationSettings()
         return settings.authorizationStatus == .authorized ||
@@ -41,7 +41,8 @@ struct BlueWatchApp: App {
     init() {
         // Initialize BLE as early as possible for state restoration
         _ = BLEManager.shared
-        
+        timeMonitor = TimeChangeMonitor()
+
         // Register the background task immediately on launch
        // BGTaskScheduler.shared.register(forTaskWithIdentifier: BlueWatchApp.weatherTaskID, using: nil) { task in
        //     BlueWatchApp.handleWeatherTask(task: task as! BGAppRefreshTask)

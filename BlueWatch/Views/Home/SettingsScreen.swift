@@ -139,6 +139,15 @@ struct WatchSettingsScreen: View {
                         NavigationLink(destination: ThumbSettingsScreen()) {
                             Text("Metrics")
                         }
+                        
+                        if #available(iOS 26.0, *){
+                            Divider()
+                            Toggle(isOn: $settings.showGlassEffects) {
+                                Text("Use Glass UI")
+                                
+                            }
+                            .tint(.accentColor)
+                        }
 
                     }
                     .liquidGlassFormItem()
@@ -146,6 +155,7 @@ struct WatchSettingsScreen: View {
                 } header: {
                     Text("UI")
                 }
+                
                 .listRowBackground(Color.clear)
 
                 Section {
@@ -189,17 +199,40 @@ struct WatchSettingsScreen: View {
                 Section {
                     VStack(spacing: 16) {
 
-                        Toggle(isOn: $settings.sendToHealthKit) {
-                            Text("Push Health Data to Apple Health")
-
-                        }
-                        .tint(.accentColor)
-                        Divider()
                         Toggle(isOn: $settings.updateTimeOnConnect) {
                             Text("Update Time on Connect")
 
                         }
                         .tint(.accentColor)
+                        Divider()
+                        Toggle(isOn: $settings.updateTimeOnSignificantChange) {
+                            Text("Update Time Persistently")
+
+                        }
+                        .tint(.accentColor)
+
+                    }
+                    .liquidGlassFormItem()
+
+                } header: {
+                    Text("Data")
+                } footer: {
+                    Text(
+                        "Updates watch time whenever the iOS time or timezone changes."
+                    )
+                }
+
+                .listRowBackground(Color.clear)
+                
+                Section {
+                    VStack(spacing: 16) {
+
+                        Toggle(isOn: $settings.sendToHealthKit) {
+                            Text("Push Health Data to Apple Health")
+
+                        }
+                        .tint(.accentColor)
+
                         Divider()
 
                         Toggle(isOn: $settings.pushWeather) {

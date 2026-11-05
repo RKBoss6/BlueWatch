@@ -10,9 +10,10 @@ import SwiftUI
 struct LiquidGlassModifier: ViewModifier {
     @Environment(\.colorScheme) var colorScheme
     var cornerRadius: CGFloat
+    @StateObject var settings: Settings = Settings.shared
     var backgroundColor: Color
     func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
+        if #available(iOS 26.0, *) , settings.showGlassEffects {
             let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
 
             return AnyView(

@@ -1,5 +1,5 @@
 //
-//  SettingsState.swift
+//  Settings.swift
 //  BlueWatch
 //
 //  Created by Kabir Onkar on 4/6/26.
@@ -162,6 +162,18 @@ public class Settings: ObservableObject {
             LocalStorage.set(updateTimeOnConnect, forKey: updateTimeOnConnectKey)
         }
     }
+    private var updateTimeOnSignificantChangeKey: String = "updateTimeOnSignificantChange"
+    @Published public var updateTimeOnSignificantChange: Bool {
+        didSet {
+            LocalStorage.set(updateTimeOnSignificantChange, forKey: updateTimeOnSignificantChangeKey)
+        }
+    }
+    private var showGlassEffectsKey: String = "showGlassEffects"
+    @Published public var showGlassEffects: Bool {
+        didSet {
+            LocalStorage.set(showGlassEffects, forKey: showGlassEffectsKey)
+        }
+    }
 
     init() {
         //register defaults
@@ -185,7 +197,9 @@ public class Settings: ObservableObject {
             showBatteryThumbKey: true,
             pullToRefreshWebViewKey: true,
             showGraphAveragesKey: true,
-            updateTimeOnConnectKey:true
+            updateTimeOnConnectKey:true,
+            updateTimeOnSignificantChangeKey:true,
+            showGlassEffectsKey:true
 
         ])
         // load
@@ -223,8 +237,8 @@ public class Settings: ObservableObject {
             LocalStorage.getBool(forKey: pullToRefreshWebViewKey) ?? true
         showGraphAverages =
             LocalStorage.getBool(forKey: showGraphAveragesKey) ?? true
-
+        updateTimeOnSignificantChange = LocalStorage.getBool(forKey: updateTimeOnSignificantChangeKey) ?? true
         updateTimeOnConnect = LocalStorage.getBool(forKey: updateTimeOnConnectKey) ?? true
-
+        showGlassEffects = LocalStorage.getBool(forKey: showGlassEffectsKey) ?? true
     }
 }
