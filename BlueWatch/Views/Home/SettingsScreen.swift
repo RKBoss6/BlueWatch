@@ -60,6 +60,13 @@ struct ThumbSettingsScreen: View {
                     }
                     .tint(.accentColor)
                     Divider()
+
+                    Toggle(isOn: $settings.showHrvThumb) {
+                        Text("Show HRV Metric")
+
+                    }
+                    .tint(.accentColor)
+                    Divider()
                     Toggle(isOn: $settings.showBatteryThumb) {
                         Text("Show Battery Metric")
 

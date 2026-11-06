@@ -152,5 +152,5 @@ struct ExpandedMetricView: View {
 }
 
 #Preview {
-    ExpandedMetricView(title: "Heart Rate", dataType: .test, color:.graphRed)
+    ExpandedMetricView(title: "HRV", dataType: .hrv, color:.graphPink)
 }

@@ -7,22 +7,28 @@
 
 import Foundation
 import HealthKit
+import _SwiftData_SwiftUI
 
 class HealthManager {
     public static let shared = HealthManager()
-
     private let healthStore = HKHealthStore()
     private let lastWatchStepsKey = "LastWatchSteps"
     private let lastWatchActiveCaloriesKey = "LastActiveCalories"
     private let lastWatchRestingCaloriesKey = "LastRestingCalories"
-    
+   
     func handleHrvData(_ data: [String: Any]){
-        var time: Date
-        if let t = data["time"] as? Double {
-            time = Date(timeIntervalSince1970: t / 1000)
-        } else {
-            time = Date()
+        var time:Date = Date()
+        let calendar = Calendar.current
+        let now = Date()
+
+        // 2. Set the hours, minutes, and seconds specifically to 12:00:00
+        let noonToday = calendar.date(bySettingHour: 12, minute: 0, second: 0, of: now)
+
+        // 'noonToday' is an Optional Date, safely unwrap it before use
+        if let noon = noonToday {
+            time=noon
         }
+        
         if let hrv = data["hrv"] as? Double {
             DataService.addDataPointInBackground(
                 timestamp: time,
@@ -115,7 +121,18 @@ class HealthManager {
         }
 
     }
-
+    func requestHRVData(){
+        
+        if let latestPoint=DataService.getLatestPoint(for: .hrv){
+            let myDate = Date()
+            if(Calendar.current.isDateInToday(latestPoint.timestamp)){
+                // don't need it
+                return;
+            }
+        }
+        
+        BLEManager.shared.send("Request HRV")
+    }
     private func syncSteps(watchTotal: Double, time:Date) {
         let type = HKQuantityType.quantityType(forIdentifier: .stepCount)!
 

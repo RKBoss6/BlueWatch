@@ -141,6 +141,12 @@ public class Settings: ObservableObject {
             LocalStorage.set(showActiveCalThumb, forKey: showActiveCalThumbKey)
         }
     }
+    private var showHrvThumbKey: String = "showHrvThumb"
+    @Published public var showHrvThumb: Bool {
+        didSet {
+            LocalStorage.set(showHrvThumb, forKey: showHrvThumbKey)
+        }
+    }
     private var showStepsThumbKey: String = "showStepsThumb"
     @Published public var showStepsThumb: Bool {
         didSet {
@@ -199,7 +205,8 @@ public class Settings: ObservableObject {
             showGraphAveragesKey: true,
             updateTimeOnConnectKey:true,
             updateTimeOnSignificantChangeKey:true,
-            showGlassEffectsKey:true
+            showGlassEffectsKey:true,
+            showHrvThumbKey:true
 
         ])
         // load
@@ -233,6 +240,8 @@ public class Settings: ObservableObject {
             LocalStorage.getBool(forKey: showActiveCalThumbKey) ?? true
         showRestingCalThumb =
             LocalStorage.getBool(forKey: showRestingCalThumbKey) ?? true
+        showHrvThumb =
+            LocalStorage.getBool(forKey: showHrvThumbKey) ?? true
         pullToRefreshWebView =
             LocalStorage.getBool(forKey: pullToRefreshWebViewKey) ?? true
         showGraphAverages =
@@ -240,5 +249,6 @@ public class Settings: ObservableObject {
         updateTimeOnSignificantChange = LocalStorage.getBool(forKey: updateTimeOnSignificantChangeKey) ?? true
         updateTimeOnConnect = LocalStorage.getBool(forKey: updateTimeOnConnectKey) ?? true
         showGlassEffects = LocalStorage.getBool(forKey: showGlassEffectsKey) ?? true
+        
     }
 }

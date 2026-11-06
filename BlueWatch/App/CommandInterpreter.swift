@@ -46,6 +46,7 @@ class CommandInterpreter {
             if Settings.shared.pushLocation {
                 DataSendManager.sendCurrentLocation()
             }
+            HealthManager.shared.requestHRVData()
 
         default:
             break

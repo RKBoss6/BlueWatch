@@ -52,7 +52,7 @@ struct MetricCard: View {
         NavigationLink(
             destination: ExpandedMetricView(
                 title: expandedTitle,
-                dataType: isPreview ? .test : dataType,
+                dataType: dataType,
                 color: color
             )
         ) {
@@ -90,7 +90,7 @@ struct MetricCard: View {
                     }
 
                     DataChart(
-                        dataType: isPreview ? .test : dataType,
+                        dataType: dataType,
                         color: color,
                         isThumbnail: true
                     )

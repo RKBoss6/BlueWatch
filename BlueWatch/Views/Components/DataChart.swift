@@ -16,6 +16,7 @@ struct ChartData: Identifiable {
 }
 
 struct DataChart: View {
+    @Environment(\.isPreview) var isPreview
 
     @Query private var filteredPoints: [DataPoint]
 
@@ -24,9 +25,10 @@ struct DataChart: View {
     let interactive: Bool
     let height: Double
     let timeAgoSeconds: Double
-    let dataType: DataType
+    var dataType: DataType
     let isThumbnail: Bool
     let showMarkers: Bool
+    let isHrvGraph:Bool;
     let hourlyMarkers: Int
     let showAverage: Bool
     let date:Date
@@ -37,12 +39,14 @@ struct DataChart: View {
         self.suffix = Utils.unitSuffix(dataType: dataType)
         self.dataType = dataType
         self.date=date
+        self.isHrvGraph = dataType == .hrv
+        let typeRawValue = dataType.rawValue
         if isThumbnail {
 
             self.interactive = false
             self.height = 160
             self.showMarkers = false
-            self.timeAgoSeconds = 12 * 60 * 60
+            self.timeAgoSeconds = self.isHrvGraph ? 4 * 24 * 60 * 60 : 12 * 60 * 60
             self.hourlyMarkers = 3
 
         } else {
@@ -50,41 +54,62 @@ struct DataChart: View {
             self.interactive = true
             self.height = 390
             self.showMarkers = true
-            self.timeAgoSeconds = 86400
+            self.timeAgoSeconds = self.isHrvGraph ? 7 * 24 * 60 * 60 : 86400
             self.hourlyMarkers = 6
         }
-
+        
+        
         self.showAverage = showAverage
-
-        let typeRawValue = dataType.rawValue
-
         let dayAgo: Date
 
         if isThumbnail {
             dayAgo = Date().addingTimeInterval(-self.timeAgoSeconds)
         } else {
-            dayAgo = Calendar.current.startOfDay(for: date)
+            if(isHrvGraph){
+                dayAgo = Date().addingTimeInterval(-self.timeAgoSeconds)
+            }else{
+                dayAgo = Calendar.current.startOfDay(for: date)
+            }
         }
-
-        let boundaryRawValue = DataType.bluetoothBoundary.rawValue
+        if(isPreview){
+            self.dataType = .test
+        }
 
         let predicate = #Predicate<DataPoint> { point in
-            (point.rawType == typeRawValue || point.rawType == boundaryRawValue)
+            (point.rawType == typeRawValue)
                 && point.timestamp > dayAgo
         }
+        
 
         _filteredPoints = Query(
             filter: predicate,
             sort: \DataPoint.timestamp
         )
-    }
 
+        
+    }
+    private var hrvXDomain: ClosedRange<Date> {
+        let calendar = Calendar.current
+        let end = calendar.startOfDay(for: date)
+        let start = calendar.date(byAdding: .day, value: -3, to: end)!
+        let upper = calendar.date(byAdding: .day, value: 1, to: end)!
+            .addingTimeInterval(-1)
+
+        return start...upper
+    }
     var body: some View {
 
         if dataType == .test {
 
             let now = Date()
-
+            let calendar:Calendar=Calendar.current
+            let today = calendar.startOfDay(for: Date())
+            let hrvTestData: [ChartData] = [
+                ChartData(x: calendar.date(byAdding: .day, value: -3, to: today)!.addingTimeInterval(43200), y: 58),
+                ChartData(x: calendar.date(byAdding: .day, value: -2, to: today)!.addingTimeInterval(43200), y: 64),
+                ChartData(x: calendar.date(byAdding: .day, value: -1, to: today)!.addingTimeInterval(43200), y: 55),
+                ChartData(x: today.addingTimeInterval(43200), y: 60)
+            ]
             let mockPoints: [ChartData] = [
 
                 ChartData(x: now.addingTimeInterval(-80000), y: 58),
@@ -111,17 +136,19 @@ struct DataChart: View {
             ].sorted(by: { $0.x < $1.x })
 
             LineChartView(
-                data: mockPoints,
+                data: isHrvGraph ? hrvTestData : mockPoints,
                 color: color,
-                isTimewise: true,
+                isTimewise: !isHrvGraph,
                 unitSuffix: suffix,
                 interactive: interactive,
+                xDomain: isHrvGraph ? hrvXDomain : nil,
                 height: height,
                 timeAgoSeconds: timeAgoSeconds,
+                showPoints: isHrvGraph ? true : false,
                 hoursMarked: hourlyMarkers,
                 showAverage: showAverage,
                 isThumbnail: isThumbnail,
-                date:date
+                date:date,
 
             )
 
@@ -134,11 +161,13 @@ struct DataChart: View {
             LineChartView(
                 data: chartData,
                 color: color,
-                isTimewise: true,
+                isTimewise: !isHrvGraph,
                 unitSuffix: suffix,
                 interactive: interactive,
+                xDomain: isHrvGraph ? hrvXDomain : nil,
                 height: height,
                 timeAgoSeconds: timeAgoSeconds,
+                showPoints: isHrvGraph ? true : false,
                 hoursMarked: hourlyMarkers,
                 showAverage: showAverage,
                 isThumbnail: isThumbnail,
@@ -149,7 +178,7 @@ struct DataChart: View {
 }
 
 #Preview {
-    DataChart(dataType: .test, color: .graphRed, isThumbnail: false)
+    DataChart(dataType: .hrv, color: .graphPink, isThumbnail: false)
         .appBackground()
 }
 

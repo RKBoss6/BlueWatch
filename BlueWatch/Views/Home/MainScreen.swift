@@ -31,6 +31,7 @@ struct WatchScreen: View {
         "steps":           .init(dataType: .steps,           color: .graphPurple, thumbTitle: "Steps",            expandedTitle: "Steps"),
         "activeCalories":  .init(dataType: .activeCalories,  color: .graphOrange, thumbTitle: "Active Calories",  expandedTitle: "Active Calories"),
         "restingCalories": .init(dataType: .restingCalories, color: .graphBlue,   thumbTitle: "Resting Calories", expandedTitle: "Resting (BMR) Calories"),
+        "hrv": .init(dataType: .hrv, color: .graphPink,   thumbTitle: "HRV", expandedTitle: "Recovery HRV"),
         "battery":         .init(dataType: .battery,         color: .graphGreen,  thumbTitle: "Battery",          expandedTitle: "Watch Battery"),
     ]
     @Environment(\.colorScheme) var colorScheme
@@ -38,10 +39,14 @@ struct WatchScreen: View {
     @Environment(\.requestReview) var requestReview
     @Environment(\.modelContext) private var modelContext
     var vm: ViewModel = ViewModel.shared
-    @AppStorage("metricCardStringOrder") var metricCardStringOrder=ReorderableListContainer(  [ReorderableString("heartRate"), ReorderableString("steps"), ReorderableString("activeCalories"), ReorderableString("restingCalories"), ReorderableString("battery")])
+    @AppStorage("metricCardStringOrder") var metricCardStringOrder=ReorderableListContainer(  [ReorderableString("heartRate"), ReorderableString("steps"), ReorderableString("activeCalories"), ReorderableString("restingCalories"),ReorderableString("hrv"), ReorderableString("battery")])
     @State private var visibleMetricItems: [ReorderableString] = []
 
     private func recomputeVisibleMetrics() {
+        let hrvExists = metricCardStringOrder.items.contains(where: { $0.value == "hrv" })
+        if(!hrvExists){
+            metricCardStringOrder.items.append(ReorderableString("hrv"))
+        }
         visibleMetricItems = metricCardStringOrder.items.filter { item in
             switch item.value {
             case "heartRate":       return settings.showHrThumb
@@ -49,6 +54,7 @@ struct WatchScreen: View {
             case "activeCalories":  return settings.showActiveCalThumb
             case "restingCalories": return settings.showRestingCalThumb
             case "battery":         return settings.showBatteryThumb
+            case "hrv":             return settings.showHrvThumb
             default:                return false
             }
         }
@@ -345,6 +351,14 @@ struct WatchScreen: View {
                                    color: .graphBlue,
                                    thumbTitle: "Resting Calories",
                                    expandedTitle: "Resting (BMR) Calories"
+                               )
+                           }
+                           if Settings.shared.showHrvThumb {
+                               MetricCard(
+                                   dataType: .hrv,
+                                   color: .graphPink,
+                                   thumbTitle: "HRV",
+                                   expandedTitle: "Recovery HRV"
                                )
                            }
                            if Settings.shared.showBatteryThumb {

@@ -39,7 +39,7 @@ struct GraphThumbnail: View {
             ZStack {
 
                 DataChart(
-                    dataType: isPreview ? .test : data,
+                    dataType: data,
                     color: color,
                     isThumbnail: true
                 )
@@ -60,7 +60,7 @@ struct GraphThumbnail: View {
     NavigationStack {
         Grid {
             GraphThumbnail(
-                data: .activeCalories,
+                data: .hrv,
                 color: .green,
                 thumbnailName: "Calories",
                 expandedName: "Active calories"

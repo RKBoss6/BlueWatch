@@ -102,8 +102,9 @@ struct LineChartView: View {
                             x: .value("Time", item.x),
                             y: .value("Value", item.y)
                         )
-                        .foregroundStyle(color)
                         .symbol(.circle)
+                        .foregroundStyle(color)
+                        
                     } else {
                         LineMark(
                             x: .value("Time", item.x),
@@ -143,18 +144,20 @@ struct LineChartView: View {
                             ) {
 
                                 VStack {
-
                                     if isTimewise {
-                                        Text(
-                                            selectedPoint.x.formatted(
-                                                .dateTime.hour().minute()
+                                        Text(selectedPoint.x.formatted(.dateTime.hour().minute()))
+                                            .font(
+                                                .system(.caption, design: .rounded)
                                             )
-                                        )
-                                        .font(
-                                            .system(.caption, design: .rounded)
-                                        )
-                                        .fontWeight(.semibold)
-                                        .foregroundStyle(.gray)
+                                            .fontWeight(.semibold)
+                                            .foregroundStyle(.gray)
+                                    } else {
+                                        Text(selectedPoint.x.formatted(.dateTime.month(.abbreviated).day()))
+                                            .font(
+                                                .system(.caption, design: .rounded)
+                                            )
+                                            .fontWeight(.semibold)
+                                            .foregroundStyle(.gray)
                                     }
 
                                     Text(
@@ -188,23 +191,25 @@ struct LineChartView: View {
             }
 
             .chartXAxis {
-                AxisMarks(
-                    values: .stride(
-                        by: .hour,
-                        count: Int(
-                            round(
-                                timeAgoSeconds / 60 / 60 / Double(hoursMarked)
-                            )
+                if isTimewise {
+                    AxisMarks(
+                        values: .stride(
+                            by: .hour,
+                            count: Int(round(timeAgoSeconds / 60 / 60 / Double(hoursMarked)))
                         )
-                    )
-                ) { value in
-                    AxisGridLine()
-                    AxisTick()
-
-                    AxisValueLabel(
-                        format: .dateTime.hour(.defaultDigits(amPM: .narrow))
-                            .minute()
-                    )
+                    ) { value in
+                        AxisGridLine()
+                        AxisTick()
+                        AxisValueLabel(
+                            format: .dateTime.hour(.defaultDigits(amPM: .narrow)).minute()
+                        )
+                    }
+                } else {
+                    AxisMarks(values: .stride(by: .day, count: 1)) { value in
+                        AxisGridLine()
+                        AxisTick()
+                        AxisValueLabel(format: .dateTime.month(.abbreviated).day())
+                    }
                 }
             }
 
