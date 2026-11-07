@@ -12,6 +12,7 @@ import StoreKit
 struct ExpandedMetricView: View {
     let title: String
     let dataType: DataType
+    @Environment(\.openURL) private var openURL
     @ObservedObject var settings = Settings.shared
     @Environment(\.requestReview) var requestReview
     let color:Color
@@ -34,7 +35,29 @@ struct ExpandedMetricView: View {
     
     
     
-    
+    func getURLOfType(type:DataType) -> String {
+        var url = "x-apple-health://SampleType/HKQuantityTypeIdentifier"
+        switch type{
+        case .hrv :
+            if #available(iOS 27.0, *) {
+                url += "HeartRateVariabilityRMSSD"
+            }else{
+                url += "HeartRateVariabilitySDNN"
+            }
+        case .heartRate :
+            url += "HeartRate"
+        case .steps :
+            url += "StepCount"
+        case .activeCalories :
+            url += "ActiveEnergyBurned"
+        case .restingCalories :
+            url += "BasalEnergyBurned"
+        
+        default:
+            return ""
+        }
+        return url
+    }
     
     private var chartData: [ChartData] {
         if dataType == .test {
@@ -100,16 +123,35 @@ struct ExpandedMetricView: View {
                 .opacity(calendar.isDateInToday(selectedDay) ? 0.4 : 1)
                 Spacer()
             }
-            
-            Button{
-                moveDay(by: calendar.dateComponents([.day], from: selectedDay, to: Date.now).day ?? 0)
-            }label:{
-                Text("Today")
+            HStack{
+                if(dataType != .battery){
+                    Button{
+                        if let url = URL(string: getURLOfType(type: dataType)) {
+                            openURL(url)
+                        }
+                    }label:{
+                        Text("View in Health")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(color)
+                    .opacity(0.8)
+                    .padding(.horizontal,6)
+                    
+                }
+                Button{
+                    moveDay(by: calendar.dateComponents([.day], from: selectedDay, to: Date.now).day ?? 0)
+                }label:{
+                    Text("Today")
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(calendar.isDate(Date.now, inSameDayAs: selectedDay))
+                .tint(color)
+                .opacity(0.8)
+                .padding(.horizontal,6)
+                
+                
+
             }
-            .buttonStyle(.borderedProminent)
-            .disabled(calendar.isDate(Date.now, inSameDayAs: selectedDay))
-            .tint(color)
-            .opacity(0.8)
             
             .padding()
             Text("Do not rely on this data for any medical purposes or diagnoses. Data is not validated and may not be accurate.")

@@ -73,7 +73,7 @@ struct MetricCard: View {
                         .fontWeight(.bold)
 
                         Text(
-                            "Updated \(latestPoint.timestamp.formatted(date: .omitted, time: .shortened))"
+                            "As of \(latestPoint.timestamp.formatted(date: .omitted, time: .shortened))"
                         )
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -83,7 +83,7 @@ struct MetricCard: View {
                             .font(.largeTitle)
                             .fontWeight(.bold)
 
-                        Text("Updated --")
+                        Text("As of --")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .padding(.bottom)

@@ -36,7 +36,36 @@ class HealthManager {
                 type: .hrv,
                 alwaysSave: true
             )
+            
+            if Settings.shared.sendToHealthKit == true {
+                var type = HKQuantityType.quantityType(
+                    forIdentifier: .heartRateVariabilitySDNN
+                )!
+                if #available(iOS 27.0, *) {
+                    type = HKQuantityType.quantityType(
+                        forIdentifier: .heartRateVariabilityRMSSD
+                    )!
+                }
+
+                let quantity = HKQuantity(
+                    unit: .secondUnit(with: .milli),
+                    doubleValue: hrv
+                )
+               
+                let sample = HKQuantitySample(
+                    type: type,
+                    quantity: quantity,
+                    start: time,
+                    end: time,
+                   
+                )
+                healthStore.save(sample) { ok, err in
+                    //logger.log("HR: \(err!)")
+                }
+            }
         }
+        
+        
         
         
     }
@@ -124,7 +153,6 @@ class HealthManager {
     func requestHRVData(){
         
         if let latestPoint=DataService.getLatestPoint(for: .hrv){
-            let myDate = Date()
             if(Calendar.current.isDateInToday(latestPoint.timestamp)){
                 // don't need it
                 return;

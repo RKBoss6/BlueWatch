@@ -16,11 +16,13 @@ class AuthManager: NSObject, @MainActor CLLocationManagerDelegate {
     private let locationManager = CLLocationManager()
     var isLocationAuthorizedAlways: Bool = false
     private var continuation: CheckedContinuation<Bool, Never>?
-    let hkTypes: Set = [
+    var hkTypes: Set = [
         HKQuantityType.quantityType(forIdentifier: .heartRate)!,
         HKQuantityType.quantityType(forIdentifier: .stepCount)!,
         HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!,
-        HKQuantityType.quantityType(forIdentifier: .basalEnergyBurned)!
+        HKQuantityType.quantityType(forIdentifier: .basalEnergyBurned)!,
+        HKQuantityType.quantityType(forIdentifier: .heartRateVariabilitySDNN)!
+        
     ]
     static let shared = AuthManager()
     
@@ -72,7 +74,11 @@ class AuthManager: NSObject, @MainActor CLLocationManagerDelegate {
     func requestHealthAuthorization() async -> Bool {
         let healthStore = HKHealthStore()
         guard HKHealthStore.isHealthDataAvailable() else { return false }
-        
+        if #available(iOS 27.0, *) {
+            hkTypes.insert(HKQuantityType.quantityType(forIdentifier: .heartRateVariabilityRMSSD)!)
+            
+            
+        }
         let types: Set = hkTypes
         
         do {

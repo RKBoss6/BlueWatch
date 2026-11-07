@@ -46,7 +46,7 @@ enum Utils {
         case .battery:
             return "%"
         case .hrv:
-            return "ms"
+            return " ms"
         case .test, .bluetoothBoundary:
             return " test units"
         }
