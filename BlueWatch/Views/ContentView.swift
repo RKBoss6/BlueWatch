@@ -70,6 +70,12 @@ struct ContentView: View {
         .sheet(isPresented: $showWhatsNewSheet) {
             LanguageOnboarding()
         }
+        .onAppear(){
+            Task{
+               await  AuthManager.shared.requestHealthAuthorization()
+            }
+            
+        }
        
 
     }

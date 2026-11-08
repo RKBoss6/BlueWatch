@@ -14,6 +14,7 @@ struct MetricCardConfig {
     let expandedTitle: String
 }
 struct MetricCard: View {
+    
     @Environment(\.isPreview) var isPreview
     let dataType: DataType
     let color: Color
@@ -22,6 +23,26 @@ struct MetricCard: View {
     @State var lastDataTimestampStr: String = "---"
     @State var lastDataValueStr: String = "--"
     @Query private var latestPoints: [DataPoint]
+    func automaticRelativeString(date: Date) -> String {
+        let calendar = Calendar.current
+        
+        // 1. Force "today" to prevent "now" or "hours ago"
+        if calendar.isDateInToday(date) {
+            return "today"
+        }
+        
+        // 2. Strip the hours/minutes/seconds from both dates to lock into day units
+        let startOfTargetDate = calendar.startOfDay(for: date)
+        let startOfToday = calendar.startOfDay(for: Date())
+        
+        // 3. Use the formatter with normalized dates
+        let formatter = RelativeDateTimeFormatter()
+        formatter.dateTimeStyle = .named
+        formatter.unitsStyle = .full
+        
+        return formatter.localizedString(for: startOfTargetDate, relativeTo: startOfToday)
+    }
+
     init(
         dataType: DataType,
         color: Color,
@@ -66,14 +87,14 @@ struct MetricCard: View {
                         .font(.subheadline)
                     if let latestPoint = latestPoints.first {
                         Text(
-                            latestPoint.value.formatted()
+                            latestPoint.value.formatted(.number.precision(.fractionLength(0)))
                                 + (dataType == .battery ? "%" : "")
                         )
                         .font(.title2)
                         .fontWeight(.bold)
 
                         Text(
-                            "As of \(latestPoint.timestamp.formatted(date: .omitted, time: .shortened))"
+                            "Updated \(dataType != .hrv ? latestPoint.timestamp.formatted(date: .omitted, time: .shortened) : automaticRelativeString(date: latestPoint.timestamp))"
                         )
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -83,7 +104,7 @@ struct MetricCard: View {
                             .font(.largeTitle)
                             .fontWeight(.bold)
 
-                        Text("As of --")
+                        Text("Updated --")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .padding(.bottom)

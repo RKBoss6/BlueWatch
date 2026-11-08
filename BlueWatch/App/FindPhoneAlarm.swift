@@ -100,7 +100,9 @@ class FindPhoneAlarm: NSObject, AVAudioPlayerDelegate {
         do {
             let session = AVAudioSession.sharedInstance()
             try session.setCategory(.playback, options: [.mixWithOthers])
+            try session.overrideOutputAudioPort(.speaker)
             try session.setActive(true)
+            
         } catch {
             logger.log("Audio configuration failure: \(error)")
         }
@@ -140,7 +142,7 @@ class FindPhoneAlarm: NSObject, AVAudioPlayerDelegate {
                 options: [.duckOthers]
             )
             try session.setActive(true)
-
+            try session.overrideOutputAudioPort(.speaker)
             // 3. Maximize volume after capturing original volume
             setSystemVolume(1.0)
         } catch {
